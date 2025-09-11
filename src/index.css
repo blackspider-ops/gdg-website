@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark-only theme - no light mode */
+    --background: 224 15% 4%;
+    --foreground: 210 11% 91%;
+    --card: 224 15% 6%;
+    --card-foreground: 210 11% 91%;
+    --popover: 224 15% 6%;
+    --popover-foreground: 210 11% 91%;
+    --primary: 207 89% 66%;
+    --primary-foreground: 210 40% 2%;
+    --secondary: 217 10% 15%;
+    --secondary-foreground: 210 11% 91%;
+    --muted: 217 10% 15%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 4 86% 67%;
+    --accent-foreground: 210 40% 2%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 158 64% 52%;
+    --border: 215 25% 12%;
+    --input: 215 25% 12%;
+    --ring: 207 89% 66% / 0.35;
+    --radius: 0.625rem;
+    
+    /* GDG Brand Colors - adjusted for dark theme */
+    --gdg-blue: 207 89% 66%;
+    --gdg-red: 4 86% 67%;
+    --gdg-yellow: 51 100% 60%;
+    --gdg-green: 142 71% 45%;
+    
+    /* Sidebar */
+    --sidebar-background: 224 15% 4%;
+    --sidebar-foreground: 210 11% 91%;
+    --sidebar-primary: 207 89% 66%;
+    --sidebar-primary-foreground: 210 40% 2%;
+    --sidebar-accent: 217 10% 15%;
+    --sidebar-accent-foreground: 210 11% 91%;
+    --sidebar-border: 215 25% 12%;
+    --sidebar-ring: 207 89% 66% / 0.35;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-body;
+    background: linear-gradient(135deg, hsl(var(--background)), hsl(224 15% 5%));
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Layout System */
+  .editorial-grid {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+  }
+
+  .content-measure {
+    max-width: 65ch;
+  }
+
+  /* Typography */
+  .text-editorial {
+    line-height: 1.6;
+  }
+
+  .text-display {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  .font-display {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  .font-body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Interactive Elements */
+  .magnetic-button {
+    @apply relative transition-transform duration-300 ease-out;
+    will-change: transform;
+  }
+
+  .magnetic-button:hover {
+    @apply scale-105;
+  }
+
+  .underline-slide {
+    @apply relative;
+  }
+
+  .underline-slide::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 origin-right transition-transform duration-300;
+  }
+
+  .underline-slide:hover::after {
+    @apply scale-x-100 origin-left;
+  }
+
+  /* Cards & Panels */
+  .panel-hover {
+    @apply transition-all duration-300 ease-out;
+    will-change: transform;
+  }
+
+  .panel-hover:hover {
+    transform: translateY(-2px) perspective(1000px) rotateX(2deg);
+  }
+
+  /* 3D Scene Container */
+  .hero-canvas {
+    @apply absolute inset-0;
+    background: radial-gradient(circle at center, hsl(var(--background)) 0%, hsl(224 15% 3%) 100%);
+  }
+
+  /* Animations */
+  .animate-fade-up {
+    animation: fade-up 0.8s ease-out forwards;
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Focus & Accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-up,
+    .animate-slide-in,
+    .magnetic-button,
+    .panel-hover {
+      animation: none;
+      transition: none;
+      transform: none;
+    }
+  }
+}
