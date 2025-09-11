@@ -8,7 +8,7 @@ const Home = () => {
   const upcomingEvents = [
     {
       title: 'Build Your First Android App',
-      date: 'March 15, 2024',
+      date: 'March 15, 2025',
       time: '6:00 PM',
       location: 'IST Building',
       room: 'Room 220',
@@ -20,7 +20,7 @@ const Home = () => {
     },
     {
       title: 'AI & Machine Learning Symposium',
-      date: 'March 22, 2024',
+      date: 'March 22, 2025',
       time: '2:00 PM',
       location: 'Forum Building',
       room: 'Auditorium',
@@ -32,7 +32,7 @@ const Home = () => {
     },
     {
       title: 'Firebase Study Jam',
-      date: 'March 28, 2024',
+      date: 'March 28, 2025',
       time: '7:00 PM',
       location: 'Westgate Building',
       room: 'Lab E262',

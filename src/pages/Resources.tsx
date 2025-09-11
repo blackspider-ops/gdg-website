@@ -111,7 +111,7 @@ const Resources = () => {
     {
       title: 'Getting Started with Android Development',
       speaker: 'Alex Chen',
-      date: 'March 15, 2024',
+      date: 'March 15, 2025',
       duration: '1h 30m',
       views: 245,
       link: '#'
@@ -119,7 +119,7 @@ const Resources = () => {
     {
       title: 'Cloud Architecture Best Practices',
       speaker: 'Sarah Johnson',
-      date: 'March 8, 2024',
+      date: 'March 8, 2025',
       duration: '45m',
       views: 189,
       link: '#'
@@ -127,7 +127,7 @@ const Resources = () => {
     {
       title: 'Introduction to Machine Learning',
       speaker: 'Dr. Amanda Foster',
-      date: 'February 28, 2024',
+      date: 'February 28, 2025',
       duration: '2h 15m',
       views: 312,
       link: '#'
@@ -135,7 +135,7 @@ const Resources = () => {
     {
       title: 'Building Responsive Web Apps',
       speaker: 'Michael Rodriguez',
-      date: 'February 20, 2024',
+      date: 'February 20, 2025',
       duration: '1h 45m',
       views: 156,
       link: '#'
