@@ -2,12 +2,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
 import GlobalBackground from "@/components/GlobalBackground";
 import { AdminProvider } from "@/contexts/AdminContext";
+import { ContentProvider } from "@/contexts/ContentContext";
+import { DevProvider } from "@/contexts/DevContext";
 import Home from "./pages/Home";
 import Events from "./pages/Events";
 import Blog from "./pages/Blog";
@@ -17,41 +20,96 @@ import Team from "./pages/Team";
 import Resources from "./pages/Resources";
 import Sponsors from "./pages/Sponsors";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminContent from "./pages/AdminContent";
+import AdminEvents from "./pages/admin/AdminEvents";
+import AdminMembers from "./pages/admin/AdminMembers";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminProfile from "./pages/admin/AdminProfile";
+import AdminSponsors from "./pages/admin/AdminSponsors";
+import AdminCommunications from "./pages/admin/AdminCommunications";
+import AdminMedia from "./pages/admin/AdminMedia";
+import AdminReports from "./pages/admin/AdminReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Component to handle scroll to top on route changes
+const ScrollToTop = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Scroll to top when location changes and it's an admin route
+    if (location.pathname.startsWith('/admin')) {
+      // Multiple approaches to ensure it works with Lenis smooth scroll
+      setTimeout(() => {
+        // Try multiple methods
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        
+        // Also try to access Lenis instance if available
+        const lenis = (window as any).lenis;
+        if (lenis && lenis.scrollTo) {
+          lenis.scrollTo(0, { immediate: true });
+        }
+      }, 100); // Increased delay to ensure Lenis is ready
+    }
+  }, [location.pathname]);
+
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AdminProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SmoothScroll />
-          <GlobalBackground />
-          <div className="min-h-screen flex flex-col relative z-10">
-            <Navigation />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/resources" element={<Resources />} />
-                <Route path="/sponsors" element={<Sponsors />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AdminProvider>
+    <DevProvider>
+      <AdminProvider>
+        <ContentProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollToTop />
+              <SmoothScroll />
+              <GlobalBackground />
+              <div className="min-h-screen flex flex-col relative z-10">
+                <Navigation />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/events" element={<Events />} />
+                    <Route path="/blog" element={<Blog />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/team" element={<Team />} />
+                    <Route path="/resources" element={<Resources />} />
+                    <Route path="/sponsors" element={<Sponsors />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/content" element={<AdminContent />} />
+                    <Route path="/admin/events" element={<AdminEvents />} />
+                    <Route path="/admin/members" element={<AdminMembers />} />
+                    <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+                    <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                    <Route path="/admin/settings" element={<AdminSettings />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/profile" element={<AdminProfile />} />
+                    <Route path="/admin/sponsors" element={<AdminSponsors />} />
+                    <Route path="/admin/communications" element={<AdminCommunications />} />
+                    <Route path="/admin/media" element={<AdminMedia />} />
+                    <Route path="/admin/reports" element={<AdminReports />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ContentProvider>
+      </AdminProvider>
+    </DevProvider>
   </QueryClientProvider>
 );
 

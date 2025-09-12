@@ -3,39 +3,71 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Github, Twitter, Instagram, Mail } from 'lucide-react';
 import AdminLoginModal from '@/components/AdminLoginModal';
 import { useAdmin } from '@/contexts/AdminContext';
+import { useContent } from '@/contexts/ContentContext';
+import { ContentService } from '@/services/contentService';
 
 const Footer = () => {
   const [email, setEmail] = React.useState('');
   const [showAdminModal, setShowAdminModal] = React.useState(false);
+  const [adminSecretCode, setAdminSecretCode] = React.useState('gdg-secret@mail.com');
   const { login, isLoading, error } = useAdmin();
   const navigate = useNavigate();
+  const { socialLinks, getFooterSection, getSiteSetting } = useContent();
 
-  const quickLinks = [
+  // Load admin secret code on component mount
+  React.useEffect(() => {
+    const loadSecretCode = async () => {
+      try {
+        const code = await ContentService.getAdminSecretCode();
+        setAdminSecretCode(code);
+      } catch (error) {
+        console.error('Error loading admin secret code:', error);
+      }
+    };
+    loadSecretCode();
+  }, []);
+
+  // Icon mapping for social links
+  const iconMap: Record<string, any> = {
+    Github,
+    Twitter,
+    Instagram,
+    Mail
+  };
+
+  // Get dynamic content
+  const aboutContent = getFooterSection('about') || {};
+  const quickLinksContent = getFooterSection('quick_links') || {};
+  const resourcesContent = getFooterSection('resources') || {};
+  const contactContent = getFooterSection('contact_info') || {};
+  const newsletterContent = getFooterSection('newsletter') || {};
+
+  const quickLinks = quickLinksContent.links || [
     { name: 'Events', href: '/events' },
     { name: 'Blog', href: '/blog' },
     { name: 'Projects', href: '/projects' },
     { name: 'Team', href: '/team' },
   ];
 
-  const resources = [
+  const resources = resourcesContent.links || [
     { name: 'Study Jams', href: '/resources' },
     { name: 'Cloud Credits', href: '/resources' },
     { name: 'Documentation', href: '/resources' },
     { name: 'Recordings', href: '/resources' },
   ];
 
-  const socialLinks = [
-    { name: 'GitHub', href: '#', icon: Github },
-    { name: 'Twitter', href: '#', icon: Twitter },
-    { name: 'Instagram', href: '#', icon: Instagram },
-    { name: 'Email', href: 'mailto:contact@gdgpsu.org', icon: Mail },
-  ];
+  // Use dynamic social links
+  const dynamicSocialLinks = socialLinks.map(link => ({
+    name: link.platform,
+    href: link.url,
+    icon: iconMap[link.icon] || Mail
+  }));
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check for admin secret email
-    if (email === 'gdg-secret@mail.com') {
+    // Check for admin secret code
+    if (email === adminSecretCode) {
       setShowAdminModal(true);
       return;
     }
@@ -64,18 +96,21 @@ const Footer = () => {
               <span className="text-primary-foreground font-display font-bold text-xl">G</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-semibold text-2xl leading-none">GDG@PSU</span>
-              <span className="text-muted-foreground text-sm">Penn State University</span>
+              <span className="font-display font-semibold text-2xl leading-none">
+                {aboutContent.title || 'GDG@PSU'}
+              </span>
+              <span className="text-muted-foreground text-sm">
+                {aboutContent.subtitle || 'Penn State University'}
+              </span>
             </div>
           </div>
           
           <p className="text-muted-foreground content-measure mb-8 leading-relaxed">
-            A student-led community passionate about Google technologies, development, 
-            and building the future together at Penn State University.
+            {aboutContent.description || 'A student-led community passionate about Google technologies, development, and building the future together at Penn State University.'}
           </p>
 
           <div className="flex space-x-3">
-            {socialLinks.map((social) => {
+            {dynamicSocialLinks.map((social) => {
               const Icon = social.icon;
               return (
                 <a
@@ -93,7 +128,9 @@ const Footer = () => {
 
         {/* Quick Links */}
         <div className="col-span-6 md:col-span-3 lg:col-span-2">
-          <h4 className="font-display font-semibold text-lg mb-6">Quick Links</h4>
+          <h4 className="font-display font-semibold text-lg mb-6">
+            {quickLinksContent.title || 'Quick Links'}
+          </h4>
           <ul className="space-y-4">
             {quickLinks.map((link) => (
               <li key={link.name}>
@@ -110,7 +147,9 @@ const Footer = () => {
 
         {/* Resources */}
         <div className="col-span-6 md:col-span-3 lg:col-span-2">
-          <h4 className="font-display font-semibold text-lg mb-6">Resources</h4>
+          <h4 className="font-display font-semibold text-lg mb-6">
+            {resourcesContent.title || 'Resources'}
+          </h4>
           <ul className="space-y-4">
             {resources.map((link) => (
               <li key={link.name}>
@@ -127,26 +166,29 @@ const Footer = () => {
 
         {/* Connect */}
         <div className="col-span-12 md:col-span-6 lg:col-span-4">
-          <h4 className="font-display font-semibold text-lg mb-6">Connect With Us</h4>
+          <h4 className="font-display font-semibold text-lg mb-6">
+            {contactContent.title || 'Connect With Us'}
+          </h4>
           <div className="space-y-4">
             <div>
               <p className="text-sm font-medium text-foreground mb-1">Email</p>
-              <a href="mailto:contact@gdgpsu.org" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                contact@gdgpsu.org
+              <a 
+                href={`mailto:${contactContent.email || getSiteSetting('contact_email') || 'contact@gdgpsu.org'}`} 
+                className="text-muted-foreground hover:text-primary transition-colors text-sm"
+              >
+                {contactContent.email || getSiteSetting('contact_email') || 'contact@gdgpsu.org'}
               </a>
             </div>
             <div>
               <p className="text-sm font-medium text-foreground mb-1">Location</p>
-              <p className="text-muted-foreground text-sm">
-                Penn State University<br />
-                University Park, PA
+              <p className="text-muted-foreground text-sm whitespace-pre-line">
+                {contactContent.location || 'Penn State University\nUniversity Park, PA'}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-foreground mb-1">Meeting Times</p>
-              <p className="text-muted-foreground text-sm">
-                Thursdays at 7:00 PM<br />
-                Thomas Building 100
+              <p className="text-muted-foreground text-sm whitespace-pre-line">
+                {contactContent.meeting_times || `${getSiteSetting('meeting_time') || 'Thursdays at 7:00 PM'}\n${getSiteSetting('meeting_location') || 'Thomas Building 100'}`}
               </p>
             </div>
           </div>
@@ -155,14 +197,16 @@ const Footer = () => {
         {/* Newsletter - Full Width Bottom */}
         <div className="col-span-12 mt-12 pt-8 border-t border-border">
           <div className="max-w-2xl mx-auto text-center">
-            <h4 className="font-display font-semibold text-xl mb-4">Stay Updated</h4>
+            <h4 className="font-display font-semibold text-xl mb-4">
+              {newsletterContent.title || 'Stay Updated'}
+            </h4>
             <p className="text-muted-foreground mb-6 leading-relaxed">
-              Get the latest updates on events, workshops, and opportunities delivered to your inbox.
+              {newsletterContent.description || 'Get the latest updates on events, workshops, and opportunities delivered to your inbox.'}
             </p>
             <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder={newsletterContent.placeholder || 'Enter your email'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

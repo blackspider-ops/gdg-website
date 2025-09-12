@@ -152,4 +152,144 @@ export class AdminService {
       return false;
     }
   }
+
+  /**
+   * Get all admin users (for super admins only)
+   */
+  static async getAllAdmins(): Promise<AdminUser[]> {
+    try {
+      const { data: admins, error } = await supabase
+        .from('admin_users')
+        .select('id, email, role, is_active, created_at, last_login')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to fetch admin users:', error);
+        return [];
+      }
+
+      return admins || [];
+    } catch (error) {
+      console.error('Error fetching admin users:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update admin user details (for super admins only)
+   */
+  static async updateAdmin(
+    adminId: string, 
+    updates: { 
+      email?: string; 
+      role?: 'admin' | 'super_admin'; 
+      is_active?: boolean; 
+    },
+    updatedBy: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('admin_users')
+        .update(updates)
+        .eq('id', adminId);
+
+      if (error) {
+        console.error('Failed to update admin user:', error);
+        return false;
+      }
+
+      // Log the action
+      await this.logAdminAction(updatedBy, 'update_admin', updates.email, { adminId, updates });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating admin user:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete admin user (for super admins only)
+   */
+  static async deleteAdmin(adminId: string, deletedBy: string): Promise<boolean> {
+    try {
+      // Get admin details before deletion for logging
+      const adminToDelete = await this.getAdminById(adminId);
+      
+      const { error } = await supabase
+        .from('admin_users')
+        .delete()
+        .eq('id', adminId);
+
+      if (error) {
+        console.error('Failed to delete admin user:', error);
+        return false;
+      }
+
+      // Log the action
+      await this.logAdminAction(deletedBy, 'delete_admin', adminToDelete?.email, { adminId });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting admin user:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Reset admin password (for super admins only)
+   */
+  static async resetAdminPassword(
+    adminId: string, 
+    newPassword: string, 
+    resetBy: string
+  ): Promise<boolean> {
+    try {
+      const success = await this.updatePassword(adminId, newPassword);
+      
+      if (success) {
+        // Get admin details for logging
+        const admin = await this.getAdminById(adminId);
+        await this.logAdminAction(resetBy, 'reset_password', admin?.email, { adminId });
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Error resetting admin password:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if current admin is super admin
+   */
+  static isSuperAdmin(admin: AdminUser | null): boolean {
+    return admin?.role === 'super_admin';
+  }
+
+  /**
+   * Get admin actions log (for audit trail)
+   */
+  static async getAdminActions(limit: number = 50): Promise<AdminAction[]> {
+    try {
+      const { data: actions, error } = await supabase
+        .from('admin_actions')
+        .select(`
+          *,
+          admin_users!inner(email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Failed to fetch admin actions:', error);
+        return [];
+      }
+
+      return actions || [];
+    } catch (error) {
+      console.error('Error fetching admin actions:', error);
+      return [];
+    }
+  }
 }

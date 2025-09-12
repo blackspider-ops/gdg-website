@@ -1,19 +1,41 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Calendar, Users, BookOpen, Code, Briefcase, Phone } from 'lucide-react';
+import { useContent } from '@/contexts/ContentContext';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
+  const { navigationItems, getSiteSetting } = useContent();
 
-  const navigation = [
-    { name: 'Events', href: '/events', icon: Calendar },
-    { name: 'Blog', href: '/blog', icon: BookOpen },
-    { name: 'Projects', href: '/projects', icon: Code },
-    { name: 'Team', href: '/team', icon: Users },
-    { name: 'Resources', href: '/resources', icon: BookOpen },
-    { name: 'Sponsors', href: '/sponsors', icon: Briefcase },
-  ];
+  // Icon mapping
+  const iconMap: Record<string, any> = {
+    Calendar,
+    Users,
+    BookOpen,
+    Code,
+    Briefcase,
+    Phone
+  };
+
+  // Use dynamic navigation items or fallback to static
+  const navigation = navigationItems.length > 0 
+    ? navigationItems.map(item => ({
+        name: item.label,
+        href: item.href,
+        icon: iconMap[item.icon] || BookOpen
+      }))
+    : [
+        { name: 'Events', href: '/events', icon: Calendar },
+        { name: 'Blog', href: '/blog', icon: BookOpen },
+        { name: 'Projects', href: '/projects', icon: Code },
+        { name: 'Team', href: '/team', icon: Users },
+        { name: 'Resources', href: '/resources', icon: BookOpen },
+        { name: 'Sponsors', href: '/sponsors', icon: Briefcase },
+      ];
+
+  const siteTitle = getSiteSetting('site_title') || 'GDG@PSU';
+  const siteSubtitle = getSiteSetting('site_subtitle') || 'Penn State University';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -27,8 +49,8 @@ const Navigation = () => {
               <span className="text-primary-foreground font-display font-bold text-lg">G</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-semibold text-lg sm:text-xl leading-none">GDG@PSU</span>
-              <span className="text-muted-foreground text-xs hidden sm:block">Penn State University</span>
+              <span className="font-display font-semibold text-lg sm:text-xl leading-none">{siteTitle}</span>
+              <span className="text-muted-foreground text-xs hidden sm:block">{siteSubtitle}</span>
             </div>
           </Link>
 

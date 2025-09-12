@@ -27,4 +27,7 @@ export interface AdminAction {
   target_email?: string;
   details?: any;
   created_at: string;
+  admin_users?: {
+    email: string;
+  };
 }
