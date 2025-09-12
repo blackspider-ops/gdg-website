@@ -56,7 +56,7 @@ const Contact = () => {
         
         {/* Hero Content */}
         <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
-          <div className="animate-fade-up">
+          <div className="animate-fade-up backdrop-blur-sm bg-background/20 rounded-2xl p-8 border border-white/10">
             <div className="flex items-center justify-center space-x-2 mb-6">
               <span className="text-sm font-medium text-primary uppercase tracking-wide">
                 Contact Us
@@ -64,13 +64,13 @@ const Contact = () => {
               <div className="w-12 h-px bg-border"></div>
             </div>
             
-            <h1 className="font-display text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+            <h1 className="font-display text-5xl lg:text-7xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
               Get in Touch
               <br />
               <span className="text-primary">with GDG PSU</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground content-measure mx-auto mb-8">
+            <p className="text-xl text-muted-foreground content-measure mx-auto mb-8 drop-shadow-md">
               Ready to join our community? Have questions about events? Let's connect.
             </p>
           </div>
@@ -245,31 +245,7 @@ const Contact = () => {
             </div>
           </div>
 
-          {/* Newsletter Signup */}
-          <div className="bg-gdg-blue/5 border border-gdg-blue/20 rounded-lg p-6">
-            <div className="flex items-start space-x-4 mb-4">
-              <div className="w-10 h-10 bg-gdg-blue rounded-lg flex items-center justify-center flex-shrink-0">
-                <Users size={20} className="text-white" />
-              </div>
-              <div>
-                <h3 className="font-display font-semibold mb-1">Stay in the Loop</h3>
-                <p className="text-muted-foreground text-sm">
-                  Get weekly updates on events and opportunities.
-                </p>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
-              />
-              <button className="btn-editorial px-4 py-2 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90 w-full">
-                Subscribe
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

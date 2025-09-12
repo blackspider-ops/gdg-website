@@ -13,7 +13,6 @@ const Navigation = () => {
     { name: 'Team', href: '/team', icon: Users },
     { name: 'Resources', href: '/resources', icon: BookOpen },
     { name: 'Sponsors', href: '/sponsors', icon: Briefcase },
-    { name: 'Contact', href: '/contact', icon: Phone },
   ];
 
   const isActive = (path: string) => location.pathname === path;
