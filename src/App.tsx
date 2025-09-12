@@ -41,23 +41,33 @@ const ScrollToTop = () => {
   const location = useLocation();
   
   useEffect(() => {
-    // Scroll to top when location changes and it's an admin route
-    if (location.pathname.startsWith('/admin')) {
-      // Multiple approaches to ensure it works with Lenis smooth scroll
-      setTimeout(() => {
-        // Try multiple methods
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-        
-        // Also try to access Lenis instance if available
-        const lenis = (window as any).lenis;
-        if (lenis && lenis.scrollTo) {
-          lenis.scrollTo(0, { immediate: true });
-        }
-      }, 100); // Increased delay to ensure Lenis is ready
-    }
-  }, [location.pathname]);
+    // Scroll to top when location changes (pathname or search params)
+    const scrollToTop = () => {
+      // Wait for the next frame and then some to ensure content is rendered
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          // Check if Lenis is available for smooth scrolling
+          const lenis = (window as any).lenis;
+          if (lenis && lenis.scrollTo) {
+            // Use Lenis for smooth scroll to top with gentler easing
+            lenis.scrollTo(0, { 
+              duration: 1.0, // Slightly longer duration for smoother feel
+              easing: (t: number) => 1 - Math.pow(1 - t, 3) // Cubic ease-out for smoother animation
+            });
+          } else {
+            // Fallback to native smooth scroll
+            window.scrollTo({ 
+              top: 0, 
+              left: 0, 
+              behavior: 'smooth' 
+            });
+          }
+        }, 50); // Reduced delay since we're using requestAnimationFrame
+      });
+    };
+
+    scrollToTop();
+  }, [location.pathname, location.search]); // Listen to both pathname and search changes
 
   return null;
 };
