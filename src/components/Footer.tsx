@@ -1,8 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Github, Twitter, Instagram, Mail } from 'lucide-react';
+import AdminLoginModal from '@/components/AdminLoginModal';
+import { useAdmin } from '@/contexts/AdminContext';
 
 const Footer = () => {
+  const [email, setEmail] = React.useState('');
+  const [showAdminModal, setShowAdminModal] = React.useState(false);
+  const { login, isLoading, error } = useAdmin();
+  const navigate = useNavigate();
+
   const quickLinks = [
     { name: 'Events', href: '/events' },
     { name: 'Blog', href: '/blog' },
@@ -23,6 +30,29 @@ const Footer = () => {
     { name: 'Instagram', href: '#', icon: Instagram },
     { name: 'Email', href: 'mailto:contact@gdgpsu.org', icon: Mail },
   ];
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check for admin secret email
+    if (email === 'gdg-secret@mail.com') {
+      setShowAdminModal(true);
+      return;
+    }
+    
+    // TODO: Implement newsletter subscription when backend is connected
+    console.log('Newsletter subscription:', email);
+    setEmail('');
+  };
+
+  const handleAdminLogin = async (credentials: { username: string; password: string }) => {
+    const success = await login(credentials);
+    if (success) {
+      setShowAdminModal(false);
+      setEmail('');
+      navigate('/admin');
+    }
+  };
 
   return (
     <footer className="bg-card/30 border-t border-border">
@@ -129,16 +159,22 @@ const Footer = () => {
             <p className="text-muted-foreground mb-6 leading-relaxed">
               Get the latest updates on events, workshops, and opportunities delivered to your inbox.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
               <input
                 type="email"
                 placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
                 className="flex-1 px-4 py-3 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-colors"
               />
-              <button className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap">
+              <button 
+                type="submit"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap"
+              >
                 Subscribe
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </div>
@@ -163,6 +199,15 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={showAdminModal}
+        onClose={() => setShowAdminModal(false)}
+        onLogin={handleAdminLogin}
+        isLoading={isLoading}
+        error={error}
+      />
     </footer>
   );
 };
