@@ -220,18 +220,18 @@ const AdminUsers = () => {
       case 'update_admin': return <Edit3 size={16} className="text-yellow-600" />;
       case 'delete_admin': return <Trash2 size={16} className="text-red-600" />;
       case 'reset_password': return <Key size={16} className="text-purple-600" />;
-      default: return <Clock size={16} className="text-gray-600" />;
+      default: return <Clock size={16} className="text-gray-400" />;
     }
   };
 
   const getActionColor = (action: string) => {
     switch (action) {
       case 'login': return 'bg-green-50 text-green-700 border-green-200';
-      case 'create_admin': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'create_admin': return 'bg-gray-900 text-blue-700 border-blue-200';
       case 'update_admin': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       case 'delete_admin': return 'bg-red-50 text-red-700 border-red-200';
       case 'reset_password': return 'bg-purple-50 text-purple-700 border-purple-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      default: return 'bg-gray-900 text-gray-300 border-gray-800';
     }
   };
 
@@ -251,14 +251,14 @@ const AdminUsers = () => {
       }
     >
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-8">
+      <div className="border-b border-gray-800 mb-8">
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('users')}
             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'users'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
             }`}
           >
             <Users size={16} />
@@ -269,7 +269,7 @@ const AdminUsers = () => {
             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'audit'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
             }`}
           >
             <Clock size={16} />
@@ -280,33 +280,33 @@ const AdminUsers = () => {
 
       {/* Admin Users Tab */}
       {activeTab === 'users' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
           <div className="p-6">
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-600 mt-2">Loading admin users...</p>
+                <p className="text-gray-400 mt-2">Loading admin users...</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Role</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Created</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-900">Actions</th>
+                    <tr className="border-b border-gray-800">
+                      <th className="text-left py-3 px-4 font-medium text-white">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Role</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Last Login</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Created</th>
+                      <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {admins.map((admin) => (
-                      <tr key={admin.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={admin.id} className="border-b border-gray-100 hover:bg-gray-900">
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-3">
                             <Mail size={16} className="text-gray-400" />
-                            <span className="font-medium text-gray-900">{admin.email}</span>
+                            <span className="font-medium text-white">{admin.email}</span>
                             {admin.id === currentAdmin?.id && (
                               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">You</span>
                             )}
@@ -335,17 +335,17 @@ const AdminUsers = () => {
                             {admin.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-sm text-gray-600">
+                        <td className="py-4 px-4 text-sm text-gray-400">
                           {admin.last_login ? formatDate(admin.last_login) : 'Never'}
                         </td>
-                        <td className="py-4 px-4 text-sm text-gray-600">
+                        <td className="py-4 px-4 text-sm text-gray-400">
                           {formatDate(admin.created_at)}
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center justify-end space-x-2">
                             <button
                               onClick={() => openEditModal(admin)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-2 text-blue-600 hover:bg-gray-900 rounded-lg transition-colors"
                               title="Edit admin"
                             >
                               <Edit3 size={16} />
@@ -376,8 +376,8 @@ const AdminUsers = () => {
                 {admins.length === 0 && (
                   <div className="text-center py-8">
                     <Users size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No admin users found</h3>
-                    <p className="text-gray-600">Create your first admin user to get started.</p>
+                    <h3 className="text-lg font-medium text-white mb-2">No admin users found</h3>
+                    <p className="text-gray-400">Create your first admin user to get started.</p>
                   </div>
                 )}
               </div>
@@ -388,32 +388,32 @@ const AdminUsers = () => {
 
       {/* Audit Log Tab */}
       {activeTab === 'audit' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Admin Actions</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Recent Admin Actions</h3>
             
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-600 mt-2">Loading audit log...</p>
+                <p className="text-gray-400 mt-2">Loading audit log...</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {adminActions.map((action) => (
-                  <div key={action.id} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                  <div key={action.id} className="flex items-center space-x-4 p-4 border border-gray-800 rounded-lg">
                     <div className="flex-shrink-0">
                       {getActionIcon(action.action)}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-white">
                           {action.admin_users?.email || 'Unknown Admin'}
                         </span>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getActionColor(action.action)}`}>
                           {action.action.replace('_', ' ')}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">
+                      <div className="text-sm text-gray-400 mt-1">
                         {action.target_email && (
                           <span>Target: {action.target_email} • </span>
                         )}
@@ -426,8 +426,8 @@ const AdminUsers = () => {
                 {adminActions.length === 0 && (
                   <div className="text-center py-8">
                     <Clock size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No audit log entries</h3>
-                    <p className="text-gray-600">Admin actions will appear here once they start occurring.</p>
+                    <h3 className="text-lg font-medium text-white mb-2">No audit log entries</h3>
+                    <p className="text-gray-400">Admin actions will appear here once they start occurring.</p>
                   </div>
                 )}
               </div>
@@ -439,56 +439,56 @@ const AdminUsers = () => {
       {/* Create Admin Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Create New Admin</h3>
+          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white">Create New Admin</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
                 <input
                   type="email"
                   value={createForm.email}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   placeholder="admin@example.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={createForm.password}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     placeholder="Enter secure password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
                 <select
                   value={createForm.role}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
                 </select>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -508,26 +508,26 @@ const AdminUsers = () => {
       {/* Edit Admin Modal */}
       {showEditModal && selectedAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Edit Admin User</h3>
+          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white">Edit Admin User</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
                 <select
                   value={editForm.role}
                   onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
@@ -539,17 +539,17 @@ const AdminUsers = () => {
                   id="is_active"
                   checked={editForm.is_active}
                   onChange={(e) => setEditForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-400 border-gray-700 rounded"
                 />
-                <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="is_active" className="ml-2 block text-sm text-white">
                   Active user
                 </label>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -569,47 +569,47 @@ const AdminUsers = () => {
       {/* Reset Password Modal */}
       {showPasswordModal && selectedAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Reset Password</h3>
-              <p className="text-sm text-gray-600 mt-1">
+          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-800">
+              <h3 className="text-lg font-semibold text-white">Reset Password</h3>
+              <p className="text-sm text-gray-400 mt-1">
                 Reset password for {selectedAdmin.email}
               </p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">New Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     placeholder="Enter new password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     placeholder="Confirm new password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400"
                   >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -619,10 +619,10 @@ const AdminUsers = () => {
                 <p className="text-sm text-red-600">Passwords do not match</p>
               )}
             </div>
-            <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -642,23 +642,23 @@ const AdminUsers = () => {
       {/* Delete Admin Modal */}
       {showDeleteModal && selectedAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
+          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-800">
               <div className="flex items-center space-x-3">
                 <AlertTriangle size={24} className="text-red-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Delete Admin User</h3>
+                <h3 className="text-lg font-semibold text-white">Delete Admin User</h3>
               </div>
             </div>
             <div className="p-6">
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 Are you sure you want to delete the admin user <strong>{selectedAdmin.email}</strong>? 
                 This action cannot be undone.
               </p>
             </div>
-            <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 Cancel
               </button>

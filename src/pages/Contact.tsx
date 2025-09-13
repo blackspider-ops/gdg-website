@@ -1,9 +1,48 @@
 import React, { Suspense } from 'react';
 import { Mail, MessageSquare, Users, Calendar, Github, Twitter, Instagram } from 'lucide-react';
+import { useContent } from '@/contexts/ContentContext';
 
 const HeroScene = React.lazy(() => import('@/components/HeroScene'));
 
 const Contact = () => {
+  const { getPageSection, getSiteSetting, getLink } = useContent();
+  
+  // Get dynamic content from admin panel
+  const rawContactContent = getPageSection('contact', 'main') || {};
+  
+  // Parse contact links and social links if they exist
+  const contactContent = React.useMemo(() => {
+    const content = { ...rawContactContent };
+    
+    // Parse contact_links if it's a JSON string
+    if (content.contact_links && typeof content.contact_links === 'string') {
+      try {
+        content.contact_links = JSON.parse(content.contact_links);
+      } catch (error) {
+        console.warn('Error parsing contact links:', error);
+        content.contact_links = [];
+      }
+    } else if (!Array.isArray(content.contact_links)) {
+      content.contact_links = [];
+    }
+
+    // Parse social_links if it's a JSON string
+    if (content.social_links && typeof content.social_links === 'string') {
+      try {
+        content.social_links = JSON.parse(content.social_links);
+      } catch (error) {
+        console.warn('Error parsing social links:', error);
+        content.social_links = [];
+      }
+    } else if (!Array.isArray(content.social_links)) {
+      content.social_links = [];
+    }
+    
+    return content;
+  }, [rawContactContent]);
+  
+
+  
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -43,7 +82,6 @@ const Contact = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement form submission when backend is connected
-    console.log('Form submitted:', formData);
   };
 
   return (
@@ -65,13 +103,13 @@ const Contact = () => {
             </div>
             
             <h1 className="font-display text-5xl lg:text-7xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
-              Get in Touch
+              {contactContent.title || 'Get in Touch'}
               <br />
-              <span className="text-primary">with GDG PSU</span>
+              <span className="text-primary">with {getSiteSetting('site_title') || 'GDG PSU'}</span>
             </h1>
             
             <p className="text-xl text-muted-foreground content-measure mx-auto mb-8 drop-shadow-md">
-              Ready to join our community? Have questions about events? Let's connect.
+              {contactContent.subtitle || 'Ready to join our community? Have questions about events? Let\'s connect.'}
             </p>
           </div>
         </div>
@@ -81,7 +119,7 @@ const Contact = () => {
         {/* Contact Form */}
         <div className="col-span-12 lg:col-span-8">
           <div className="gdg-accent-bar pl-6">
-            <h2 className="text-display text-2xl font-semibold mb-6">Send us a Message</h2>
+            <h2 className="text-display text-2xl font-semibold mb-6">{contactContent.form_title || 'Send us a Message'}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}
@@ -178,7 +216,7 @@ const Contact = () => {
                 type="submit"
                 className="btn-editorial px-6 py-3 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90"
               >
-                Send Message
+                {contactContent.button_text || 'Send Message'}
               </button>
             </form>
           </div>
@@ -188,62 +226,101 @@ const Contact = () => {
         <div className="col-span-12 lg:col-span-4 lg:col-start-9 space-y-8">
           {/* Quick Contact */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="font-display font-semibold text-lg mb-4">Quick Contact</h3>
+            <h3 className="font-display font-semibold text-lg mb-4">{contactContent.quick_contact_title || 'Quick Contact'}</h3>
             
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <Mail size={18} className="text-gdg-blue mt-0.5" />
                 <div>
-                  <div className="font-medium text-sm">Email</div>
-                  <a href="mailto:contact@gdgpsu.org" className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors">
-                    contact@gdgpsu.org
-                  </a>
+                  <div className="font-medium text-sm">{contactContent.email_label || 'Email'}</div>
+                  {contactContent.email_url ? (
+                    <a 
+                      href={contactContent.email_url} 
+                      className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors"
+                      target={contactContent.email_url.startsWith('mailto:') ? '_self' : '_blank'}
+                      rel={contactContent.email_url.startsWith('mailto:') ? '' : 'noopener noreferrer'}
+                    >
+                      {contactContent.email_url.startsWith('mailto:') 
+                        ? contactContent.email_url.replace('mailto:', '') 
+                        : 'Contact Us'}
+                    </a>
+                  ) : (
+                    <a href="mailto:contact@gdgpsu.org" className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors">
+                      contact@gdgpsu.org
+                    </a>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-start space-x-3">
                 <MessageSquare size={18} className="text-gdg-blue mt-0.5" />
                 <div>
-                  <div className="font-medium text-sm">Discord</div>
-                  <span className="text-muted-foreground text-sm">
-                    Join our server for real-time chat
-                  </span>
+                  <div className="font-medium text-sm">{contactContent.discord_label || 'Discord'}</div>
+                  {contactContent.discord_url ? (
+                    <a 
+                      href={contactContent.discord_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors"
+                    >
+                      {contactContent.discord_description || 'Join our server for real-time chat'}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">
+                      {contactContent.discord_description || 'Join our server for real-time chat'}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-start space-x-3">
                 <Calendar size={18} className="text-gdg-blue mt-0.5" />
                 <div>
-                  <div className="font-medium text-sm">Office Hours</div>
+                  <div className="font-medium text-sm">{contactContent.office_hours_label || 'Office Hours'}</div>
                   <span className="text-muted-foreground text-sm">
-                    Wednesdays 4-6 PM, IST Building
+                    {contactContent.office_hours_info || 'Wednesdays 4-6 PM, IST Building'}
                   </span>
                 </div>
               </div>
+
+              {/* Dynamic Contact Links */}
+              {contactContent.contact_links && contactContent.contact_links.length > 0 && (
+                <>
+                  <div className="border-t border-border pt-4 mt-4">
+                    <div className="text-sm font-medium text-muted-foreground mb-3">
+                      {contactContent.additional_links_title || 'Additional Links'}
+                    </div>
+                  </div>
+                  {contactContent.contact_links.map((link: any) => (
+                    <div key={link.id} className="flex items-start space-x-3">
+                      <div className="w-[18px] h-[18px] mt-0.5 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-gdg-blue rounded-full"></div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">
+                          <a 
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-gdg-blue transition-colors"
+                          >
+                            {link.name}
+                          </a>
+                        </div>
+                        {link.description && (
+                          <span className="text-muted-foreground text-sm">
+                            {link.description}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
 
-          {/* Social Links */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="font-display font-semibold text-lg mb-4">Follow Us</h3>
-            
-            <div className="space-y-3">
-              <a href="#" className="flex items-center space-x-3 p-3 hover:bg-muted rounded-md transition-colors group">
-                <Github size={18} className="text-muted-foreground group-hover:text-gdg-blue transition-colors" />
-                <span className="text-sm">@gdgpsu</span>
-              </a>
-              
-              <a href="#" className="flex items-center space-x-3 p-3 hover:bg-muted rounded-md transition-colors group">
-                <Twitter size={18} className="text-muted-foreground group-hover:text-gdg-blue transition-colors" />
-                <span className="text-sm">@gdgpsu</span>
-              </a>
-              
-              <a href="#" className="flex items-center space-x-3 p-3 hover:bg-muted rounded-md transition-colors group">
-                <Instagram size={18} className="text-muted-foreground group-hover:text-gdg-blue transition-colors" />
-                <span className="text-sm">@gdg.psu</span>
-              </a>
-            </div>
-          </div>
+
 
 
         </div>

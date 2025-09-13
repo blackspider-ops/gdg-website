@@ -24,7 +24,14 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+# Step 5: Set up the database (see scripts/setup-database.md for details)
+supabase db reset
+
+# Step 6: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
@@ -46,11 +53,10 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend**: Vite, TypeScript, React, shadcn-ui, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL database, Authentication, Real-time subscriptions)
+- **Admin Panel**: Full-featured admin dashboard for content management
+- **Services**: Dedicated service classes for Events, Members, Projects, Sponsors, and Content management
 
 ## How can I deploy this project?
 
@@ -62,3 +68,53 @@ npm run build
 ```
 
 Then deploy the `dist` folder to your hosting service.
+
+## Admin Panel Features
+
+The admin panel provides comprehensive management capabilities:
+
+### Content Management
+- **Events**: Create, edit, and manage chapter events with real-time updates
+- **Members**: Manage community members with categories (founder, organizer, lead, active, member, alumni)
+- **Projects**: Showcase chapter projects with tech stacks and links
+- **Sponsors**: Manage sponsor relationships with tier-based organization
+- **Site Content**: Dynamic content management for all pages
+
+### Real-time Features
+- Live data synchronization across all admin pages
+- Real-time statistics and analytics
+- Instant content updates without page refresh
+
+### Access Control
+- Development mode for easy testing
+- Production admin authentication
+- Role-based permissions (admin, super_admin)
+
+### Database Integration
+- Full Supabase integration with PostgreSQL
+- Row Level Security (RLS) policies
+- Real-time subscriptions for live updates
+- Comprehensive migration system
+
+## Getting Started with Admin Panel
+
+1. **Development Mode**: Enable direct admin access in dev settings for testing
+2. **Production Mode**: Use the admin secret code to gain access
+3. **Database Setup**: Follow `scripts/setup-database.md` for initial setup
+4. **Content Management**: Access `/admin` to manage all site content
+
+## Database Schema
+
+The project includes comprehensive database tables:
+- `events` - Event management
+- `team_members` - Team member profiles  
+- `projects` - Project showcase
+- `sponsors` - Sponsor management
+- `members` - Community member tracking
+- `site_settings` - Site configuration
+- `page_content` - Dynamic page content
+- `navigation_items` - Menu management
+- `social_links` - Social media links
+- `footer_content` - Footer sections
+- `admin_users` - Admin user management
+- `admin_actions` - Audit trail

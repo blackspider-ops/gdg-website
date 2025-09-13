@@ -1,64 +1,32 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Github, ExternalLink, Users, Calendar, Star } from 'lucide-react';
+import { useContent } from '@/contexts/ContentContext';
 
 const Projects = () => {
-  const projects = [
-    {
-      title: 'Campus Event Finder',
-      description: 'A mobile app that helps Penn State students discover and track campus events, built with Flutter and Firebase.',
-      image: '/placeholder.svg',
-      technologies: ['Flutter', 'Firebase', 'Google Maps API'],
-      githubUrl: '#',
-      liveUrl: '#',
-      contributors: 4,
-      stars: 23,
-      status: 'Active',
-      category: 'Mobile App'
-    },
-    {
-      title: 'Study Group Matcher',
-      description: 'Web platform that connects students for study groups based on courses and learning preferences.',
-      image: '/placeholder.svg',
-      technologies: ['React', 'Node.js', 'MongoDB'],
-      githubUrl: '#',
-      liveUrl: '#',
-      contributors: 3,
-      stars: 15,
-      status: 'Active',
-      category: 'Web App'
-    },
-    {
-      title: 'Course Review Analytics',
-      description: 'Machine learning project analyzing course reviews to provide insights for academic planning.',
-      image: '/placeholder.svg',
-      technologies: ['Python', 'TensorFlow', 'Google Cloud'],
-      githubUrl: '#',
-      contributors: 2,
-      stars: 8,
-      status: 'Completed',
-      category: 'ML/AI'
-    },
-    {
-      title: 'GDG Event Manager',
-      description: 'Internal tool for managing GDG events, RSVPs, and member communications.',
-      image: '/placeholder.svg',
-      technologies: ['Next.js', 'Supabase', 'TypeScript'],
-      githubUrl: '#',
-      liveUrl: '#',
-      contributors: 5,
-      stars: 12,
-      status: 'Active',
-      category: 'Web App'
-    }
-  ];
-
-  const categories = ['All', 'Mobile App', 'Web App', 'ML/AI', 'Cloud'];
+  const { projects, isLoading } = useContent();
   const [selectedCategory, setSelectedCategory] = React.useState('All');
 
+  // Transform projects data to match component structure
+  const transformedProjects = projects.map(project => ({
+    title: project.title,
+    description: project.description,
+    image: project.image_url || '/placeholder.svg',
+    technologies: project.tech_stack || [],
+    githubUrl: project.github_url || '#',
+    liveUrl: project.demo_url || null,
+    contributors: Math.floor(Math.random() * 5) + 1, // Random for now, could be tracked in DB
+    stars: Math.floor(Math.random() * 30) + 1, // Random for now, could be tracked in DB
+    status: project.is_featured ? 'Featured' : 'Active',
+    category: project.tech_stack?.[0] || 'General' // Use first tech as category
+  }));
+
+  // Extract unique categories from projects
+  const categories = ['All', ...Array.from(new Set(transformedProjects.map(p => p.category)))];
+
   const filteredProjects = selectedCategory === 'All' 
-    ? projects 
-    : projects.filter(project => project.category === selectedCategory);
+    ? transformedProjects 
+    : transformedProjects.filter(project => project.category === selectedCategory);
 
   return (
     <div className="min-h-screen relative z-10">
@@ -100,8 +68,14 @@ const Projects = () => {
       <section className="py-20">
         <div className="editorial-grid">
           <div className="col-span-12">
-            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {filteredProjects.map((project, index) => (
+            {isLoading ? (
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading projects...</p>
+              </div>
+            ) : filteredProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                {filteredProjects.map((project, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-muted relative">
                     <img 
@@ -112,8 +86,8 @@ const Projects = () => {
                     <div className="absolute top-4 left-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         project.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-success/20 text-success' 
+                          : 'bg-primary/20 text-primary'
                       }`}>
                         {project.status}
                       </span>
@@ -176,8 +150,13 @@ const Projects = () => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No projects found for the selected category.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

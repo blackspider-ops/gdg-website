@@ -123,7 +123,7 @@ const AdminCommunications: React.FC = () => {
             case 'high': return 'bg-red-100 text-red-800 border-red-200';
             case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'low': return 'bg-green-100 text-green-800 border-green-200';
-            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+            default: return 'bg-gray-100 text-gray-800 border-gray-800';
         }
     };
 
@@ -172,18 +172,18 @@ const AdminCommunications: React.FC = () => {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 {commStats.map((stat, index) => (
-                    <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
                         <div className="flex items-center justify-between mb-4">
                             <MessageSquare size={24} className={stat.color} />
                         </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                        <div className="text-sm text-gray-600">{stat.label}</div>
+                        <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+                        <div className="text-sm text-gray-400">{stat.label}</div>
                     </div>
                 ))}
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200 mb-8">
+            <div className="border-b border-gray-800 mb-8">
                 <nav className="flex space-x-8">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
@@ -193,7 +193,7 @@ const AdminCommunications: React.FC = () => {
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
                                     ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
                                     }`}
                             >
                                 <Icon size={16} />
@@ -205,7 +205,7 @@ const AdminCommunications: React.FC = () => {
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+            <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
@@ -215,7 +215,7 @@ const AdminCommunications: React.FC = () => {
                                 placeholder={`Search ${activeTab}...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                             />
                         </div>
                     </div>
@@ -225,7 +225,7 @@ const AdminCommunications: React.FC = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                            className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                         >
                             <option value="all">All Status</option>
                             <option value="high">High Priority</option>
@@ -236,26 +236,26 @@ const AdminCommunications: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
                 {activeTab === 'announcements' && (
                     <>
-                        <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold text-gray-900">Team Announcements</h2>
+                        <div className="p-6 border-b border-gray-800">
+                            <h2 className="text-xl font-semibold text-white">Team Announcements</h2>
                         </div>
                         <div className="divide-y divide-gray-200">
                             {announcements.map((announcement) => (
-                                <div key={announcement.id} className="p-6 hover:bg-gray-50 transition-colors">
+                                <div key={announcement.id} className="p-6 hover:bg-gray-900 transition-colors">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-3 mb-2">
                                                 {announcement.isPinned && <Pin size={16} className="text-blue-600" />}
-                                                <h3 className="text-lg font-semibold text-gray-900">{announcement.title}</h3>
+                                                <h3 className="text-lg font-semibold text-white">{announcement.title}</h3>
                                                 <span className={`px-2 py-1 text-xs rounded-full font-medium border ${getPriorityColor(announcement.priority)}`}>
                                                     {announcement.priority}
                                                 </span>
                                             </div>
 
-                                            <p className="text-gray-600 mb-4">{announcement.message}</p>
+                                            <p className="text-gray-400 mb-4">{announcement.message}</p>
 
                                             <div className="flex items-center space-x-4 text-sm text-gray-500">
                                                 <div className="flex items-center space-x-1">
@@ -274,10 +274,10 @@ const AdminCommunications: React.FC = () => {
                                         </div>
 
                                         <div className="flex items-center space-x-2 ml-4">
-                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                                                 <Edit3 size={16} />
                                             </button>
-                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                                                 <Archive size={16} />
                                             </button>
                                             <button className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600">
@@ -293,16 +293,16 @@ const AdminCommunications: React.FC = () => {
 
                 {activeTab === 'tasks' && (
                     <>
-                        <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold text-gray-900">Task Management</h2>
+                        <div className="p-6 border-b border-gray-800">
+                            <h2 className="text-xl font-semibold text-white">Task Management</h2>
                         </div>
                         <div className="divide-y divide-gray-200">
                             {tasks.map((task) => (
-                                <div key={task.id} className="p-6 hover:bg-gray-50 transition-colors">
+                                <div key={task.id} className="p-6 hover:bg-gray-900 transition-colors">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-3 mb-2">
-                                                <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                                                <h3 className="text-lg font-semibold text-white">{task.title}</h3>
                                                 <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(task.status)}`}>
                                                     {task.status.replace('-', ' ')}
                                                 </span>
@@ -311,7 +311,7 @@ const AdminCommunications: React.FC = () => {
                                                 </span>
                                             </div>
 
-                                            <p className="text-gray-600 mb-4">{task.description}</p>
+                                            <p className="text-gray-400 mb-4">{task.description}</p>
 
                                             <div className="flex items-center space-x-4 text-sm text-gray-500">
                                                 <div className="flex items-center space-x-1">
@@ -330,7 +330,7 @@ const AdminCommunications: React.FC = () => {
                                         </div>
 
                                         <div className="flex items-center space-x-2 ml-4">
-                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                                                 <Edit3 size={16} />
                                             </button>
                                             <button className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600">
@@ -346,22 +346,22 @@ const AdminCommunications: React.FC = () => {
 
                 {activeTab === 'messages' && (
                     <>
-                        <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold text-gray-900">Internal Messages</h2>
+                        <div className="p-6 border-b border-gray-800">
+                            <h2 className="text-xl font-semibold text-white">Internal Messages</h2>
                         </div>
                         <div className="divide-y divide-gray-200">
                             {messages.map((message) => (
-                                <div key={message.id} className={`p-6 hover:bg-gray-50 transition-colors ${!message.isRead ? 'bg-blue-50' : ''}`}>
+                                <div key={message.id} className={`p-6 hover:bg-gray-900 transition-colors ${!message.isRead ? 'bg-gray-900' : ''}`}>
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-3 mb-2">
-                                                <h3 className="text-lg font-semibold text-gray-900">{message.subject}</h3>
+                                                <h3 className="text-lg font-semibold text-white">{message.subject}</h3>
                                                 {!message.isRead && (
                                                     <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
                                                 )}
                                             </div>
 
-                                            <p className="text-gray-600 mb-4">{message.message}</p>
+                                            <p className="text-gray-400 mb-4">{message.message}</p>
 
                                             <div className="flex items-center space-x-4 text-sm text-gray-500">
                                                 <div className="flex items-center space-x-1">
@@ -380,7 +380,7 @@ const AdminCommunications: React.FC = () => {
                                         </div>
 
                                         <div className="flex items-center space-x-2 ml-4">
-                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                                                 <Send size={16} />
                                             </button>
                                             <button className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600">
@@ -398,41 +398,41 @@ const AdminCommunications: React.FC = () => {
             {/* Create Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
-                        <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold text-gray-900">
+                    <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+                        <div className="p-6 border-b border-gray-800">
+                            <h2 className="text-xl font-semibold text-white">
                                 Create New {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}
                             </h2>
                         </div>
 
                         <form className="p-6 space-y-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
                                     {activeTab === 'messages' ? 'Subject' : 'Title'}
                                 </label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                                     placeholder={`Enter ${activeTab === 'messages' ? 'subject' : 'title'}`}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
                                     {activeTab === 'tasks' ? 'Description' : 'Message'}
                                 </label>
                                 <textarea
                                     rows={4}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                                     placeholder={`Enter ${activeTab === 'tasks' ? 'description' : 'message'}`}
                                 />
                             </div>
                         </form>
 
-                        <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => setShowCreateModal(false)}
-                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
                             >
                                 Cancel
                             </button>

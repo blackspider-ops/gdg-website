@@ -182,7 +182,7 @@ const AdminReports = () => {
           <select
             value={exportFormat}
             onChange={(e) => setExportFormat(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            className="px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
           >
             <option value="csv">CSV Format</option>
             <option value="excel">Excel Format</option>
@@ -198,7 +198,7 @@ const AdminReports = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {reportStats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
             <div className="flex items-center justify-between mb-4">
               <Activity size={24} className={stat.color} />
               <div className={`flex items-center space-x-1 text-sm ${
@@ -208,18 +208,18 @@ const AdminReports = () => {
                 <span>{stat.change}</span>
               </div>
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-600">{stat.label}</div>
+            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-sm text-gray-400">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Date Range Selector */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Report Date Range</h3>
-            <p className="text-gray-600">Select the time period for your reports</p>
+            <h3 className="text-lg font-semibold text-white mb-1">Report Date Range</h3>
+            <p className="text-gray-400">Select the time period for your reports</p>
           </div>
           
           <div className="flex items-center space-x-3">
@@ -227,7 +227,7 @@ const AdminReports = () => {
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
             >
               <option value="last-7-days">Last 7 Days</option>
               <option value="last-30-days">Last 30 Days</option>
@@ -241,7 +241,7 @@ const AdminReports = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-8">
+      <div className="border-b border-gray-800 mb-8">
         <nav className="flex space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -252,7 +252,7 @@ const AdminReports = () => {
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
                 }`}
               >
                 <Icon size={16} />
@@ -264,28 +264,28 @@ const AdminReports = () => {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-black rounded-xl shadow-sm border border-gray-800">
         {/* Overview */}
         {activeTab === 'overview' && (
           <>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Quick Exports</h2>
-              <p className="text-gray-600 mt-1">Generate and download commonly used reports</p>
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Quick Exports</h2>
+              <p className="text-gray-400 mt-1">Generate and download commonly used reports</p>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {quickExports.map((exportItem, index) => {
                   const Icon = exportItem.icon;
                   return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
+                    <div key={index} className="border border-gray-800 rounded-lg p-6 hover:border-blue-300 transition-colors">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center space-x-3">
                           <div className="p-2 bg-blue-100 rounded-lg">
                             <Icon size={20} className="text-blue-600" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{exportItem.name}</h3>
-                            <p className="text-sm text-gray-600">{exportItem.description}</p>
+                            <h3 className="font-semibold text-white">{exportItem.name}</h3>
+                            <p className="text-sm text-gray-400">{exportItem.description}</p>
                           </div>
                         </div>
                         <span className="text-sm font-medium text-gray-500">{exportItem.count} records</span>
@@ -309,20 +309,20 @@ const AdminReports = () => {
         {/* Members Reports */}
         {activeTab === 'members' && (
           <>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Member Reports</h2>
-              <p className="text-gray-600 mt-1">Export member data and analytics</p>
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Member Reports</h2>
+              <p className="text-gray-400 mt-1">Export member data and analytics</p>
             </div>
             <div className="divide-y divide-gray-200">
               {getReportsByCategory('members').map((report) => (
-                <div key={report.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={report.id} className="p-6 hover:bg-gray-900 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <FileText size={20} className="text-blue-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">{report.name}</h3>
+                        <h3 className="text-lg font-semibold text-white">{report.name}</h3>
                       </div>
-                      <p className="text-gray-600 mb-3">{report.description}</p>
+                      <p className="text-gray-400 mb-3">{report.description}</p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Clock size={14} />
@@ -339,7 +339,7 @@ const AdminReports = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 ml-4">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                         <Eye size={16} />
                       </button>
                       <button
@@ -361,20 +361,20 @@ const AdminReports = () => {
         {/* Events Reports */}
         {activeTab === 'events' && (
           <>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Event Reports</h2>
-              <p className="text-gray-600 mt-1">Export event data and attendance records</p>
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Event Reports</h2>
+              <p className="text-gray-400 mt-1">Export event data and attendance records</p>
             </div>
             <div className="divide-y divide-gray-200">
               {getReportsByCategory('events').map((report) => (
-                <div key={report.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={report.id} className="p-6 hover:bg-gray-900 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <Calendar size={20} className="text-green-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">{report.name}</h3>
+                        <h3 className="text-lg font-semibold text-white">{report.name}</h3>
                       </div>
-                      <p className="text-gray-600 mb-3">{report.description}</p>
+                      <p className="text-gray-400 mb-3">{report.description}</p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Clock size={14} />
@@ -391,7 +391,7 @@ const AdminReports = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 ml-4">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                         <Eye size={16} />
                       </button>
                       <button
@@ -413,20 +413,20 @@ const AdminReports = () => {
         {/* Sponsors Reports */}
         {activeTab === 'sponsors' && (
           <>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Sponsor Reports</h2>
-              <p className="text-gray-600 mt-1">Export sponsor data and engagement metrics</p>
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Sponsor Reports</h2>
+              <p className="text-gray-400 mt-1">Export sponsor data and engagement metrics</p>
             </div>
             <div className="divide-y divide-gray-200">
               {getReportsByCategory('sponsors').map((report) => (
-                <div key={report.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={report.id} className="p-6 hover:bg-gray-900 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <Building2 size={20} className="text-purple-600" />
-                        <h3 className="text-lg font-semibold text-gray-900">{report.name}</h3>
+                        <h3 className="text-lg font-semibold text-white">{report.name}</h3>
                       </div>
-                      <p className="text-gray-600 mb-3">{report.description}</p>
+                      <p className="text-gray-400 mb-3">{report.description}</p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Clock size={14} />
@@ -443,7 +443,7 @@ const AdminReports = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 ml-4">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400">
                         <Eye size={16} />
                       </button>
                       <button
@@ -465,16 +465,16 @@ const AdminReports = () => {
         {/* Analytics */}
         {activeTab === 'analytics' && (
           <>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Analytics Dashboard</h2>
-              <p className="text-gray-600 mt-1">Visual analytics and trend reports</p>
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Analytics Dashboard</h2>
+              <p className="text-gray-400 mt-1">Visual analytics and trend reports</p>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Chart placeholders */}
-                <div className="border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-800 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Member Growth</h3>
+                    <h3 className="font-semibold text-white">Member Growth</h3>
                     <LineChart size={20} className="text-blue-600" />
                   </div>
                   <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -485,9 +485,9 @@ const AdminReports = () => {
                   </div>
                 </div>
                 
-                <div className="border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-800 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Event Attendance</h3>
+                    <h3 className="font-semibold text-white">Event Attendance</h3>
                     <BarChart3 size={20} className="text-green-600" />
                   </div>
                   <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -498,9 +498,9 @@ const AdminReports = () => {
                   </div>
                 </div>
                 
-                <div className="border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-800 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Revenue Breakdown</h3>
+                    <h3 className="font-semibold text-white">Revenue Breakdown</h3>
                     <PieChart size={20} className="text-purple-600" />
                   </div>
                   <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -511,9 +511,9 @@ const AdminReports = () => {
                   </div>
                 </div>
                 
-                <div className="border border-gray-200 rounded-lg p-6">
+                <div className="border border-gray-800 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Engagement Metrics</h3>
+                    <h3 className="font-semibold text-white">Engagement Metrics</h3>
                     <Activity size={20} className="text-orange-600" />
                   </div>
                   <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">

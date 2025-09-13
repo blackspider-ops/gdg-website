@@ -85,19 +85,19 @@ const AdminNewsletter = () => {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div key={index} className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
               <div className="flex items-center justify-between mb-2">
                 <Icon size={20} className={stat.color} />
               </div>
-              <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-              <div className="text-sm text-gray-600">{stat.label}</div>
+              <div className="text-2xl font-bold text-white">{stat.value}</div>
+              <div className="text-sm text-gray-400">{stat.label}</div>
             </div>
           );
         })}
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-8">
+      <div className="border-b border-gray-800 mb-8">
         <nav className="flex space-x-8">
           {tabs.map((tab) => (
             <button
@@ -105,8 +105,8 @@ const AdminNewsletter = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary text-blue-600'
+                  : 'border-transparent text-gray-400 hover:text-white hover:border-gray-800'
               }`}
             >
               {tab.label}
@@ -121,46 +121,46 @@ const AdminNewsletter = () => {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Activity */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="font-semibold text-lg mb-4 text-gray-900">Recent Activity</h3>
+                <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
+                  <h3 className="font-semibold text-lg mb-4 text-white">Recent Activity</h3>
                   <div className="space-y-4">
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">Newsletter sent successfully</div>
-                        <div className="text-xs text-gray-600">September Newsletter • 2 hours ago</div>
+                        <div className="text-sm font-medium text-white">Newsletter sent successfully</div>
+                        <div className="text-xs text-gray-400">September Newsletter • 2 hours ago</div>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      <div className="w-2 h-2 bg-gray-9000 rounded-full mt-2"></div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">23 new subscribers</div>
-                        <div className="text-xs text-gray-600">This week</div>
+                        <div className="text-sm font-medium text-white">23 new subscribers</div>
+                        <div className="text-xs text-gray-400">This week</div>
                       </div>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">Template created</div>
-                        <div className="text-xs text-gray-600">Event Announcement • 1 day ago</div>
+                        <div className="text-sm font-medium text-white">Template created</div>
+                        <div className="text-xs text-gray-400">Event Announcement • 1 day ago</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Quick Actions */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="font-semibold text-lg mb-4 text-gray-900">Quick Actions</h3>
+                <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
+                  <h3 className="font-semibold text-lg mb-4 text-white">Quick Actions</h3>
                   <div className="space-y-3">
-                    <button className="w-full flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-900">
+                    <button className="w-full flex items-center space-x-3 p-3 border border-gray-800 rounded-lg hover:bg-gray-900 transition-colors text-white">
                       <Plus size={16} className="text-blue-600" />
                       <span>Create New Newsletter</span>
                     </button>
-                    <button className="w-full flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-900">
+                    <button className="w-full flex items-center space-x-3 p-3 border border-gray-800 rounded-lg hover:bg-gray-900 transition-colors text-white">
                       <Users size={16} className="text-blue-600" />
                       <span>Export Subscribers</span>
                     </button>
-                    <button className="w-full flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-900">
+                    <button className="w-full flex items-center space-x-3 p-3 border border-gray-800 rounded-lg hover:bg-gray-900 transition-colors text-white">
                       <Eye size={16} className="text-blue-600" />
                       <span>View Analytics</span>
                     </button>
@@ -171,18 +171,18 @@ const AdminNewsletter = () => {
           )}
 
           {activeTab === 'newsletters' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="font-semibold text-lg text-gray-900">All Newsletters</h2>
+            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+              <div className="p-6 border-b border-gray-800">
+                <h2 className="font-semibold text-lg text-white">All Newsletters</h2>
               </div>
               
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-border">
                 {newsletters.map((newsletter) => (
-                  <div key={newsletter.id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div key={newsletter.id} className="p-6 hover:bg-gray-900/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold mb-2 text-gray-900">{newsletter.subject}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                        <h3 className="font-semibold mb-2 text-white">{newsletter.subject}</h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-400">
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             newsletter.status === 'sent' 
                               ? 'bg-green-100 text-green-800' 
@@ -207,13 +207,13 @@ const AdminNewsletter = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-md transition-colors text-gray-600">
+                        <button className="p-2 hover:bg-gray-900 rounded-md transition-colors text-gray-400 hover:text-white">
                           <Eye size={16} />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-md transition-colors text-gray-600">
+                        <button className="p-2 hover:bg-gray-900 rounded-md transition-colors text-gray-400 hover:text-white">
                           <Edit size={16} />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-md transition-colors text-red-600">
+                        <button className="p-2 hover:bg-red-100 rounded-md transition-colors text-gray-400 hover:text-red-600">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -225,18 +225,18 @@ const AdminNewsletter = () => {
           )}
 
           {activeTab === 'subscribers' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="font-semibold text-lg text-gray-900">Subscribers</h2>
+            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+              <div className="p-6 border-b border-gray-800">
+                <h2 className="font-semibold text-lg text-white">Subscribers</h2>
               </div>
               
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-border">
                 {subscribers.map((subscriber, index) => (
-                  <div key={index} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div key={index} className="p-6 hover:bg-gray-900/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium text-gray-900">{subscriber.email}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="font-medium text-white">{subscriber.email}</div>
+                        <div className="text-sm text-gray-400">
                           Subscribed {new Date(subscriber.subscribed).toLocaleDateString()}
                         </div>
                       </div>
@@ -258,12 +258,12 @@ const AdminNewsletter = () => {
           )}
 
           {activeTab === 'templates' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
               <div className="text-center py-12">
                 <Mail size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">No templates yet</h3>
-                <p className="text-gray-600 mb-4">Create your first newsletter template</p>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <h3 className="font-semibold text-lg mb-2 text-white">No templates yet</h3>
+                <p className="text-gray-400 mb-4">Create your first newsletter template</p>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-600/90 transition-colors font-medium">
                   Create Template
                 </button>
               </div>

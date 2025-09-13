@@ -190,7 +190,7 @@ const AdminMedia = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowCreateFolderModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
           >
             <FolderPlus size={16} />
             <span>New Folder</span>
@@ -208,18 +208,18 @@ const AdminMedia = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {mediaStats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
             <div className="flex items-center justify-between mb-4">
               <HardDrive size={24} className={stat.color} />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-600">{stat.label}</div>
+            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-sm text-gray-400">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Controls */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
             <div className="relative flex-1 max-w-md">
@@ -229,7 +229,7 @@ const AdminMedia = () => {
                 placeholder="Search files and folders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
               />
             </div>
 
@@ -238,7 +238,7 @@ const AdminMedia = () => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
               >
                 <option value="all">All Files</option>
                 <option value="image">Images</option>
@@ -252,14 +252,14 @@ const AdminMedia = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100'
                 }`}
             >
               <Grid3X3 size={16} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100'
                 }`}
             >
               <List size={16} />
@@ -271,7 +271,7 @@ const AdminMedia = () => {
       {/* Breadcrumb */}
       {selectedFolder !== 'root' && (
         <div className="mb-6">
-          <nav className="flex items-center space-x-2 text-sm text-gray-600">
+          <nav className="flex items-center space-x-2 text-sm text-gray-400">
             <button
               onClick={() => setSelectedFolder('root')}
               className="hover:text-blue-600 transition-colors"
@@ -279,7 +279,7 @@ const AdminMedia = () => {
               Root
             </button>
             <span>/</span>
-            <span className="text-gray-900 font-medium">
+            <span className="text-white font-medium">
               {folders.find(f => f.id === parseInt(selectedFolder))?.name}
             </span>
           </nav>
@@ -287,7 +287,7 @@ const AdminMedia = () => {
       )}
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-black rounded-xl shadow-sm border border-gray-800">
         {viewMode === 'grid' ? (
           <div className="p-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -296,11 +296,11 @@ const AdminMedia = () => {
                 <div
                   key={`folder-${folder.id}`}
                   onClick={() => setSelectedFolder(folder.id.toString())}
-                  className="group cursor-pointer p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all"
+                  className="group cursor-pointer p-4 border border-gray-800 rounded-lg hover:border-blue-300 hover:shadow-md transition-all"
                 >
                   <div className="flex flex-col items-center text-center">
                     <FolderOpen size={32} className="text-blue-500 mb-2 group-hover:text-blue-600" />
-                    <h3 className="font-medium text-gray-900 text-sm mb-1 truncate w-full">{folder.name}</h3>
+                    <h3 className="font-medium text-white text-sm mb-1 truncate w-full">{folder.name}</h3>
                     <p className="text-xs text-gray-500">{folder.itemCount} items</p>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ const AdminMedia = () => {
               {currentFolderFiles.map((file) => (
                 <div
                   key={`file-${file.id}`}
-                  className="group relative p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all"
+                  className="group relative p-4 border border-gray-800 rounded-lg hover:border-blue-300 hover:shadow-md transition-all"
                 >
                   <div className="flex flex-col items-center text-center">
                     {file.type === 'image' ? (
@@ -327,7 +327,7 @@ const AdminMedia = () => {
                       </div>
                     )}
 
-                    <h3 className="font-medium text-gray-900 text-sm mb-1 truncate w-full">{file.name}</h3>
+                    <h3 className="font-medium text-white text-sm mb-1 truncate w-full">{file.name}</h3>
                     <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
 
                     {file.isStarred && (
@@ -337,14 +337,14 @@ const AdminMedia = () => {
 
                   {/* Hover actions */}
                   <div className="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
-                    <button className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors">
-                      <Eye size={16} className="text-gray-600" />
+                    <button className="p-2 bg-black rounded-lg hover:bg-gray-100 transition-colors">
+                      <Eye size={16} className="text-gray-400" />
                     </button>
-                    <button className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors">
-                      <Download size={16} className="text-gray-600" />
+                    <button className="p-2 bg-black rounded-lg hover:bg-gray-100 transition-colors">
+                      <Download size={16} className="text-gray-400" />
                     </button>
-                    <button className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors">
-                      <Copy size={16} className="text-gray-600" />
+                    <button className="p-2 bg-black rounded-lg hover:bg-gray-100 transition-colors">
+                      <Copy size={16} className="text-gray-400" />
                     </button>
                   </div>
                 </div>
@@ -354,10 +354,10 @@ const AdminMedia = () => {
         ) : (
           <div className="divide-y divide-gray-200">
             {/* Table Header */}
-            <div className="p-6 bg-gray-50">
-              <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+            <div className="p-6 bg-gray-900">
+              <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-300">
                 <div className="col-span-1">
-                  <input type="checkbox" className="rounded border-gray-300" />
+                  <input type="checkbox" className="rounded border-gray-700" />
                 </div>
                 <div className="col-span-4">Name</div>
                 <div className="col-span-2">Type</div>
@@ -369,10 +369,10 @@ const AdminMedia = () => {
 
             {/* Folders */}
             {currentFolderSubfolders.map((folder) => (
-              <div key={`folder-${folder.id}`} className="p-6 hover:bg-gray-50 transition-colors">
+              <div key={`folder-${folder.id}`} className="p-6 hover:bg-gray-900 transition-colors">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   <div className="col-span-1">
-                    <input type="checkbox" className="rounded border-gray-300" />
+                    <input type="checkbox" className="rounded border-gray-700" />
                   </div>
                   <div className="col-span-4">
                     <div
@@ -380,15 +380,15 @@ const AdminMedia = () => {
                       className="flex items-center space-x-3 cursor-pointer hover:text-blue-600"
                     >
                       <FolderOpen size={20} className="text-blue-500" />
-                      <span className="font-medium text-gray-900">{folder.name}</span>
+                      <span className="font-medium text-white">{folder.name}</span>
                     </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-600">Folder</div>
-                  <div className="col-span-2 text-sm text-gray-600">{folder.itemCount} items</div>
-                  <div className="col-span-2 text-sm text-gray-600">{formatDate(folder.createdAt)}</div>
+                  <div className="col-span-2 text-sm text-gray-400">Folder</div>
+                  <div className="col-span-2 text-sm text-gray-400">{folder.itemCount} items</div>
+                  <div className="col-span-2 text-sm text-gray-400">{formatDate(folder.createdAt)}</div>
                   <div className="col-span-1">
                     <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                      <Edit3 size={16} className="text-gray-600" />
+                      <Edit3 size={16} className="text-gray-400" />
                     </button>
                   </div>
                 </div>
@@ -397,10 +397,10 @@ const AdminMedia = () => {
 
             {/* Files */}
             {currentFolderFiles.map((file) => (
-              <div key={`file-${file.id}`} className="p-6 hover:bg-gray-50 transition-colors">
+              <div key={`file-${file.id}`} className="p-6 hover:bg-gray-900 transition-colors">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   <div className="col-span-1">
-                    <input type="checkbox" className="rounded border-gray-300" />
+                    <input type="checkbox" className="rounded border-gray-700" />
                   </div>
                   <div className="col-span-4">
                     <div className="flex items-center space-x-3">
@@ -415,7 +415,7 @@ const AdminMedia = () => {
                       )}
                       <div>
                         <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-900">{file.name}</span>
+                          <span className="font-medium text-white">{file.name}</span>
                           {file.isStarred && <Star size={12} className="text-yellow-500 fill-current" />}
                         </div>
                         {file.dimensions && (
@@ -424,16 +424,16 @@ const AdminMedia = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="col-span-2 text-sm text-gray-600 capitalize">{file.type}</div>
-                  <div className="col-span-2 text-sm text-gray-600">{formatFileSize(file.size)}</div>
-                  <div className="col-span-2 text-sm text-gray-600">{formatDate(file.uploadedAt)}</div>
+                  <div className="col-span-2 text-sm text-gray-400 capitalize">{file.type}</div>
+                  <div className="col-span-2 text-sm text-gray-400">{formatFileSize(file.size)}</div>
+                  <div className="col-span-2 text-sm text-gray-400">{formatDate(file.uploadedAt)}</div>
                   <div className="col-span-1">
                     <div className="flex items-center space-x-1">
                       <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                        <Eye size={16} className="text-gray-600" />
+                        <Eye size={16} className="text-gray-400" />
                       </button>
                       <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                        <Download size={16} className="text-gray-600" />
+                        <Download size={16} className="text-gray-400" />
                       </button>
                       <button className="p-1 hover:bg-red-50 rounded transition-colors">
                         <Trash2 size={16} className="text-red-600" />
@@ -450,16 +450,16 @@ const AdminMedia = () => {
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Upload Files</h2>
+          <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Upload Files</h2>
             </div>
 
             <div className="p-6">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
                 <Upload size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Drop files here or click to browse</h3>
-                <p className="text-gray-600 mb-4">Support for images, videos, documents, and more</p>
+                <h3 className="text-lg font-medium text-white mb-2">Drop files here or click to browse</h3>
+                <p className="text-gray-400 mb-4">Support for images, videos, documents, and more</p>
                 <input type="file" multiple className="hidden" id="file-upload" />
                 <label
                   htmlFor="file-upload"
@@ -470,8 +470,8 @@ const AdminMedia = () => {
               </div>
 
               <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Upload to Folder</label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Upload to Folder</label>
+                <select className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white">
                   <option value="root">Root Directory</option>
                   {folders.map((folder) => (
                     <option key={folder.id} value={folder.id}>{folder.name}</option>
@@ -480,10 +480,10 @@ const AdminMedia = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowUploadModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -498,24 +498,24 @@ const AdminMedia = () => {
       {/* Create Folder Modal */}
       {showCreateFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl w-full max-w-md mx-4 shadow-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Create New Folder</h2>
+          <div className="bg-black rounded-xl w-full max-w-md mx-4 shadow-xl border border-gray-800">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Create New Folder</h2>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Folder Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Folder Name</label>
                 <input
                   type="text"
                   placeholder="Enter folder name"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Parent Folder</label>
-                <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Parent Folder</label>
+                <select className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white">
                   <option value="root">Root Directory</option>
                   {folders.map((folder) => (
                     <option key={folder.id} value={folder.id}>{folder.name}</option>
@@ -524,10 +524,10 @@ const AdminMedia = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowCreateFolderModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
               >
                 Cancel
               </button>

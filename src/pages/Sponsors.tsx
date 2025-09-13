@@ -1,127 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Users, Calendar, Award, Heart } from 'lucide-react';
+import { useContent } from '@/contexts/ContentContext';
 
 const Sponsors = () => {
-  const titleSponsors = [
-    {
-      name: 'Google',
-      logo: '/placeholder.svg',
-      tier: 'Title Sponsor',
-      description: 'Google provides the foundation for our chapter through the Google Developer Groups program, offering resources, swag, and direct support.',
-      website: '#',
-      benefits: ['Event funding', 'Speaker support', 'Google swag', 'Cloud credits'],
-      partnership: 'Official GDG Partner'
-    }
-  ];
+  const { sponsors, isLoading } = useContent();
 
-  const platinumSponsors = [
-    {
-      name: 'Microsoft',
-      logo: '/placeholder.svg',
-      tier: 'Platinum',
-      description: 'Supporting our cloud computing workshops and providing Azure credits for student projects.',
-      website: '#',
-      benefits: ['Azure credits', 'Workshop materials', 'Mentorship'],
-      partnership: 'Technology Partner'
-    },
-    {
-      name: 'Amazon Web Services',
-      logo: '/placeholder.svg',
-      tier: 'Platinum',
-      description: 'Enabling our cloud infrastructure learning through AWS Educate and technical resources.',
-      website: '#',
-      benefits: ['AWS credits', 'Training resources', 'Career opportunities'],
-      partnership: 'Education Partner'
-    }
-  ];
+  // Group sponsors by tier
+  const platinumSponsors = sponsors.filter(s => s.tier === 'platinum');
+  const goldSponsors = sponsors.filter(s => s.tier === 'gold');
+  const silverSponsors = sponsors.filter(s => s.tier === 'silver');
+  const bronzeSponsors = sponsors.filter(s => s.tier === 'bronze');
 
-  const goldSponsors = [
-    {
-      name: 'Penn State College of Engineering',
-      logo: '/placeholder.svg',
-      tier: 'Gold',
-      description: 'Our home college providing venue support and academic integration.',
-      website: '#',
-      benefits: ['Venue access', 'Faculty support', 'Academic credit'],
-      partnership: 'Academic Partner'
-    },
-    {
-      name: 'GitHub',
-      logo: '/placeholder.svg',
-      tier: 'Gold',
-      description: 'Supporting our open source initiatives and providing development tools.',
-      website: '#',
-      benefits: ['GitHub Pro accounts', 'Copilot access', 'Actions minutes'],
-      partnership: 'Development Partner'
-    },
-    {
-      name: 'JetBrains',
-      logo: '/placeholder.svg',
-      tier: 'Gold',
-      description: 'Providing professional development tools for our student developers.',
-      website: '#',
-      benefits: ['IDE licenses', 'Educational resources', 'Student discounts'],
-      partnership: 'Tool Partner'
-    }
-  ];
-
-  const silverSponsors = [
-    {
-      name: 'Figma',
-      logo: '/placeholder.svg',
-      tier: 'Silver',
-      description: 'Supporting our design workshops and UI/UX learning initiatives.',
-      website: '#',
-      benefits: ['Pro accounts', 'Design resources'],
-      partnership: 'Design Partner'
-    },
-    {
-      name: 'Vercel',
-      logo: '/placeholder.svg',
-      tier: 'Silver',
-      description: 'Hosting platform for our web development projects and demos.',
-      website: '#',
-      benefits: ['Pro hosting', 'Deployment credits'],
-      partnership: 'Hosting Partner'
-    },
-    {
-      name: 'MongoDB',
-      logo: '/placeholder.svg',
-      tier: 'Silver',
-      description: 'Database solutions for our full-stack development workshops.',
-      website: '#',
-      benefits: ['Atlas credits', 'Learning materials'],
-      partnership: 'Database Partner'
-    }
-  ];
-
-  const communityPartners = [
-    {
-      name: 'Penn State ACM',
-      logo: '/placeholder.svg',
-      description: 'Collaborative programming and technical events.',
-      website: '#'
-    },
-    {
-      name: 'Women in Computer Science',
-      logo: '/placeholder.svg',
-      description: 'Joint diversity and inclusion initiatives.',
-      website: '#'
-    },
-    {
-      name: 'Startup Week',
-      logo: '/placeholder.svg',
-      description: 'Entrepreneurship and innovation partnerships.',
-      website: '#'
-    },
-    {
-      name: 'HackPSU',
-      logo: '/placeholder.svg',
-      description: 'Hackathon collaboration and mentorship.',
-      website: '#'
-    }
-  ];
+  // Transform sponsors data to match component structure
+  const transformSponsor = (sponsor: any) => ({
+    name: sponsor.name,
+    logo: sponsor.logo_url || '/placeholder.svg',
+    tier: sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1),
+    description: `Supporting GDG@PSU through ${sponsor.tier} tier partnership.`,
+    website: sponsor.website_url || '#',
+    benefits: [], // Could be expanded with a benefits field in the database
+    partnership: `${sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Partner`
+  });
 
   const sponsorshipTiers = [
     {
@@ -240,75 +140,93 @@ const Sponsors = () => {
         </div>
       </section>
 
-      {/* Title Sponsor */}
-      <section className="py-20">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold text-center mb-12">Title Sponsor</h2>
-            <div className="max-w-2xl mx-auto">
-              {titleSponsors.map((sponsor, index) => (
-                <SponsorCard key={index} sponsor={sponsor} />
-              ))}
+      {isLoading ? (
+        <section className="py-20">
+          <div className="editorial-grid">
+            <div className="col-span-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading sponsors...</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <>
+          {/* Platinum Sponsors */}
+          {platinumSponsors.length > 0 && (
+            <section className="py-20 bg-card/30">
+              <div className="editorial-grid">
+                <div className="col-span-12">
+                  <h2 className="text-3xl font-display font-bold text-center mb-12">Platinum Sponsors</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                    {platinumSponsors.map((sponsor, index) => (
+                      <SponsorCard key={index} sponsor={transformSponsor(sponsor)} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
-      {/* Platinum Sponsors */}
-      <section className="py-20 bg-card/30">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold text-center mb-12">Platinum Sponsors</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {platinumSponsors.map((sponsor, index) => (
-                <SponsorCard key={index} sponsor={sponsor} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+          {/* Gold Sponsors */}
+          {goldSponsors.length > 0 && (
+            <section className="py-20">
+              <div className="editorial-grid">
+                <div className="col-span-12">
+                  <h2 className="text-3xl font-display font-bold text-center mb-12">Gold Sponsors</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                    {goldSponsors.map((sponsor, index) => (
+                      <SponsorCard key={index} sponsor={transformSponsor(sponsor)} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
-      {/* Gold Sponsors */}
-      <section className="py-20">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold text-center mb-12">Gold Sponsors</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {goldSponsors.map((sponsor, index) => (
-                <SponsorCard key={index} sponsor={sponsor} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+          {/* Silver Sponsors */}
+          {silverSponsors.length > 0 && (
+            <section className="py-20 bg-card/30">
+              <div className="editorial-grid">
+                <div className="col-span-12">
+                  <h2 className="text-3xl font-display font-bold text-center mb-12">Silver Sponsors</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                    {silverSponsors.map((sponsor, index) => (
+                      <SponsorCard key={index} sponsor={transformSponsor(sponsor)} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
-      {/* Silver Sponsors */}
-      <section className="py-20 bg-card/30">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold text-center mb-12">Silver Sponsors</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {silverSponsors.map((sponsor, index) => (
-                <SponsorCard key={index} sponsor={sponsor} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+          {/* Bronze Sponsors */}
+          {bronzeSponsors.length > 0 && (
+            <section className="py-20">
+              <div className="editorial-grid">
+                <div className="col-span-12">
+                  <h2 className="text-3xl font-display font-bold text-center mb-12">Bronze Sponsors</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    {bronzeSponsors.map((sponsor, index) => (
+                      <SponsorCard key={index} sponsor={transformSponsor(sponsor)} showBenefits={false} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
-      {/* Community Partners */}
-      <section className="py-20">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold text-center mb-12">Community Partners</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {communityPartners.map((partner, index) => (
-                <SponsorCard key={index} sponsor={partner} showBenefits={false} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+          {/* No Sponsors Message */}
+          {sponsors.length === 0 && (
+            <section className="py-20">
+              <div className="editorial-grid">
+                <div className="col-span-12 text-center">
+                  <p className="text-muted-foreground">No sponsors found. Check back soon!</p>
+                </div>
+              </div>
+            </section>
+          )}
+        </>
+      )}
 
       {/* Sponsorship Opportunities */}
       <section className="py-20 bg-card/30">

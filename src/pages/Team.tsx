@@ -1,47 +1,38 @@
 import { Link } from 'react-router-dom';
 import { Github, Linkedin, Twitter, Mail } from 'lucide-react';
+import { useContent } from '@/contexts/ContentContext';
 
 const Team = () => {
-    const leadership = [
-        {
-            name: 'Tejas Singhal',
-            role: 'Chapter Lead',
-            year: 'Senior',
-            major: 'Computer Science',
-            image: '/placeholder.svg',
-            bio: 'Passionate about building developer communities and exploring cutting-edge technologies.',
-            social: {
-                github: '#',
-                linkedin: '#',
-                twitter: '#',
-                email: 'tejas@gdgpsu.org'
-            }
-        },
-        {
-            name: 'Karthik Krishnan',
-            role: 'Co-Organizer / Vice Lead',
-            year: 'Junior',
-            major: 'Computer Science',
-            image: '/placeholder.svg',
-            bio: 'Loves organizing events and connecting students with industry professionals.',
-            social: {
-                github: '#',
-                linkedin: '#',
-                email: 'karthik@gdgpsu.org'
-            }
-        }
-    ];
+    const { teamMembers, isLoading } = useContent();
 
-    const advisors = [
-        {
-            name: 'Alan Carl Verbanac',
-            role: 'Faculty Advisor',
-            department: 'Computer Science & Engineering',
-            image: '/placeholder.svg',
-            bio: 'Faculty advisor supporting GDG@PSU and student developer initiatives.',
-            social: { email: 'acv5048@psu.edu' }
+    // Transform team members data to match component structure
+    const transformedMembers = teamMembers.map(member => ({
+        name: member.name,
+        role: member.role,
+        bio: member.bio,
+        image: member.image_url || '/placeholder.svg',
+        social: {
+            github: member.github_url,
+            linkedin: member.linkedin_url,
+            email: `${member.name.toLowerCase().replace(' ', '.')}@gdgpsu.org`
         }
-    ];
+    }));
+
+    // Separate leadership and regular members based on role
+    const leadership = transformedMembers.filter(member => 
+        member.role.toLowerCase().includes('lead') || 
+        member.role.toLowerCase().includes('president') ||
+        member.role.toLowerCase().includes('organizer')
+    );
+
+    const advisors = transformedMembers.filter(member => 
+        member.role.toLowerCase().includes('advisor') ||
+        member.role.toLowerCase().includes('mentor')
+    );
+
+    const regularMembers = transformedMembers.filter(member => 
+        !leadership.includes(member) && !advisors.includes(member)
+    );
 
     const TeamMember = ({ member, isLeadership = false }) => (
         <div className="bg-card border border-border rounded-lg p-6 text-center hover:shadow-lg transition-shadow">
@@ -126,32 +117,60 @@ const Team = () => {
                 <div className="editorial-grid">
                     <div className="col-span-12">
                         <h2 className="text-3xl font-display font-bold text-center mb-12">Leadership Team</h2>
-                        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                            {leadership.map((member, index) => (
-                                <div key={index} className="w-full sm:w-80 max-w-sm flex-shrink-0">
-                                    <TeamMember member={member} isLeadership={true} />
-                                </div>
-                            ))}
-                        </div>
+                        {isLoading ? (
+                            <div className="flex justify-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                            </div>
+                        ) : leadership.length > 0 ? (
+                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                                {leadership.map((member, index) => (
+                                    <div key={index} className="w-full sm:w-80 max-w-sm flex-shrink-0">
+                                        <TeamMember member={member} isLeadership={true} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center text-muted-foreground">
+                                <p>No leadership team members found.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
 
             {/* Advisors */}
-            <section className="py-12 sm:py-16 lg:py-20 bg-card/30">
-                <div className="editorial-grid">
-                    <div className="col-span-12">
-                        <h2 className="text-3xl font-display font-bold text-center mb-12">Advisors & Mentors</h2>
-                        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                            {advisors.map((member, index) => (
-                                <div key={index} className="w-full sm:w-80 max-w-sm flex-shrink-0">
-                                    <TeamMember member={member} isLeadership={true} />
-                                </div>
-                            ))}
+            {advisors.length > 0 && (
+                <section className="py-12 sm:py-16 lg:py-20 bg-card/30">
+                    <div className="editorial-grid">
+                        <div className="col-span-12">
+                            <h2 className="text-3xl font-display font-bold text-center mb-12">Advisors & Mentors</h2>
+                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                                {advisors.map((member, index) => (
+                                    <div key={index} className="w-full sm:w-80 max-w-sm flex-shrink-0">
+                                        <TeamMember member={member} isLeadership={true} />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
+
+            {/* Regular Team Members */}
+            {regularMembers.length > 0 && (
+                <section className="py-12 sm:py-16 lg:py-20">
+                    <div className="editorial-grid">
+                        <div className="col-span-12">
+                            <h2 className="text-3xl font-display font-bold text-center mb-12">Team Members</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                                {regularMembers.map((member, index) => (
+                                    <TeamMember key={index} member={member} isLeadership={false} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* Join Team CTA */}
             <section className="py-12 sm:py-16 lg:py-20">

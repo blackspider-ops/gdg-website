@@ -1,92 +1,45 @@
 import React from 'react';
 import { Filter, Search, Calendar, MapPin } from 'lucide-react';
 import EventCard from '@/components/EventCard';
+import { useContent } from '@/contexts/ContentContext';
 
 const Events = () => {
+  const { events, isLoading } = useContent();
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const filters = ['All', 'Workshop', 'Talk', 'Networking', 'Study Jam'];
+  // Transform events data to match component structure
+  const allEvents = events.map(event => {
+    const eventDate = new Date(event.date);
+    const now = new Date();
+    const isUpcoming = eventDate > now;
+    
+    return {
+      title: event.title,
+      date: eventDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      time: eventDate.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      }),
+      location: event.location,
+      room: '', // Could be extracted from location if needed
+      attendees: Math.floor(Math.random() * 100) + 20, // Random for now
+      capacity: Math.floor(Math.random() * 50) + 100, // Random for now
+      description: event.description,
+      level: 'Intermediate' as const, // Could be added to database
+      type: event.is_featured ? 'Featured' : 'Workshop' as const,
+      isUpcoming,
+      registrationUrl: event.registration_url,
+      imageUrl: event.image_url
+    };
+  });
 
-  // Mock events data
-  const allEvents = [
-    {
-      title: 'Build Your First Android App',
-      date: 'March 15, 2025',
-      time: '6:00 PM',
-      location: 'IST Building',
-      room: 'Room 220',
-      attendees: 45,
-      capacity: 60,
-      description: 'Learn the fundamentals of Android development using Kotlin and Android Studio.',
-      level: 'Beginner' as const,
-      type: 'Workshop' as const,
-      isUpcoming: true,
-    },
-    {
-      title: 'AI & Machine Learning Symposium',
-      date: 'March 22, 2025',
-      time: '2:00 PM',
-      location: 'Forum Building',
-      room: 'Auditorium',
-      attendees: 120,
-      capacity: 200,
-      description: 'Industry experts discuss the latest trends in AI and ML development.',
-      level: 'Intermediate' as const,
-      type: 'Talk' as const,
-      isUpcoming: true,
-    },
-    {
-      title: 'Firebase Study Jam',
-      date: 'March 28, 2025',
-      time: '7:00 PM',
-      location: 'Westgate Building',
-      room: 'Lab E262',
-      attendees: 25,
-      capacity: 30,
-      description: 'Hands-on workshop building real-time applications with Firebase.',
-      level: 'Intermediate' as const,
-      type: 'Study Jam' as const,
-      isUpcoming: true,
-    },
-    {
-      title: 'Cloud Computing Deep Dive',
-      date: 'April 5, 2025',
-      time: '5:00 PM',
-      location: 'Business Building',
-      room: 'Conference Room A',
-      attendees: 65,
-      capacity: 80,
-      description: 'Explore Google Cloud Platform and serverless architecture patterns.',
-      level: 'Advanced' as const,
-      type: 'Workshop' as const,
-      isUpcoming: true,
-    },
-    {
-      title: 'GDG Spring Mixer',
-      date: 'April 12, 2025',
-      time: '6:30 PM',
-      location: 'HUB Lawn',
-      attendees: 150,
-      capacity: 200,
-      description: 'Network with fellow developers, enjoy food, and participate in tech trivia.',
-      type: 'Networking' as const,
-      isUpcoming: true,
-    },
-    {
-      title: 'Introduction to Flutter',
-      date: 'February 28, 2025',
-      time: '6:00 PM',
-      location: 'IST Building',
-      room: 'Room 220',
-      attendees: 55,
-      capacity: 60,
-      description: 'Build beautiful mobile apps for iOS and Android with a single codebase.',
-      level: 'Beginner' as const,
-      type: 'Workshop' as const,
-      isUpcoming: false,
-    },
-  ];
+  const filters = ['All', 'Workshop', 'Featured', 'Talk', 'Networking', 'Study Jam'];
 
   const filteredEvents = allEvents.filter(event => {
     const matchesFilter = selectedFilter === 'All' || event.type === selectedFilter;

@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { Building2, Plus, Edit3, Trash2, ExternalLink, Mail, User, Search, Filter } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { SponsorsService, type Sponsor } from '@/services/sponsorsService';
 
 const AdminSponsors = () => {
   const { isAuthenticated } = useAdmin();
   const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [sponsorStats, setSponsorStats] = useState({
+    total: 0,
+    active: 0,
+    tierDistribution: {} as Record<string, number>
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTier, setFilterTier] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAddSponsorModal, setShowAddSponsorModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
 
@@ -19,117 +27,104 @@ const AdminSponsors = () => {
     return <Navigate to="/" replace />;
   }
 
-  // Sponsors data
-  const sponsors = [
-    {
-      id: 1,
-      name: 'Google',
-      tier: 'Platinum',
-      logo: 'https://logo.clearbit.com/google.com',
-      website: 'https://google.com',
-      contactEmail: 'partnerships@google.com',
-      contactPerson: 'Alex Johnson',
-      sponsorshipAmount: '$10,000',
-      startDate: '2024-01-01',
-      endDate: '2024-12-31',
-      benefits: ['Logo on website', 'Event speaking slots', 'Recruitment access'],
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Microsoft',
-      tier: 'Gold',
-      logo: 'https://logo.clearbit.com/microsoft.com',
-      website: 'https://microsoft.com',
-      contactEmail: 'university@microsoft.com',
-      contactPerson: 'Sarah Chen',
-      sponsorshipAmount: '$5,000',
-      startDate: '2024-02-01',
-      endDate: '2024-12-31',
-      benefits: ['Logo on materials', 'Workshop opportunities'],
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Amazon',
-      tier: 'Silver',
-      logo: 'https://logo.clearbit.com/amazon.com',
-      website: 'https://amazon.com',
-      contactEmail: 'students@amazon.com',
-      contactPerson: 'David Park',
-      sponsorshipAmount: '$2,500',
-      startDate: '2024-03-01',
-      endDate: '2024-12-31',
-      benefits: ['Event participation', 'Swag provision'],
-      status: 'pending'
-    },
-    {
-      id: 4,
-      name: 'Meta',
-      tier: 'Gold',
-      logo: 'https://logo.clearbit.com/meta.com',
-      website: 'https://meta.com',
-      contactEmail: 'university@meta.com',
-      contactPerson: 'Lisa Wang',
-      sponsorshipAmount: '$7,500',
-      startDate: '2024-01-15',
-      endDate: '2024-12-31',
-      benefits: ['Logo placement', 'Hackathon support', 'Mentorship program'],
-      status: 'active'
-    },
-    {
-      id: 5,
-      name: 'Apple',
-      tier: 'Bronze',
-      logo: 'https://logo.clearbit.com/apple.com',
-      website: 'https://apple.com',
-      contactEmail: 'education@apple.com',
-      contactPerson: 'John Smith',
-      sponsorshipAmount: '$1,500',
-      startDate: '2024-06-01',
-      endDate: '2024-12-31',
-      benefits: ['Swag provision', 'Student discounts'],
-      status: 'active'
+  // Load sponsors and stats
+  useEffect(() => {
+    loadSponsors();
+    loadSponsorStats();
+  }, []);
+
+  const loadSponsors = async () => {
+    setIsLoading(true);
+    try {
+      const sponsorsData = await SponsorsService.getAllSponsors();
+      setSponsors(sponsorsData);
+    } catch (error) {
+      console.error('Error loading sponsors:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  const loadSponsorStats = async () => {
+    try {
+      const stats = await SponsorsService.getSponsorStats();
+      setSponsorStats(stats);
+    } catch (error) {
+      console.error('Error loading sponsor stats:', error);
+    }
+  };
 
   // Form state
   const [newSponsor, setNewSponsor] = useState({
     name: '',
-    tier: 'Bronze',
-    website: '',
-    contactEmail: '',
-    contactPerson: '',
-    sponsorshipAmount: '',
-    startDate: '',
-    endDate: '',
-    benefits: []
+    tier: 'bronze' as Sponsor['tier'],
+    logo_url: '',
+    website_url: '',
+    order_index: 0,
+    is_active: true
   });
 
   const filteredSponsors = sponsors.filter(sponsor => {
     const matchesSearch = sponsor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         sponsor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         sponsor.contactEmail.toLowerCase().includes(searchTerm.toLowerCase());
+                         (sponsor.website_url && sponsor.website_url.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesTier = filterTier === 'all' || sponsor.tier.toLowerCase() === filterTier.toLowerCase();
-    const matchesStatus = filterStatus === 'all' || sponsor.status === filterStatus;
+    const matchesStatus = filterStatus === 'all' || 
+                         (filterStatus === 'active' && sponsor.is_active) ||
+                         (filterStatus === 'inactive' && !sponsor.is_active);
     return matchesSearch && matchesTier && matchesStatus;
   });
 
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'Platinum': return 'bg-gray-100 text-gray-800 border-gray-300';
-      case 'Gold': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'Silver': return 'bg-gray-50 text-gray-700 border-gray-200';
-      case 'Bronze': return 'bg-orange-100 text-orange-800 border-orange-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+  const handleCreateSponsor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const created = await SponsorsService.createSponsor(newSponsor);
+      if (created) {
+        await loadSponsors();
+        await loadSponsorStats();
+        setShowAddSponsorModal(false);
+        setNewSponsor({
+          name: '',
+          tier: 'bronze',
+          logo_url: '',
+          website_url: '',
+          order_index: 0,
+          is_active: true
+        });
+      }
+    } catch (error) {
+      console.error('Error creating sponsor:', error);
     }
   };
 
-  const sponsorStats = [
-    { label: 'Total Sponsors', value: sponsors.length.toString(), color: 'text-blue-500' },
-    { label: 'Active Sponsors', value: sponsors.filter(s => s.status === 'active').length.toString(), color: 'text-green-500' },
-    { label: 'Platinum Tier', value: sponsors.filter(s => s.tier === 'Platinum').length.toString(), color: 'text-gray-500' },
-    { label: 'Total Value', value: '$26,500', color: 'text-purple-500' },
+  const handleDeleteSponsor = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this sponsor?')) {
+      try {
+        const success = await SponsorsService.deleteSponsor(id);
+        if (success) {
+          await loadSponsors();
+          await loadSponsorStats();
+        }
+      } catch (error) {
+        console.error('Error deleting sponsor:', error);
+      }
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'Platinum': return 'bg-gray-100 text-gray-800 border-gray-700';
+      case 'Gold': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'Silver': return 'bg-gray-900 text-gray-300 border-gray-800';
+      case 'Bronze': return 'bg-orange-100 text-orange-800 border-orange-300';
+      default: return 'bg-gray-100 text-gray-800 border-gray-700';
+    }
+  };
+
+  const sponsorStatsDisplay = [
+    { label: 'Total Sponsors', value: sponsorStats.total.toString(), color: 'text-blue-500' },
+    { label: 'Active Sponsors', value: sponsorStats.active.toString(), color: 'text-green-500' },
+    { label: 'Platinum Tier', value: (sponsorStats.tierDistribution.platinum || 0).toString(), color: 'text-gray-500' },
+    { label: 'Gold Tier', value: (sponsorStats.tierDistribution.gold || 0).toString(), color: 'text-yellow-500' },
   ];
 
   return (
@@ -149,36 +144,33 @@ const AdminSponsors = () => {
     >
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {sponsorStats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        {sponsorStatsDisplay.map((stat, index) => (
+          <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
             <div className="flex items-center justify-between mb-4">
               <Building2 size={24} className={stat.color} />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-600">{stat.label}</div>
+            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-sm text-gray-400">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Sponsorship Tiers Overview */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Sponsorship Tiers</h3>
+      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+        <h3 className="text-lg font-semibold text-white mb-4">Sponsorship Tiers</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {['Platinum', 'Gold', 'Silver', 'Bronze'].map((tier) => {
-            const count = sponsors.filter(s => s.tier === tier).length;
-            const totalValue = sponsors
-              .filter(s => s.tier === tier)
-              .reduce((sum, s) => sum + parseInt(s.sponsorshipAmount.replace(/[$,]/g, '')), 0);
+          {['platinum', 'gold', 'silver', 'bronze'].map((tier) => {
+            const count = sponsorStats.tierDistribution[tier] || 0;
             
             return (
-              <div key={tier} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div key={tier} className="border border-gray-800 rounded-lg p-4 hover:bg-gray-900 transition-colors">
                 <div className="flex items-center justify-between mb-2">
-                  <span className={`px-3 py-1 text-sm rounded-full font-medium border ${getTierColor(tier)}`}>
-                    {tier}
+                  <span className={`px-3 py-1 text-sm rounded-full font-medium border ${getTierColor(tier.charAt(0).toUpperCase() + tier.slice(1))}`}>
+                    {tier.charAt(0).toUpperCase() + tier.slice(1)}
                   </span>
-                  <span className="text-sm font-medium text-gray-900">{count} sponsors</span>
+                  <span className="text-sm font-medium text-white">{count} sponsors</span>
                 </div>
-                <p className="text-xs text-gray-500">Total: ${totalValue.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">Active tier sponsors</p>
               </div>
             );
           })}
@@ -186,7 +178,7 @@ const AdminSponsors = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -196,7 +188,7 @@ const AdminSponsors = () => {
                 placeholder="Search sponsors..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
               />
             </div>
           </div>
@@ -206,7 +198,7 @@ const AdminSponsors = () => {
             <select
               value={filterTier}
               onChange={(e) => setFilterTier(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
             >
               <option value="all">All Tiers</option>
               <option value="platinum">Platinum</option>
@@ -217,202 +209,181 @@ const AdminSponsors = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="expired">Expired</option>
+              <option value="inactive">Inactive</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Sponsors List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Sponsors ({filteredSponsors.length})</h2>
+      <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+        <div className="p-6 border-b border-gray-800">
+          <h2 className="text-xl font-semibold text-white">Sponsors ({filteredSponsors.length})</h2>
         </div>
         
         <div className="divide-y divide-gray-200">
-          {filteredSponsors.map((sponsor) => (
-            <div key={sponsor.id} className="p-6 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                    {sponsor.logo ? (
-                      <img src={sponsor.logo} alt={sponsor.name} className="w-12 h-12 object-contain" />
-                    ) : (
-                      <Building2 size={24} className="text-gray-400" />
-                    )}
+          {isLoading ? (
+            <div className="p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading sponsors...</p>
+            </div>
+          ) : filteredSponsors.length === 0 ? (
+            <div className="p-6 text-center">
+              <Building2 size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">No sponsors found</h3>
+              <p className="text-gray-400">Try adjusting your search or filters</p>
+            </div>
+          ) : (
+            filteredSponsors.map((sponsor) => (
+              <div key={sponsor.id} className="p-6 hover:bg-gray-900 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      {sponsor.logo_url ? (
+                        <img src={sponsor.logo_url} alt={sponsor.name} className="w-12 h-12 object-contain" />
+                      ) : (
+                        <Building2 size={24} className="text-gray-400" />
+                      )}
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center space-x-3 mb-1">
+                        <h3 className="text-lg font-semibold text-white">{sponsor.name}</h3>
+                        <span className={`px-3 py-1 text-xs rounded-full font-medium border ${getTierColor(sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1))}`}>
+                          {sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)}
+                        </span>
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          sponsor.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {sponsor.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                        {sponsor.website_url && (
+                          <div className="flex items-center space-x-1">
+                            <ExternalLink size={14} />
+                            <a href={sponsor.website_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                              Website
+                            </a>
+                          </div>
+                        )}
+                        <span>Order: {sponsor.order_index}</span>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-gray-400 mt-2">
+                        <span>Created: {new Date(sponsor.created_at).toLocaleDateString()}</span>
+                        <span>Updated: {new Date(sponsor.updated_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div>
-                    <div className="flex items-center space-x-3 mb-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{sponsor.name}</h3>
-                      <span className={`px-3 py-1 text-xs rounded-full font-medium border ${getTierColor(sponsor.tier)}`}>
-                        {sponsor.tier}
-                      </span>
-                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                        sponsor.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : sponsor.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {sponsor.status}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                      <div className="flex items-center space-x-1">
-                        <Mail size={14} />
-                        <span>{sponsor.contactEmail}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <User size={14} />
-                        <span>{sponsor.contactPerson}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <ExternalLink size={14} />
-                        <a href={sponsor.website} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
-                          Website
-                        </a>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
-                      <span className="font-medium">{sponsor.sponsorshipAmount}</span>
-                      <span>{new Date(sponsor.startDate).toLocaleDateString()} - {new Date(sponsor.endDate).toLocaleDateString()}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 mt-3">
-                      {sponsor.benefits.map((benefit, index) => (
-                        <span key={index} className="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-full">
-                          {benefit}
-                        </span>
-                      ))}
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-white">
+                      <Edit3 size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteSponsor(sponsor.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 hover:text-gray-900">
-                    <Edit3 size={16} />
-                  </button>
-                  <button className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-600 hover:text-red-600">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
       {/* Add Sponsor Modal */}
       {showAddSponsorModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Add New Sponsor</h2>
+          <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Add New Sponsor</h2>
             </div>
             
-            <form className="p-6 space-y-6">
+            <form onSubmit={handleCreateSponsor} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Company Name</label>
                   <input
                     type="text"
                     value={newSponsor.name}
                     onChange={(e) => setNewSponsor(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                     placeholder="Google"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsorship Tier</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Sponsorship Tier</label>
                   <select
                     value={newSponsor.tier}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, tier: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, tier: e.target.value as Sponsor['tier'] }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                   >
-                    <option value="Bronze">Bronze</option>
-                    <option value="Silver">Silver</option>
-                    <option value="Gold">Gold</option>
-                    <option value="Platinum">Platinum</option>
+                    <option value="bronze">Bronze</option>
+                    <option value="silver">Silver</option>
+                    <option value="gold">Gold</option>
+                    <option value="platinum">Platinum</option>
                   </select>
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Website URL</label>
                   <input
                     type="url"
-                    value={newSponsor.website}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, website: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    value={newSponsor.website_url}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, website_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
                     placeholder="https://google.com"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sponsorship Amount</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Logo URL</label>
                   <input
-                    type="text"
-                    value={newSponsor.sponsorshipAmount}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, sponsorshipAmount: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    placeholder="$5,000"
+                    type="url"
+                    value={newSponsor.logo_url}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, logo_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    placeholder="https://logo.clearbit.com/google.com"
                   />
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Person</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Order Index</label>
                   <input
-                    type="text"
-                    value={newSponsor.contactPerson}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, contactPerson: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    placeholder="Alex Johnson"
+                    type="number"
+                    value={newSponsor.order_index}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    placeholder="0"
+                    min="0"
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                <div className="flex items-center space-x-3 pt-8">
                   <input
-                    type="email"
-                    value={newSponsor.contactEmail}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, contactEmail: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    placeholder="partnerships@google.com"
+                    type="checkbox"
+                    id="is_active"
+                    checked={newSponsor.is_active}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="w-4 h-4 text-green-600 bg-black border border-gray-700 rounded focus:ring-green-500 focus:ring-2"
                   />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={newSponsor.startDate}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={newSponsor.endDate}
-                    onChange={(e) => setNewSponsor(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  />
+                  <label htmlFor="is_active" className="text-sm font-medium text-gray-300">Active Sponsor</label>
                 </div>
               </div>
               
@@ -420,7 +391,7 @@ const AdminSponsors = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddSponsorModal(false)}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
                 >
                   Cancel
                 </button>

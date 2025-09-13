@@ -85,6 +85,8 @@ export class ContentService {
                 value,
                 updated_by: adminId,
                 updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'key'
             });
 
         return !error;
@@ -128,8 +130,12 @@ export class ContentService {
                 page_slug: pageSlug,
                 section_key: sectionKey,
                 content,
+                is_active: true,
+                order_index: 0,
                 updated_by: adminId,
                 updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'page_slug,section_key'
             });
 
         return !error;
@@ -226,8 +232,12 @@ export class ContentService {
             .upsert({
                 section_key: sectionKey,
                 content,
+                is_active: true,
+                order_index: 0,
                 updated_by: adminId,
                 updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'section_key'
             });
 
         return !error;

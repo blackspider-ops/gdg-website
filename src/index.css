@@ -167,6 +167,32 @@
     @apply focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-background;
   }
 
+  /* Admin Form Input Fixes - Updated for Dark Theme */
+  input[type="text"],
+  input[type="email"], 
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="password"],
+  textarea,
+  select {
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--background)) !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    color: hsl(var(--foreground)) !important;
+  }
+
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     .animate-fade-up,

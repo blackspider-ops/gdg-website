@@ -71,7 +71,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                                 required
                                 value={credentials.username}
                                 onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
-                                className="w-full pl-10 pr-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary"
                                 placeholder="Enter admin email"
                                 disabled={isLoading}
                             />
@@ -90,7 +90,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                                 required
                                 value={credentials.password}
                                 onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                                className="w-full pl-10 pr-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary"
                                 placeholder="Enter admin password"
                                 disabled={isLoading}
                             />

@@ -22,10 +22,12 @@ import Sponsors from "./pages/Sponsors";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminContent from "./pages/AdminContent";
 import AdminEvents from "./pages/admin/AdminEvents";
+import AdminTeam from "./pages/admin/AdminTeam";
 import AdminMembers from "./pages/admin/AdminMembers";
+import AdminResources from "./pages/admin/AdminResources";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminSettings from "./pages/admin/AdminSettings";
+
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSponsors from "./pages/admin/AdminSponsors";
@@ -99,10 +101,12 @@ const App = () => (
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/admin/content" element={<AdminContent />} />
                     <Route path="/admin/events" element={<AdminEvents />} />
+                    <Route path="/admin/team" element={<AdminTeam />} />
                     <Route path="/admin/members" element={<AdminMembers />} />
+                    <Route path="/admin/resources" element={<AdminResources />} />
                     <Route path="/admin/newsletter" element={<AdminNewsletter />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                    <Route path="/admin/settings" element={<AdminSettings />} />
+
                     <Route path="/admin/users" element={<AdminUsers />} />
                     <Route path="/admin/profile" element={<AdminProfile />} />
                     <Route path="/admin/sponsors" element={<AdminSponsors />} />

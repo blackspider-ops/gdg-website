@@ -1,146 +1,52 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Download, Play, BookOpen, Code, Cloud, Smartphone, Brain } from 'lucide-react';
+import { useContent } from '@/contexts/ContentContext';
 
 const Resources = () => {
-  const studyJams = [
-    {
-      title: 'Android Development Fundamentals',
-      description: 'Complete guide to building Android apps with Kotlin',
-      duration: '8 weeks',
-      level: 'Beginner',
-      status: 'Available',
-      materials: ['Slides', 'Code Samples', 'Recordings'],
-      icon: Smartphone,
-      color: 'text-gdg-green'
-    },
-    {
-      title: 'Google Cloud Platform Essentials',
-      description: 'Learn cloud computing with hands-on GCP projects',
-      duration: '6 weeks',
-      level: 'Intermediate',
-      status: 'Available',
-      materials: ['Slides', 'Lab Guides', 'Recordings'],
-      icon: Cloud,
-      color: 'text-gdg-blue'
-    },
-    {
-      title: 'Machine Learning with TensorFlow',
-      description: 'Introduction to ML concepts and practical implementation',
-      duration: '10 weeks',
-      level: 'Intermediate',
-      status: 'Coming Soon',
-      materials: ['Slides', 'Notebooks', 'Datasets'],
-      icon: Brain,
-      color: 'text-gdg-red'
-    },
-    {
-      title: 'Web Development with React',
-      description: 'Modern web development using React and TypeScript',
-      duration: '8 weeks',
-      level: 'Beginner',
-      status: 'Available',
-      materials: ['Slides', 'Code Samples', 'Recordings'],
-      icon: Code,
-      color: 'text-gdg-yellow'
-    }
-  ];
+  const { resources, isLoading } = useContent();
 
-  const cloudCredits = [
-    {
-      title: 'Google Cloud Credits for Students',
-      description: '$300 in free credits for new Google Cloud users',
-      provider: 'Google Cloud',
-      amount: '$300',
-      duration: '12 months',
-      requirements: ['Valid student email', 'First-time GCP user'],
-      link: '#'
-    },
-    {
-      title: 'Firebase Spark Plan',
-      description: 'Free tier for Firebase projects with generous limits',
-      provider: 'Firebase',
-      amount: 'Free',
-      duration: 'Ongoing',
-      requirements: ['Google account'],
-      link: '#'
-    },
-    {
-      title: 'GitHub Student Developer Pack',
-      description: 'Free access to developer tools and cloud services',
-      provider: 'GitHub',
-      amount: 'Various',
-      duration: 'While student',
-      requirements: ['Valid student status'],
-      link: '#'
-    }
-  ];
+  // Icon mapping
+  const iconMap: Record<string, any> = {
+    Smartphone,
+    Cloud,
+    Brain,
+    Code,
+    BookOpen,
+    Play,
+    Download
+  };
 
-  const documentation = [
-    {
-      title: 'Android Developer Guides',
-      description: 'Official Android development documentation',
-      type: 'Documentation',
-      link: '#',
-      tags: ['Android', 'Mobile', 'Kotlin']
-    },
-    {
-      title: 'Google Cloud Documentation',
-      description: 'Comprehensive guides for all GCP services',
-      type: 'Documentation',
-      link: '#',
-      tags: ['Cloud', 'Infrastructure', 'APIs']
-    },
-    {
-      title: 'TensorFlow Tutorials',
-      description: 'Step-by-step machine learning tutorials',
-      type: 'Tutorials',
-      link: '#',
-      tags: ['ML', 'AI', 'Python']
-    },
-    {
-      title: 'Flutter Documentation',
-      description: 'Build beautiful cross-platform apps',
-      type: 'Documentation',
-      link: '#',
-      tags: ['Flutter', 'Mobile', 'Cross-platform']
-    }
-  ];
+  // Filter resources by type
+  const studyJams = resources.filter(r => r.type === 'study_jam').map(jam => ({
+    ...jam,
+    icon: iconMap[jam.icon] || Code,
+    materials: jam.materials || []
+  }));
 
-  const recordings = [
-    {
-      title: 'Getting Started with Android Development',
-      speaker: 'Alex Chen',
-      date: 'March 15, 2025',
-      duration: '1h 30m',
-      views: 245,
-      link: '#'
-    },
-    {
-      title: 'Cloud Architecture Best Practices',
-      speaker: 'Sarah Johnson',
-      date: 'March 8, 2025',
-      duration: '45m',
-      views: 189,
-      link: '#'
-    },
-    {
-      title: 'Introduction to Machine Learning',
-      speaker: 'Dr. Amanda Foster',
-      date: 'February 28, 2025',
-      duration: '2h 15m',
-      views: 312,
-      link: '#'
-    },
-    {
-      title: 'Building Responsive Web Apps',
-      speaker: 'Michael Rodriguez',
-      date: 'February 20, 2025',
-      duration: '1h 45m',
-      views: 156,
-      link: '#'
-    }
-  ];
+  const cloudCredits = resources.filter(r => r.type === 'cloud_credit').map(credit => ({
+    ...credit,
+    requirements: credit.requirements || [],
+    link: credit.url || '#'
+  }));
+
+  const documentation = resources.filter(r => r.type === 'documentation').map(doc => ({
+    ...doc,
+    type: 'Documentation',
+    link: doc.url || '#',
+    tags: doc.tags || []
+  }));
+
+  const recordings = resources.filter(r => r.type === 'recording').map(recording => ({
+    ...recording,
+    date: recording.metadata?.date ? new Date(recording.metadata.date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }) : 'Unknown date',
+    link: recording.url || '#',
+    views: recording.views || 0
+  }));
 
   return (
     <div className="min-h-screen relative z-10">
@@ -167,12 +73,18 @@ const Resources = () => {
         <div className="editorial-grid">
           <div className="col-span-12">
             <h2 className="text-3xl font-display font-bold mb-12">Study Jams</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {studyJams.map((jam, index) => (
+            {isLoading ? (
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading study jams...</p>
+              </div>
+            ) : studyJams.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                {studyJams.map((jam, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg bg-secondary ${jam.color}`}>
+                      <div className={`p-2 rounded-lg bg-secondary ${jam.color || 'text-primary'}`}>
                         <jam.icon size={24} />
                       </div>
                       <div>
@@ -182,8 +94,8 @@ const Resources = () => {
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       jam.status === 'Available' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-success/20 text-success' 
+                        : 'bg-accent/20 text-accent'
                     }`}>
                       {jam.status}
                     </span>
@@ -213,8 +125,13 @@ const Resources = () => {
                     {jam.status === 'Available' ? 'Access Materials' : 'Coming Soon'}
                   </button>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No study jams available at the moment.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -224,8 +141,9 @@ const Resources = () => {
         <div className="editorial-grid">
           <div className="col-span-12">
             <h2 className="text-3xl font-display font-bold mb-12">Cloud Credits & Free Tiers</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {cloudCredits.map((credit, index) => (
+            {cloudCredits.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                {cloudCredits.map((credit, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">{credit.title}</h3>
@@ -265,8 +183,13 @@ const Resources = () => {
                     <ExternalLink size={16} className="ml-2" />
                   </a>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No cloud credits available at the moment.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -276,8 +199,9 @@ const Resources = () => {
         <div className="editorial-grid">
           <div className="col-span-12">
             <h2 className="text-3xl font-display font-bold mb-12">Documentation & Tutorials</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {documentation.map((doc, index) => (
+            {documentation.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                {documentation.map((doc, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -302,8 +226,13 @@ const Resources = () => {
                     ))}
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No documentation available at the moment.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -313,8 +242,9 @@ const Resources = () => {
         <div className="editorial-grid">
           <div className="col-span-12">
             <h2 className="text-3xl font-display font-bold mb-12">Session Recordings</h2>
-            <div className="space-y-4">
-              {recordings.map((recording, index) => (
+            {recordings.length > 0 ? (
+              <div className="space-y-4">
+                {recordings.map((recording, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -339,8 +269,13 @@ const Resources = () => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No recordings available at the moment.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

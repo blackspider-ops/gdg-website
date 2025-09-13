@@ -1,0 +1,27 @@
+/* Quick fix for input text colors - add this to your global CSS */
+
+/* Fix input and textarea text colors in admin forms */
+input[type="text"],
+input[type="email"], 
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+textarea,
+select {
+  color: #111827 !important; /* gray-900 */
+  background-color: #ffffff !important; /* white background */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important; /* gray-500 */
+}
+
+/* Ensure focus states work properly */
+input:focus,
+textarea:focus,
+select:focus {
+  color: #111827 !important; /* gray-900 */
+}

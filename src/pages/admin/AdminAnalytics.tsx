@@ -32,7 +32,7 @@ const AdminAnalytics = () => {
   ];
 
   const deviceStats = [
-    { device: 'Desktop', percentage: 65, color: 'bg-blue-500' },
+    { device: 'Desktop', percentage: 65, color: 'bg-gray-9000' },
     { device: 'Mobile', percentage: 28, color: 'bg-green-500' },
     { device: 'Tablet', percentage: 7, color: 'bg-purple-500' },
   ];
@@ -46,17 +46,17 @@ const AdminAnalytics = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <div className="min-h-screen bg-black pt-20">
       <div className="editorial-grid py-8">
         {/* Header */}
         <div className="col-span-12 flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <BarChart3 size={20} className="text-primary-foreground" />
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <BarChart3 size={20} className="text-white" />
             </div>
             <div>
               <h1 className="font-display text-2xl font-bold">Analytics Dashboard</h1>
-              <p className="text-muted-foreground text-sm">Website and engagement analytics</p>
+              <p className="text-gray-400 text-sm">Website and engagement analytics</p>
             </div>
           </div>
           
@@ -77,7 +77,7 @@ const AdminAnalytics = () => {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className="bg-card border border-border rounded-lg p-6">
+              <div key={index} className="bg-black border border-gray-800 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <Icon size={24} className={stat.color} />
                   <span className={`text-sm font-medium ${
@@ -87,7 +87,7 @@ const AdminAnalytics = () => {
                   </span>
                 </div>
                 <div className="text-2xl font-bold mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-sm text-gray-400">{stat.label}</div>
               </div>
             );
           })}
@@ -96,23 +96,23 @@ const AdminAnalytics = () => {
         {/* Charts Row */}
         <div className="col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Top Pages */}
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className="bg-black border border-gray-800 rounded-lg p-6">
             <h3 className="font-semibold text-lg mb-6">Top Pages</h3>
             <div className="space-y-4">
               {topPages.map((page, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="font-medium">{page.page}</div>
-                    <div className="w-full bg-muted rounded-full h-2 mt-2">
+                    <div className="w-full bg-gray-900 rounded-full h-2 mt-2">
                       <div 
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${page.percentage}%` }}
                       ></div>
                     </div>
                   </div>
                   <div className="ml-4 text-right">
                     <div className="font-semibold">{page.views.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground">{page.percentage}%</div>
+                    <div className="text-sm text-gray-400">{page.percentage}%</div>
                   </div>
                 </div>
               ))}
@@ -120,19 +120,19 @@ const AdminAnalytics = () => {
           </div>
 
           {/* Device Breakdown */}
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className="bg-black border border-gray-800 rounded-lg p-6">
             <h3 className="font-semibold text-lg mb-6">Device Breakdown</h3>
             <div className="space-y-6">
               {deviceStats.map((device, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    {device.device === 'Desktop' && <Globe size={20} className="text-muted-foreground" />}
-                    {device.device === 'Mobile' && <Smartphone size={20} className="text-muted-foreground" />}
-                    {device.device === 'Tablet' && <Smartphone size={20} className="text-muted-foreground" />}
+                    {device.device === 'Desktop' && <Globe size={20} className="text-gray-400" />}
+                    {device.device === 'Mobile' && <Smartphone size={20} className="text-gray-400" />}
+                    {device.device === 'Tablet' && <Smartphone size={20} className="text-gray-400" />}
                     <span className="font-medium">{device.device}</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="w-24 bg-muted rounded-full h-2">
+                    <div className="w-24 bg-gray-900 rounded-full h-2">
                       <div 
                         className={`${device.color} h-2 rounded-full transition-all duration-300`}
                         style={{ width: `${device.percentage}%` }}
@@ -148,23 +148,23 @@ const AdminAnalytics = () => {
 
         {/* Traffic Sources */}
         <div className="col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className="bg-black border border-gray-800 rounded-lg p-6">
             <h3 className="font-semibold text-lg mb-6">Traffic Sources</h3>
             <div className="space-y-4">
               {trafficSources.map((source, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="font-medium">{source.source}</div>
-                    <div className="w-full bg-muted rounded-full h-2 mt-2">
+                    <div className="w-full bg-gray-900 rounded-full h-2 mt-2">
                       <div 
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${source.percentage}%` }}
                       ></div>
                     </div>
                   </div>
                   <div className="ml-4 text-right">
                     <div className="font-semibold">{source.visitors.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground">{source.percentage}%</div>
+                    <div className="text-sm text-gray-400">{source.percentage}%</div>
                   </div>
                 </div>
               ))}
@@ -172,35 +172,35 @@ const AdminAnalytics = () => {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className="bg-black border border-gray-800 rounded-lg p-6">
             <h3 className="font-semibold text-lg mb-6">Recent Activity</h3>
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                 <div>
                   <div className="text-sm font-medium">High traffic spike detected</div>
-                  <div className="text-xs text-muted-foreground">Events page • 2 hours ago</div>
+                  <div className="text-xs text-gray-400">Events page • 2 hours ago</div>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                <div className="w-2 h-2 bg-gray-9000 rounded-full mt-2"></div>
                 <div>
                   <div className="text-sm font-medium">New referral source</div>
-                  <div className="text-xs text-muted-foreground">reddit.com • 4 hours ago</div>
+                  <div className="text-xs text-gray-400">reddit.com • 4 hours ago</div>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
                 <div>
                   <div className="text-sm font-medium">Goal conversion increased</div>
-                  <div className="text-xs text-muted-foreground">Newsletter signup • 1 day ago</div>
+                  <div className="text-xs text-gray-400">Newsletter signup • 1 day ago</div>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                 <div>
                   <div className="text-sm font-medium">Page load time improved</div>
-                  <div className="text-xs text-muted-foreground">Homepage • 2 days ago</div>
+                  <div className="text-xs text-gray-400">Homepage • 2 days ago</div>
                 </div>
               </div>
             </div>

@@ -7,9 +7,8 @@ const DebugPanel = () => {
     siteSettings, 
     pageContent, 
     navigationItems, 
-    socialLinks, 
     footerContent,
-    isLoading 
+    isLoading
   } = useContent();
   
   const { isAuthenticated, currentAdmin } = useAdmin();
@@ -44,7 +43,7 @@ const DebugPanel = () => {
         </div>
         
         <div>
-          <strong>Social Links:</strong> {socialLinks.length}
+          <strong>Social Links:</strong> 0 (centralized system)
         </div>
         
         <div>

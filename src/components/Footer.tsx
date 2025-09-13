@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Github, Twitter, Instagram, Mail } from 'lucide-react';
+import { Github, Twitter, Instagram, Mail, MessageCircle, Linkedin, Facebook, Youtube } from 'lucide-react';
 import AdminLoginModal from '@/components/AdminLoginModal';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useContent } from '@/contexts/ContentContext';
@@ -12,7 +12,7 @@ const Footer = () => {
   const [adminSecretCode, setAdminSecretCode] = React.useState('gdg-secret@mail.com');
   const { login, isLoading, error } = useAdmin();
   const navigate = useNavigate();
-  const { socialLinks, getFooterSection, getSiteSetting } = useContent();
+  const { getFooterSection, getSiteSetting, getAllLinks } = useContent();
 
   // Load admin secret code on component mount
   React.useEffect(() => {
@@ -32,36 +32,116 @@ const Footer = () => {
     Github,
     Twitter,
     Instagram,
-    Mail
+    Mail,
+    MessageCircle,
+    Linkedin,
+    Facebook,
+    Youtube
   };
 
-  // Get dynamic content
-  const aboutContent = getFooterSection('about') || {};
+  // Get dynamic content - using the correct keys that match the admin panel
+  const footerDescription = getFooterSection('description');
+  const footerCopyright = getFooterSection('copyright');
   const quickLinksContent = getFooterSection('quick_links') || {};
   const resourcesContent = getFooterSection('resources') || {};
-  const contactContent = getFooterSection('contact_info') || {};
-  const newsletterContent = getFooterSection('newsletter') || {};
+  // Parse contact info with fallbacks
+  const contactContent = React.useMemo(() => {
+    try {
+      const contactData = getFooterSection('contact_info');
+      if (typeof contactData === 'string') {
+        return JSON.parse(contactData);
+      }
+      return contactData || {};
+    } catch (error) {
+      console.warn('Error parsing contact info:', error);
+      return {};
+    }
+  }, [getFooterSection]);
+  // Parse newsletter content with fallbacks
+  const newsletterContent = React.useMemo(() => {
+    try {
+      const newsletterData = getFooterSection('newsletter');
+      if (typeof newsletterData === 'string') {
+        return JSON.parse(newsletterData);
+      }
+      return newsletterData || {};
+    } catch (error) {
+      console.warn('Error parsing newsletter content:', error);
+      return {};
+    }
+  }, [getFooterSection]);
 
-  const quickLinks = quickLinksContent.links || [
-    { name: 'Events', href: '/events' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Projects', href: '/projects' },
-    { name: 'Team', href: '/team' },
-  ];
+  // Get social links from centralized system
+  const dynamicSocialLinks = React.useMemo(() => {
+    try {
+      const centralizedLinks = getAllLinks('Social') || [];
+      
+      return centralizedLinks.map((link, index) => {
+        const platformName = (link.name || '').toLowerCase();
+        let icon = Mail;
+        
+        if (platformName.includes('discord')) icon = MessageCircle;
+        else if (platformName.includes('github')) icon = Github;
+        else if (platformName.includes('twitter') || platformName.includes('x')) icon = Twitter;
+        else if (platformName.includes('linkedin')) icon = Linkedin;
+        else if (platformName.includes('instagram')) icon = Instagram;
+        else if (platformName.includes('facebook')) icon = Facebook;
+        else if (platformName.includes('youtube')) icon = Youtube;
+        else if (platformName.includes('email') || platformName.includes('mail')) icon = Mail;
+        
+        return {
+          id: link.id || `social-${index}`,
+          name: link.name,
+          href: link.url,
+          icon: icon
+        };
+      });
+    } catch (error) {
+      console.error('Error getting social links:', error);
+      return [];
+    }
+  }, [getAllLinks]);
 
-  const resources = resourcesContent.links || [
-    { name: 'Study Jams', href: '/resources' },
-    { name: 'Cloud Credits', href: '/resources' },
-    { name: 'Documentation', href: '/resources' },
-    { name: 'Recordings', href: '/resources' },
-  ];
 
-  // Use dynamic social links
-  const dynamicSocialLinks = socialLinks.map(link => ({
-    name: link.platform,
-    href: link.url,
-    icon: iconMap[link.icon] || Mail
-  }));
+
+  // Parse dynamic content from admin panel with fallbacks
+  const quickLinksData = React.useMemo(() => {
+    try {
+      if (quickLinksContent.links) {
+        return quickLinksContent.links;
+      }
+      // Try to parse if it's a JSON string
+      if (typeof quickLinksContent === 'string') {
+        const parsed = JSON.parse(quickLinksContent);
+        return parsed.links || [];
+      }
+      return [];
+    } catch (error) {
+      console.warn('Error parsing quick links:', error);
+      return [];
+    }
+  }, [quickLinksContent]);
+
+  const resourcesData = React.useMemo(() => {
+    try {
+      if (resourcesContent.links) {
+        return resourcesContent.links;
+      }
+      // Try to parse if it's a JSON string
+      if (typeof resourcesContent === 'string') {
+        const parsed = JSON.parse(resourcesContent);
+        return parsed.links || [];
+      }
+      return [];
+    } catch (error) {
+      console.warn('Error parsing resources:', error);
+      return [];
+    }
+  }, [resourcesContent]);
+
+  // Use only dynamic content from admin panel
+  const quickLinks = quickLinksData;
+  const resources = resourcesData;
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,24 +177,26 @@ const Footer = () => {
             </div>
             <div className="flex flex-col">
               <span className="font-display font-semibold text-2xl leading-none">
-                {aboutContent.title || 'GDG@PSU'}
+                {getSiteSetting('site_title')}
               </span>
               <span className="text-muted-foreground text-sm">
-                {aboutContent.subtitle || 'Penn State University'}
+                {getSiteSetting('site_subtitle')}
               </span>
             </div>
           </div>
           
-          <p className="text-muted-foreground content-measure mb-8 leading-relaxed">
-            {aboutContent.description || 'A student-led community passionate about Google technologies, development, and building the future together at Penn State University.'}
-          </p>
+          {footerDescription && (
+            <p className="text-muted-foreground content-measure mb-8 leading-relaxed">
+              {footerDescription}
+            </p>
+          )}
 
           <div className="flex space-x-3">
             {dynamicSocialLinks.map((social) => {
               const Icon = social.icon;
               return (
                 <a
-                  key={social.name}
+                  key={social.id}
                   href={social.href}
                   className="magnetic-button p-3 hover:bg-primary/10 rounded-lg transition-colors group focus-ring"
                   title={social.name}
@@ -127,13 +209,14 @@ const Footer = () => {
         </div>
 
         {/* Quick Links */}
-        <div className="col-span-6 md:col-span-3 lg:col-span-2">
-          <h4 className="font-display font-semibold text-lg mb-6">
-            {quickLinksContent.title || 'Quick Links'}
-          </h4>
+        {quickLinks.length > 0 && (
+          <div className="col-span-6 md:col-span-3 lg:col-span-2">
+            <h4 className="font-display font-semibold text-lg mb-6">
+              Quick Links
+            </h4>
           <ul className="space-y-4">
-            {quickLinks.map((link) => (
-              <li key={link.name}>
+            {quickLinks.map((link, index) => (
+              <li key={`quicklink-${index}-${link.name}`}>
                 <Link 
                   to={link.href}
                   className="text-muted-foreground hover:text-primary transition-colors underline-slide focus-ring"
@@ -143,16 +226,18 @@ const Footer = () => {
               </li>
             ))}
           </ul>
-        </div>
+          </div>
+        )}
 
         {/* Resources */}
-        <div className="col-span-6 md:col-span-3 lg:col-span-2">
-          <h4 className="font-display font-semibold text-lg mb-6">
-            {resourcesContent.title || 'Resources'}
-          </h4>
+        {resources.length > 0 && (
+          <div className="col-span-6 md:col-span-3 lg:col-span-2">
+            <h4 className="font-display font-semibold text-lg mb-6">
+              Resources
+            </h4>
           <ul className="space-y-4">
-            {resources.map((link) => (
-              <li key={link.name}>
+            {resources.map((link, index) => (
+              <li key={`resource-${index}-${link.name}`}>
                 <Link 
                   to={link.href}
                   className="text-muted-foreground hover:text-primary transition-colors underline-slide focus-ring"
@@ -162,87 +247,113 @@ const Footer = () => {
               </li>
             ))}
           </ul>
-        </div>
+          </div>
+        )}
 
         {/* Connect */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-4">
-          <h4 className="font-display font-semibold text-lg mb-6">
-            {contactContent.title || 'Connect With Us'}
-          </h4>
+        {(contactContent.email || contactContent.phone || contactContent.address || contactContent.officeHours) && (
+          <div className="col-span-12 md:col-span-6 lg:col-span-4">
+            <h4 className="font-display font-semibold text-lg mb-6">
+              Connect With Us
+            </h4>
           <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-foreground mb-1">Email</p>
-              <a 
-                href={`mailto:${contactContent.email || getSiteSetting('contact_email') || 'contact@gdgpsu.org'}`} 
-                className="text-muted-foreground hover:text-primary transition-colors text-sm"
-              >
-                {contactContent.email || getSiteSetting('contact_email') || 'contact@gdgpsu.org'}
-              </a>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground mb-1">Location</p>
-              <p className="text-muted-foreground text-sm whitespace-pre-line">
-                {contactContent.location || 'Penn State University\nUniversity Park, PA'}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground mb-1">Meeting Times</p>
-              <p className="text-muted-foreground text-sm whitespace-pre-line">
-                {contactContent.meeting_times || `${getSiteSetting('meeting_time') || 'Thursdays at 7:00 PM'}\n${getSiteSetting('meeting_location') || 'Thomas Building 100'}`}
-              </p>
-            </div>
+            {contactContent.email && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Email</p>
+                <a 
+                  href={`mailto:${contactContent.email}`} 
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  {contactContent.email}
+                </a>
+              </div>
+            )}
+            {contactContent.phone && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Phone</p>
+                <a 
+                  href={`tel:${contactContent.phone}`} 
+                  className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                >
+                  {contactContent.phone}
+                </a>
+              </div>
+            )}
+            {contactContent.address && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Location</p>
+                <p className="text-muted-foreground text-sm whitespace-pre-line">
+                  {contactContent.address}
+                </p>
+              </div>
+            )}
+            {contactContent.officeHours && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Office Hours</p>
+                <p className="text-muted-foreground text-sm whitespace-pre-line">
+                  {contactContent.officeHours}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+          </div>
+        )}
 
         {/* Newsletter - Full Width Bottom */}
-        <div className="col-span-12 mt-12 pt-8 border-t border-border">
-          <div className="max-w-2xl mx-auto text-center">
-            <h4 className="font-display font-semibold text-xl mb-4">
-              {newsletterContent.title || 'Stay Updated'}
-            </h4>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
-              {newsletterContent.description || 'Get the latest updates on events, workshops, and opportunities delivered to your inbox.'}
-            </p>
-            <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder={newsletterContent.placeholder || 'Enter your email'}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="flex-1 px-4 py-3 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-colors"
-              />
-              <button 
-                type="submit"
-                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap"
-              >
-                Subscribe
-              </button>
-            </form>
+        {newsletterContent.title && (
+          <div className="col-span-12 mt-12 pt-8 border-t border-border">
+            <div className="max-w-2xl mx-auto text-center">
+              <h4 className="font-display font-semibold text-xl mb-4">
+                {newsletterContent.title}
+              </h4>
+              {newsletterContent.description && (
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  {newsletterContent.description}
+                </p>
+              )}
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <input
+                  type="email"
+                  placeholder={newsletterContent.placeholder}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="flex-1 px-4 py-3 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-colors"
+                />
+                <button 
+                  type="submit"
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap"
+                >
+                  {newsletterContent.buttonText}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-border">
-        <div className="editorial-grid py-8">
-          <div className="col-span-12 md:col-span-8 lg:col-span-8">
-            <p className="text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Brand Usage:</strong> GDG on Campus is a program of Google Developer Groups. 
-              This chapter is student-led and not sponsored by Google.
-            </p>
-            <p className="text-muted-foreground mt-2">
-              Proudly representing Penn State University students in technology and development.
-            </p>
-          </div>
+      {footerCopyright && (
+        <div className="border-t border-border">
+          <div className="editorial-grid py-8">
+            <div className="col-span-12 md:col-span-8 lg:col-span-8">
+              <p className="text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Brand Usage:</strong> GDG on Campus is a program of Google Developer Groups. 
+                This chapter is student-led and not sponsored by Google.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                Proudly representing Penn State University students in technology and development.
+              </p>
+            </div>
           
-          <div className="col-span-12 md:col-span-4 lg:col-span-4 flex items-center justify-start md:justify-end mt-4 md:mt-0">
-            <p className="text-muted-foreground">
-              © 2025 GDG@PSU. All rights reserved.
-            </p>
+            <div className="col-span-12 md:col-span-4 lg:col-span-4 flex items-center justify-start md:justify-end mt-4 md:mt-0">
+              <p className="text-muted-foreground">
+                {footerCopyright}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Admin Login Modal */}
       <AdminLoginModal
