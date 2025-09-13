@@ -3,11 +3,5 @@
     "api/send-email.js": {
       "runtime": "nodejs18.x"
     }
-  },
-  "env": {
-    "VITE_RESEND_API_KEY": "@resend_api_key",
-    "VITE_FROM_EMAIL": "newsletter@decryptpsu.me",
-    "VITE_FROM_NAME": "GDG@PSU Newsletter",
-    "VITE_DOMAIN": "decryptpsu.me"
   }
 }
