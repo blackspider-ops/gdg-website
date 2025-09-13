@@ -54,14 +54,50 @@ const AdminContent = () => {
     meeting_location: siteSettings.meeting_location || 'Thomas Building 100'
   });
 
-  const [homeHeroForm, setHomeHeroForm] = useState(() => {
-    const heroContent = pageContent.home?.hero || {};
+  const [homePageForm, setHomePageForm] = useState(() => {
+    const homeContent = pageContent.home || {};
+    const heroContent = homeContent.hero || {};
+    const tracksContent = homeContent.tracks || {};
+    const eventsContent = homeContent.events || {};
+    const projectsContent = homeContent.projects || {};
+    const communityContent = homeContent.community || {};
+
     return {
-      title: heroContent.title || 'Google Developer Group',
-      subtitle: heroContent.subtitle || 'at Penn State University',
-      description: heroContent.description || 'Join our community of passionate developers, designers, and tech enthusiasts.',
-      cta_text: heroContent.cta_text || 'Join Chapter',
-      cta_link: heroContent.cta_link || '/contact'
+      // Hero Section
+      hero_badge_text: heroContent.badge_text || '',
+      hero_title: heroContent.title || '',
+      hero_subtitle: heroContent.subtitle || '',
+      hero_description: heroContent.description || '',
+      hero_primary_cta_text: heroContent.primary_cta_text || '',
+      hero_primary_cta_link: heroContent.primary_cta_link || '',
+      hero_secondary_cta_text: heroContent.secondary_cta_text || '',
+      hero_secondary_cta_link: heroContent.secondary_cta_link || '',
+
+      // What We Build Section
+      tracks_title: tracksContent.title || '',
+      tracks_description: tracksContent.description || '',
+      tracks_items: tracksContent.items || [],
+
+      // Upcoming Events Section
+      events_title: eventsContent.title || '',
+      events_description: eventsContent.description || '',
+      events_cta_text: eventsContent.cta_text || '',
+      events_cta_link: eventsContent.cta_link || '',
+
+      // Featured Projects Section
+      projects_title: projectsContent.title || '',
+      projects_description: projectsContent.description || '',
+      projects_cta_text: projectsContent.cta_text || '',
+      projects_cta_link: projectsContent.cta_link || '',
+
+      // Join Community Section
+      community_title: communityContent.title || '',
+      community_description: communityContent.description || '',
+      community_cta_text: communityContent.cta_text || '',
+      community_cta_link: communityContent.cta_link || '',
+      community_feature_1: communityContent.feature_1 || '',
+      community_feature_2: communityContent.feature_2 || '',
+      community_feature_3: communityContent.feature_3 || ''
     };
   });
 
@@ -246,14 +282,64 @@ const AdminContent = () => {
     }
   };
 
-  const handleSaveHomeHero = async () => {
+  const handleSaveHomePage = async () => {
     setIsSaving(true);
     try {
-      await ContentService.updatePageContent('home', 'hero', homeHeroForm, currentAdmin?.id);
+      // Save each section separately
+      const heroData = {
+        badge_text: homePageForm.hero_badge_text,
+        title: homePageForm.hero_title,
+        subtitle: homePageForm.hero_subtitle,
+        description: homePageForm.hero_description,
+        primary_cta_text: homePageForm.hero_primary_cta_text,
+        primary_cta_link: homePageForm.hero_primary_cta_link,
+        secondary_cta_text: homePageForm.hero_secondary_cta_text,
+        secondary_cta_link: homePageForm.hero_secondary_cta_link
+      };
+
+      const tracksData = {
+        title: homePageForm.tracks_title,
+        description: homePageForm.tracks_description,
+        items: homePageForm.tracks_items
+      };
+
+      const eventsData = {
+        title: homePageForm.events_title,
+        description: homePageForm.events_description,
+        cta_text: homePageForm.events_cta_text,
+        cta_link: homePageForm.events_cta_link
+      };
+
+      const projectsData = {
+        title: homePageForm.projects_title,
+        description: homePageForm.projects_description,
+        cta_text: homePageForm.projects_cta_text,
+        cta_link: homePageForm.projects_cta_link
+      };
+
+      const communityData = {
+        title: homePageForm.community_title,
+        description: homePageForm.community_description,
+        cta_text: homePageForm.community_cta_text,
+        cta_link: homePageForm.community_cta_link,
+        feature_1: homePageForm.community_feature_1,
+        feature_2: homePageForm.community_feature_2,
+        feature_3: homePageForm.community_feature_3
+      };
+
+      // Save all sections
+      await Promise.all([
+        ContentService.updatePageContent('home', 'hero', heroData, currentAdmin?.id),
+        ContentService.updatePageContent('home', 'tracks', tracksData, currentAdmin?.id),
+        ContentService.updatePageContent('home', 'events', eventsData, currentAdmin?.id),
+        ContentService.updatePageContent('home', 'projects', projectsData, currentAdmin?.id),
+        ContentService.updatePageContent('home', 'community', communityData, currentAdmin?.id)
+      ]);
+
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving home hero:', error);
+      console.error('Error saving home page:', error);
     } finally {
       setIsSaving(false);
     }
@@ -340,6 +426,37 @@ const AdminContent = () => {
     setContactPageForm(prev => ({
       ...prev,
       contact_links: prev.contact_links.filter(link => link.id !== linkId)
+    }));
+  };
+
+  // Tracks management functions
+  const addTrack = () => {
+    const newTrack = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: '',
+      description: '',
+      icon: 'Smartphone', // Default icon
+      color: 'text-gdg-blue' // Default color
+    };
+    setHomePageForm(prev => ({
+      ...prev,
+      tracks_items: [...(prev.tracks_items || []), newTrack]
+    }));
+  };
+
+  const removeTrack = (trackId: string) => {
+    setHomePageForm(prev => ({
+      ...prev,
+      tracks_items: (prev.tracks_items || []).filter(track => track.id !== trackId)
+    }));
+  };
+
+  const updateTrack = (trackId: string, field: string, value: string) => {
+    setHomePageForm(prev => ({
+      ...prev,
+      tracks_items: (prev.tracks_items || []).map(track =>
+        track.id === trackId ? { ...track, [field]: value } : track
+      )
     }));
   };
 
@@ -600,6 +717,56 @@ const AdminContent = () => {
     }
   }, [pageContent]);
 
+  // Update home page form when pageContent changes
+  React.useEffect(() => {
+    if (pageContent.home && Object.keys(pageContent.home).length > 0) {
+      const homeContent = pageContent.home;
+      const heroContent = homeContent.hero || {};
+      const tracksContent = homeContent.tracks || {};
+      const eventsContent = homeContent.events || {};
+      const projectsContent = homeContent.projects || {};
+      const communityContent = homeContent.community || {};
+
+      setHomePageForm({
+        // Hero Section
+        hero_badge_text: heroContent.badge_text || '',
+        hero_title: heroContent.title || '',
+        hero_subtitle: heroContent.subtitle || '',
+        hero_description: heroContent.description || '',
+        hero_primary_cta_text: heroContent.primary_cta_text || '',
+        hero_primary_cta_link: heroContent.primary_cta_link || '',
+        hero_secondary_cta_text: heroContent.secondary_cta_text || '',
+        hero_secondary_cta_link: heroContent.secondary_cta_link || '',
+
+        // What We Build Section
+        tracks_title: tracksContent.title || '',
+        tracks_description: tracksContent.description || '',
+        tracks_items: tracksContent.items || [],
+
+        // Upcoming Events Section
+        events_title: eventsContent.title || '',
+        events_description: eventsContent.description || '',
+        events_cta_text: eventsContent.cta_text || '',
+        events_cta_link: eventsContent.cta_link || '',
+
+        // Featured Projects Section
+        projects_title: projectsContent.title || '',
+        projects_description: projectsContent.description || '',
+        projects_cta_text: projectsContent.cta_text || '',
+        projects_cta_link: projectsContent.cta_link || '',
+
+        // Join Community Section
+        community_title: communityContent.title || '',
+        community_description: communityContent.description || '',
+        community_cta_text: communityContent.cta_text || '',
+        community_cta_link: communityContent.cta_link || '',
+        community_feature_1: communityContent.feature_1 || '',
+        community_feature_2: communityContent.feature_2 || '',
+        community_feature_3: communityContent.feature_3 || ''
+      });
+    }
+  }, [pageContent]);
+
   return (
     <AdminLayout
       title="Site & Content Management"
@@ -617,7 +784,7 @@ const AdminContent = () => {
             <button
               onClick={() => {
                 if (activeTab === 'site-settings') handleSaveSiteSettings();
-                if (activeTab === 'home-page') handleSaveHomeHero();
+                if (activeTab === 'home-page') handleSaveHomePage();
                 if (activeTab === 'contact-page') handleSaveContactPage();
                 if (activeTab === 'links-urls') handleSaveLinks();
                 if (activeTab === 'navigation') handleSaveNavigation();
@@ -784,8 +951,8 @@ const AdminContent = () => {
         <div className="bg-black rounded-xl shadow-sm border border-gray-800">
           <div className="p-6 border-b border-gray-800 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Home Page Hero Section</h2>
-              <p className="text-gray-400 mt-1">Edit the main hero section on the homepage</p>
+              <h2 className="text-xl font-semibold text-white">Home Page Content</h2>
+              <p className="text-gray-400 mt-1">Edit all sections of the homepage</p>
             </div>
             {!isEditing && (
               <button
@@ -798,87 +965,569 @@ const AdminContent = () => {
             )}
           </div>
 
-          <div className="p-6">
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Main Title</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={homeHeroForm.title}
-                    onChange={(e) => setHomeHeroForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                  />
-                ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-2xl font-bold">
-                    {homeHeroForm.title}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Subtitle</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={homeHeroForm.subtitle}
-                    onChange={(e) => setHomeHeroForm(prev => ({ ...prev, subtitle: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                  />
-                ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-lg">
-                    {homeHeroForm.subtitle}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                {isEditing ? (
-                  <textarea
-                    rows={4}
-                    value={homeHeroForm.description}
-                    onChange={(e) => setHomeHeroForm(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-                  />
-                ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
-                    {homeHeroForm.description}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-6 space-y-8">
+            {/* Hero Section */}
+            <div className="border-b border-gray-800 pb-8">
+              <h3 className="text-lg font-semibold text-white mb-6">Hero Section</h3>
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Button Text</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Badge Text</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      value={homeHeroForm.cta_text}
-                      onChange={(e) => setHomeHeroForm(prev => ({ ...prev, cta_text: e.target.value }))}
+                      value={homePageForm.hero_badge_text}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_badge_text: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
                     <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
-                      {homeHeroForm.cta_text}
+                      {homePageForm.hero_badge_text}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Button Link</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Main Title</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      value={homeHeroForm.cta_link}
-                      onChange={(e) => setHomeHeroForm(prev => ({ ...prev, cta_link: e.target.value }))}
+                      value={homePageForm.hero_title}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-2xl font-bold">
+                      {homePageForm.hero_title}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Subtitle</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={homePageForm.hero_subtitle}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_subtitle: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-lg">
+                      {homePageForm.hero_subtitle}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={3}
+                      value={homePageForm.hero_description}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_description: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
                     <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
-                      {homeHeroForm.cta_link}
+                      {homePageForm.hero_description}
                     </div>
                   )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Primary Button Text</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.hero_primary_cta_text}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_primary_cta_text: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.hero_primary_cta_text}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Primary Button Link</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.hero_primary_cta_link}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_primary_cta_link: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.hero_primary_cta_link}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Secondary Button Text</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.hero_secondary_cta_text}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_secondary_cta_text: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.hero_secondary_cta_text}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Secondary Button Link</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.hero_secondary_cta_link}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_secondary_cta_link: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.hero_secondary_cta_link}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* What We Build Section */}
+            <div className="border-b border-gray-800 pb-8">
+              <h3 className="text-lg font-semibold text-white mb-6">What We Build Section</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={homePageForm.tracks_title}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, tracks_title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                      {homePageForm.tracks_title}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Description</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={3}
+                      value={homePageForm.tracks_description}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, tracks_description: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      {homePageForm.tracks_description}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tracks Management */}
+                <div className="border-t border-gray-700 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="text-md font-semibold text-white">Technology Tracks</h4>
+                      <p className="text-sm text-gray-400">Manage the technology tracks displayed in this section</p>
+                    </div>
+                    {isEditing && (
+                      <button
+                        onClick={addTrack}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        <Plus size={16} />
+                        <span>Add Track</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {(!homePageForm.tracks_items || homePageForm.tracks_items.length === 0) ? (
+                    <div className="text-center py-6 text-gray-400 border border-gray-800 rounded-lg">
+                      <p>No tracks added yet.</p>
+                      {isEditing && (
+                        <p className="text-sm mt-2">Click "Add Track" to create your first technology track.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(homePageForm.tracks_items || []).map((track) => (
+                        <div key={track.id} className="border border-gray-800 rounded-lg p-4 bg-gray-900">
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Track Title</label>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={track.title}
+                                    onChange={(e) => updateTrack(track.id, 'title', e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                    placeholder="e.g., Android"
+                                  />
+                                ) : (
+                                  <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-medium">
+                                    {track.title}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Icon</label>
+                                {isEditing ? (
+                                  <select
+                                    value={track.icon}
+                                    onChange={(e) => updateTrack(track.id, 'icon', e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                  >
+                                    <option value="Smartphone">📱 Smartphone (Android)</option>
+                                    <option value="Cloud">☁️ Cloud</option>
+                                    <option value="Brain">🧠 Brain (AI/ML)</option>
+                                    <option value="Code">💻 Code</option>
+                                    <option value="Users">👥 Users</option>
+                                    <option value="BookOpen">📖 Book</option>
+                                  </select>
+                                ) : (
+                                  <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                                    {track.icon}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
+                              {isEditing ? (
+                                <select
+                                  value={track.color}
+                                  onChange={(e) => updateTrack(track.id, 'color', e.target.value)}
+                                  className="w-full px-4 py-3 border border-gray-700 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                >
+                                  <option value="text-gdg-blue">🔵 Blue</option>
+                                  <option value="text-gdg-red">🔴 Red</option>
+                                  <option value="text-gdg-green">🟢 Green</option>
+                                  <option value="text-gdg-yellow">🟡 Yellow</option>
+                                </select>
+                              ) : (
+                                <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                                  {track.color}
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                              {isEditing ? (
+                                <textarea
+                                  rows={3}
+                                  value={track.description}
+                                  onChange={(e) => updateTrack(track.id, 'description', e.target.value)}
+                                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                  placeholder="Describe what this track covers..."
+                                />
+                              ) : (
+                                <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                                  {track.description}
+                                </div>
+                              )}
+                            </div>
+
+                            {isEditing && (
+                              <div className="flex justify-end">
+                                <button
+                                  onClick={() => removeTrack(track.id)}
+                                  className="flex items-center space-x-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={16} />
+                                  <span>Remove Track</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming Events Section */}
+            <div className="border-b border-gray-800 pb-8">
+              <h3 className="text-lg font-semibold text-white mb-6">Upcoming Events Section</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={homePageForm.events_title}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, events_title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                      {homePageForm.events_title}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Description</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={2}
+                      value={homePageForm.events_description}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, events_description: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      {homePageForm.events_description}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">CTA Button Text</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.events_cta_text}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, events_cta_text: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.events_cta_text}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">CTA Button Link</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.events_cta_link}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, events_cta_link: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.events_cta_link}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Projects Section */}
+            <div className="border-b border-gray-800 pb-8">
+              <h3 className="text-lg font-semibold text-white mb-6">Featured Projects Section</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={homePageForm.projects_title}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                      {homePageForm.projects_title}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Description</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={3}
+                      value={homePageForm.projects_description}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_description: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      {homePageForm.projects_description}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">CTA Button Text</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.projects_cta_text}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_cta_text: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.projects_cta_text}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">CTA Button Link</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.projects_cta_link}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_cta_link: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.projects_cta_link}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Join Community Section */}
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-6">Join Community Section</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={homePageForm.community_title}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, community_title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                      {homePageForm.community_title}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Section Description</label>
+                  {isEditing ? (
+                    <textarea
+                      rows={3}
+                      value={homePageForm.community_description}
+                      onChange={(e) => setHomePageForm(prev => ({ ...prev, community_description: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      {homePageForm.community_description}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Feature 1</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.community_feature_1}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, community_feature_1: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.community_feature_1}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Feature 2</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.community_feature_2}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, community_feature_2: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.community_feature_2}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Feature 3</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.community_feature_3}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, community_feature_3: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.community_feature_3}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">CTA Button Text</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.community_cta_text}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, community_cta_text: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.community_cta_text}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">CTA Button Link</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={homePageForm.community_cta_link}
+                        onChange={(e) => setHomePageForm(prev => ({ ...prev, community_cta_link: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        {homePageForm.community_cta_link}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

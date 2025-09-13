@@ -15,27 +15,39 @@ const Events = () => {
     const isUpcoming = eventDate > now;
     
     return {
+      eventId: event.id,
       title: event.title,
       date: eventDate.toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
       }),
-      time: eventDate.toLocaleTimeString('en-US', { 
+      time: (event as any).time || eventDate.toLocaleTimeString('en-US', { 
         hour: 'numeric', 
         minute: '2-digit',
         hour12: true 
       }),
       location: event.location,
-      room: '', // Could be extracted from location if needed
-      attendees: Math.floor(Math.random() * 100) + 20, // Random for now
-      capacity: Math.floor(Math.random() * 50) + 100, // Random for now
+      room: (event as any).room || '',
+      attendees: (event as any).attendees_count || 0,
+      capacity: event.max_participants || undefined,
       description: event.description,
-      level: 'Intermediate' as const, // Could be added to database
-      type: event.is_featured ? 'Featured' : 'Workshop' as const,
+      level: (event as any).level as 'Beginner' | 'Intermediate' | 'Advanced' || undefined,
+      type: (event as any).type || (event.is_featured ? 'Featured' : 'Workshop'),
       isUpcoming,
       registrationUrl: event.registration_url,
-      imageUrl: event.image_url
+      googleFormUrl: event.google_form_url,
+      registrationType: event.registration_type,
+      maxParticipants: event.max_participants,
+      registrationEnabled: event.registration_enabled,
+      imageUrl: event.image_url,
+      // Event detail fields
+      prerequisites: (event as any).prerequisites,
+      what_youll_learn: (event as any).what_youll_learn,
+      what_to_bring: (event as any).what_to_bring,
+      schedule: (event as any).schedule,
+      additional_info: (event as any).additional_info,
+      contact_info: (event as any).contact_info
     };
   });
 

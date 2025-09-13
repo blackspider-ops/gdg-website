@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { Building2, Plus, Edit3, Trash2, ExternalLink, Mail, User, Search, Filter } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { SponsorsService, type Sponsor } from '@/services/sponsorsService';
@@ -19,7 +20,15 @@ const AdminSponsors = () => {
   const [filterTier, setFilterTier] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAddSponsorModal, setShowAddSponsorModal] = useState(false);
+  const [showEditSponsorModal, setShowEditSponsorModal] = useState(false);
+  const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock(showAddSponsorModal || showEditSponsorModal);
 
   const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
 
@@ -66,46 +75,110 @@ const AdminSponsors = () => {
 
   const filteredSponsors = sponsors.filter(sponsor => {
     const matchesSearch = sponsor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (sponsor.website_url && sponsor.website_url.toLowerCase().includes(searchTerm.toLowerCase()));
+      (sponsor.website_url && sponsor.website_url.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesTier = filterTier === 'all' || sponsor.tier.toLowerCase() === filterTier.toLowerCase();
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'active' && sponsor.is_active) ||
-                         (filterStatus === 'inactive' && !sponsor.is_active);
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'active' && sponsor.is_active) ||
+      (filterStatus === 'inactive' && !sponsor.is_active);
     return matchesSearch && matchesTier && matchesStatus;
   });
 
   const handleCreateSponsor = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+
     try {
       const created = await SponsorsService.createSponsor(newSponsor);
       if (created) {
         await loadSponsors();
         await loadSponsorStats();
         setShowAddSponsorModal(false);
-        setNewSponsor({
-          name: '',
-          tier: 'bronze',
-          logo_url: '',
-          website_url: '',
-          order_index: 0,
-          is_active: true
-        });
+        resetForm();
+        setSuccess('Sponsor added successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to create sponsor. Please try again.');
       }
     } catch (error) {
       console.error('Error creating sponsor:', error);
+      setError('An error occurred while creating the sponsor.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  const handleEditSponsor = (sponsor: Sponsor) => {
+    setEditingSponsor(sponsor);
+    setNewSponsor({
+      name: sponsor.name,
+      tier: sponsor.tier,
+      logo_url: sponsor.logo_url || '',
+      website_url: sponsor.website_url || '',
+      order_index: sponsor.order_index,
+      is_active: sponsor.is_active
+    });
+    setShowEditSponsorModal(true);
+  };
+
+  const handleUpdateSponsor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSponsor) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const updated = await SponsorsService.updateSponsor(editingSponsor.id, newSponsor);
+      if (updated) {
+        await loadSponsors();
+        await loadSponsorStats();
+        setShowEditSponsorModal(false);
+        setEditingSponsor(null);
+        resetForm();
+        setSuccess('Sponsor updated successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to update sponsor. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating sponsor:', error);
+      setError('An error occurred while updating the sponsor.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setNewSponsor({
+      name: '',
+      tier: 'bronze',
+      logo_url: '',
+      website_url: '',
+      order_index: 0,
+      is_active: true
+    });
+    setError(null);
+    setSuccess(null);
+  };
+
   const handleDeleteSponsor = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this sponsor?')) {
+    if (window.confirm('Are you sure you want to delete this sponsor? This action cannot be undone.')) {
+      setError(null);
+
       try {
         const success = await SponsorsService.deleteSponsor(id);
         if (success) {
           await loadSponsors();
           await loadSponsorStats();
+          setSuccess('Sponsor deleted successfully!');
+          setTimeout(() => setSuccess(null), 3000);
+        } else {
+          setError('Failed to delete sponsor. Please try again.');
         }
       } catch (error) {
         console.error('Error deleting sponsor:', error);
+        setError('An error occurred while deleting the sponsor.');
       }
     }
   };
@@ -133,8 +206,11 @@ const AdminSponsors = () => {
       subtitle="Manage corporate sponsors and partnerships"
       icon={Building2}
       actions={
-        <button 
-          onClick={() => setShowAddSponsorModal(true)}
+        <button
+          onClick={() => {
+            resetForm();
+            setShowAddSponsorModal(true);
+          }}
           className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
         >
           <Plus size={16} />
@@ -142,6 +218,18 @@ const AdminSponsors = () => {
         </button>
       }
     >
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="bg-green-900/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6">
+          {success}
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {sponsorStatsDisplay.map((stat, index) => (
@@ -161,7 +249,7 @@ const AdminSponsors = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {['platinum', 'gold', 'silver', 'bronze'].map((tier) => {
             const count = sponsorStats.tierDistribution[tier] || 0;
-            
+
             return (
               <div key={tier} className="border border-gray-800 rounded-lg p-4 hover:bg-gray-900 transition-colors">
                 <div className="flex items-center justify-between mb-2">
@@ -192,7 +280,7 @@ const AdminSponsors = () => {
               />
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <Filter size={16} className="text-gray-400" />
             <select
@@ -224,7 +312,7 @@ const AdminSponsors = () => {
         <div className="p-6 border-b border-gray-800">
           <h2 className="text-xl font-semibold text-white">Sponsors ({filteredSponsors.length})</h2>
         </div>
-        
+
         <div className="divide-y divide-gray-200">
           {isLoading ? (
             <div className="p-6 text-center">
@@ -249,22 +337,21 @@ const AdminSponsors = () => {
                         <Building2 size={24} className="text-gray-400" />
                       )}
                     </div>
-                    
+
                     <div>
                       <div className="flex items-center space-x-3 mb-1">
                         <h3 className="text-lg font-semibold text-white">{sponsor.name}</h3>
                         <span className={`px-3 py-1 text-xs rounded-full font-medium border ${getTierColor(sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1))}`}>
                           {sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)}
                         </span>
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                          sponsor.is_active 
-                            ? 'bg-green-100 text-green-800' 
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${sponsor.is_active
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
-                        }`}>
+                          }`}>
                           {sponsor.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                         {sponsor.website_url && (
                           <div className="flex items-center space-x-1">
@@ -276,19 +363,23 @@ const AdminSponsors = () => {
                         )}
                         <span>Order: {sponsor.order_index}</span>
                       </div>
-                      
+
                       <div className="flex items-center space-x-4 text-sm text-gray-400 mt-2">
                         <span>Created: {new Date(sponsor.created_at).toLocaleDateString()}</span>
                         <span>Updated: {new Date(sponsor.updated_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
-                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-white">
+                    <button
+                      onClick={() => handleEditSponsor(sponsor)}
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                      title="Edit sponsor"
+                    >
                       <Edit3 size={16} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteSponsor(sponsor.id)}
                       className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
                     >
@@ -309,26 +400,27 @@ const AdminSponsors = () => {
             <div className="p-6 border-b border-gray-800">
               <h2 className="text-xl font-semibold text-white">Add New Sponsor</h2>
             </div>
-            
+
             <form onSubmit={handleCreateSponsor} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Company Name</label>
                   <input
                     type="text"
+                    required
                     value={newSponsor.name}
                     onChange={(e) => setNewSponsor(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
                     placeholder="Google"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Sponsorship Tier</label>
                   <select
                     value={newSponsor.tier}
                     onChange={(e) => setNewSponsor(prev => ({ ...prev, tier: e.target.value as Sponsor['tier'] }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
                   >
                     <option value="bronze">Bronze</option>
                     <option value="silver">Silver</option>
@@ -337,7 +429,7 @@ const AdminSponsors = () => {
                   </select>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Website URL</label>
@@ -345,23 +437,23 @@ const AdminSponsors = () => {
                     type="url"
                     value={newSponsor.website_url}
                     onChange={(e) => setNewSponsor(prev => ({ ...prev, website_url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
                     placeholder="https://google.com"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Logo URL</label>
                   <input
                     type="url"
                     value={newSponsor.logo_url}
                     onChange={(e) => setNewSponsor(prev => ({ ...prev, logo_url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
                     placeholder="https://logo.clearbit.com/google.com"
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Order Index</label>
@@ -369,12 +461,12 @@ const AdminSponsors = () => {
                     type="number"
                     value={newSponsor.order_index}
                     onChange={(e) => setNewSponsor(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
                     placeholder="0"
                     min="0"
                   />
                 </div>
-                
+
                 <div className="flex items-center space-x-3 pt-8">
                   <input
                     type="checkbox"
@@ -386,20 +478,152 @@ const AdminSponsors = () => {
                   <label htmlFor="is_active" className="text-sm font-medium text-gray-300">Active Sponsor</label>
                 </div>
               </div>
-              
+
               <div className="flex space-x-3 pt-6">
                 <button
                   type="button"
-                  onClick={() => setShowAddSponsorModal(false)}
+                  onClick={() => {
+                    setShowAddSponsorModal(false);
+                    resetForm();
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  Add Sponsor
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Sponsor'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sponsor Modal */}
+      {showEditSponsorModal && editingSponsor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+            <div className="p-6 border-b border-gray-800">
+              <h2 className="text-xl font-semibold text-white">Edit Sponsor</h2>
+              <p className="text-sm text-gray-400 mt-1">Update {editingSponsor.name} information</p>
+            </div>
+
+            <form onSubmit={handleUpdateSponsor} className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Company Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newSponsor.name}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    placeholder="Google"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Sponsorship Tier</label>
+                  <select
+                    value={newSponsor.tier}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, tier: e.target.value as Sponsor['tier'] }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                  >
+                    <option value="bronze">Bronze</option>
+                    <option value="silver">Silver</option>
+                    <option value="gold">Gold</option>
+                    <option value="platinum">Platinum</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Website URL</label>
+                  <input
+                    type="url"
+                    value={newSponsor.website_url}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, website_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    placeholder="https://google.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Logo URL</label>
+                  <input
+                    type="url"
+                    value={newSponsor.logo_url}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, logo_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    placeholder="https://logo.clearbit.com/google.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Order Index</label>
+                  <input
+                    type="number"
+                    value={newSponsor.order_index}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3 pt-8">
+                  <input
+                    type="checkbox"
+                    id="edit_is_active"
+                    checked={newSponsor.is_active}
+                    onChange={(e) => setNewSponsor(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="w-4 h-4 text-green-600 bg-black border border-gray-700 rounded focus:ring-green-500 focus:ring-2"
+                  />
+                  <label htmlFor="edit_is_active" className="text-sm font-medium text-gray-300">Active Sponsor</label>
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditSponsorModal(false);
+                    setEditingSponsor(null);
+                    resetForm();
+                  }}
+                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Sponsor'
+                  )}
                 </button>
               </div>
             </form>

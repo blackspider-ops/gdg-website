@@ -26,14 +26,13 @@ import AdminTeam from "./pages/admin/AdminTeam";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminResources from "./pages/admin/AdminResources";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
 
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSponsors from "./pages/admin/AdminSponsors";
 import AdminCommunications from "./pages/admin/AdminCommunications";
 import AdminMedia from "./pages/admin/AdminMedia";
-import AdminReports from "./pages/admin/AdminReports";
+import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -105,14 +104,13 @@ const App = () => (
                     <Route path="/admin/members" element={<AdminMembers />} />
                     <Route path="/admin/resources" element={<AdminResources />} />
                     <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-                    <Route path="/admin/analytics" element={<AdminAnalytics />} />
 
                     <Route path="/admin/users" element={<AdminUsers />} />
                     <Route path="/admin/profile" element={<AdminProfile />} />
                     <Route path="/admin/sponsors" element={<AdminSponsors />} />
                     <Route path="/admin/communications" element={<AdminCommunications />} />
                     <Route path="/admin/media" element={<AdminMedia />} />
-                    <Route path="/admin/reports" element={<AdminReports />} />
+                    <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

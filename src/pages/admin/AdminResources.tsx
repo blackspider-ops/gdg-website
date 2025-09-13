@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
-import { BookOpen, Plus, Edit3, Trash2, ExternalLink, Search, Filter } from 'lucide-react';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { BookOpen, Plus, Edit3, Trash2, ExternalLink, Search, Filter, Save, X, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { ResourcesService, type Resource } from '@/services/resourcesService';
 
@@ -17,8 +18,17 @@ const AdminResources = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [showAddResourceModal, setShowAddResourceModal] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [togglingResourceId, setTogglingResourceId] = useState<string | null>(null);
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock(showAddResourceModal || !!editingResource);
 
   const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
 
@@ -54,7 +64,7 @@ const AdminResources = () => {
   };
 
   // Form state
-  const [newResource, setNewResource] = useState({
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'study_jam' as Resource['type'],
@@ -75,66 +85,264 @@ const AdminResources = () => {
     order_index: 0
   });
 
+  // Form helpers
+  const [requirementInput, setRequirementInput] = useState('');
+  const [materialInput, setMaterialInput] = useState('');
+  const [tagInput, setTagInput] = useState('');
+
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.speaker?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || resource.type === filterType;
-    return matchesSearch && matchesType;
+    const matchesStatus = filterStatus === 'all' || resource.status === filterStatus;
+    return matchesSearch && matchesType && matchesStatus;
   });
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      type: 'study_jam',
+      category: '',
+      url: '',
+      duration: '',
+      level: 'Beginner',
+      status: 'Available',
+      provider: '',
+      amount: '',
+      requirements: [],
+      materials: [],
+      tags: [],
+      speaker: '',
+      icon: '',
+      color: '',
+      is_active: true,
+      order_index: 0
+    });
+    setRequirementInput('');
+    setMaterialInput('');
+    setTagInput('');
+    setError(null);
+    setSuccess(null);
+  };
 
   const handleCreateResource = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+    
     try {
-      const created = await ResourcesService.createResource(newResource);
+      const created = await ResourcesService.createResource(formData);
       if (created) {
         await loadResources();
         await loadResourceStats();
         setShowAddResourceModal(false);
-        setNewResource({
-          title: '',
-          description: '',
-          type: 'study_jam',
-          category: '',
-          url: '',
-          duration: '',
-          level: 'Beginner',
-          status: 'Available',
-          provider: '',
-          amount: '',
-          requirements: [],
-          materials: [],
-          tags: [],
-          speaker: '',
-          icon: '',
-          color: '',
-          is_active: true,
-          order_index: 0
-        });
+        resetForm();
+        setSuccess('Resource created successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to create resource. Please try again.');
       }
     } catch (error) {
       console.error('Error creating resource:', error);
+      setError('An error occurred while creating the resource.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditResource = (resource: Resource) => {
+    setFormData({
+      title: resource.title,
+      description: resource.description,
+      type: resource.type,
+      category: resource.category || '',
+      url: resource.url || '',
+      duration: resource.duration || '',
+      level: resource.level || 'Beginner',
+      status: resource.status,
+      provider: resource.provider || '',
+      amount: resource.amount || '',
+      requirements: resource.requirements || [],
+      materials: resource.materials || [],
+      tags: resource.tags || [],
+      speaker: resource.speaker || '',
+      icon: resource.icon || '',
+      color: resource.color || '',
+      is_active: resource.is_active,
+      order_index: resource.order_index
+    });
+    setEditingResource(resource);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleUpdateResource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingResource) return;
+    
+    setIsSaving(true);
+    setError(null);
+    
+    try {
+      const updated = await ResourcesService.updateResource(editingResource.id, formData);
+      if (updated) {
+        await loadResources();
+        await loadResourceStats();
+        setEditingResource(null);
+        resetForm();
+        setSuccess('Resource updated successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to update resource. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating resource:', error);
+      setError('An error occurred while updating the resource.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (resource: Resource) => {
+    setTogglingResourceId(resource.id);
+    
+    // Optimistic update - update UI immediately
+    const optimisticResources = resources.map(r => 
+      r.id === resource.id 
+        ? { ...r, is_active: !r.is_active }
+        : r
+    );
+    setResources(optimisticResources);
+
+    try {
+      const updated = await ResourcesService.toggleActive(resource.id);
+      if (updated) {
+        // Update with server response to ensure consistency
+        const serverResources = resources.map(r => 
+          r.id === resource.id ? updated : r
+        );
+        setResources(serverResources);
+        await loadResourceStats();
+        setSuccess(`Resource ${resource.is_active ? 'deactivated' : 'activated'} successfully!`);
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        // Revert optimistic update on failure
+        setResources(resources);
+        setError('Failed to update resource status.');
+      }
+    } catch (error) {
+      console.error('Error toggling resource status:', error);
+      // Revert optimistic update on error
+      setResources(resources);
+      setError('Failed to update resource status.');
+    } finally {
+      setTogglingResourceId(null);
+    }
+  };
+
+  const handleMoveResource = async (resource: Resource, direction: 'up' | 'down') => {
+    const currentIndex = resources.findIndex(r => r.id === resource.id);
+    if (currentIndex === -1) return;
+    
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= resources.length) return;
+    
+    const targetResource = resources[targetIndex];
+    
+    try {
+      await Promise.all([
+        ResourcesService.updateResource(resource.id, { order_index: targetResource.order_index }),
+        ResourcesService.updateResource(targetResource.id, { order_index: resource.order_index })
+      ]);
+      
+      await loadResources();
+      setSuccess('Resource order updated successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      console.error('Error updating resource order:', error);
+      setError('Failed to update resource order.');
     }
   };
 
   const handleDeleteResource = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this resource?')) {
+    if (window.confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
       try {
         const success = await ResourcesService.deleteResource(id);
         if (success) {
           await loadResources();
           await loadResourceStats();
+          setSuccess('Resource deleted successfully!');
+          setTimeout(() => setSuccess(null), 3000);
+        } else {
+          setError('Failed to delete resource. Please try again.');
         }
       } catch (error) {
         console.error('Error deleting resource:', error);
+        setError('An error occurred while deleting the resource.');
       }
     }
   };
 
+  // Array management helpers
+  const addRequirement = () => {
+    if (requirementInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        requirements: [...prev.requirements, requirementInput.trim()]
+      }));
+      setRequirementInput('');
+    }
+  };
+
+  const removeRequirement = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      requirements: prev.requirements.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addMaterial = () => {
+    if (materialInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        materials: [...prev.materials, materialInput.trim()]
+      }));
+      setMaterialInput('');
+    }
+  };
+
+  const removeMaterial = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      materials: prev.materials.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addTag = () => {
+    if (tagInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()]
+      }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter((_, i) => i !== index)
+    }));
+  };
+
   const resourceStatsDisplay = [
     { label: 'Total Resources', value: resourceStats.total.toString(), color: 'text-blue-500' },
-    { label: 'Study Jams', value: (resourceStats.typeDistribution.study_jam || 0).toString(), color: 'text-green-500' },
-    { label: 'Documentation', value: (resourceStats.typeDistribution.documentation || 0).toString(), color: 'text-purple-500' },
-    { label: 'Recordings', value: (resourceStats.typeDistribution.recording || 0).toString(), color: 'text-orange-500' },
+    { label: 'Active Resources', value: resourceStats.active.toString(), color: 'text-green-500' },
+    { label: 'Study Jams', value: (resourceStats.typeDistribution.study_jam || 0).toString(), color: 'text-purple-500' },
+    { label: 'Cloud Credits', value: (resourceStats.typeDistribution.cloud_credit || 0).toString(), color: 'text-orange-500' },
   ];
 
   const getTypeColor = (type: string) => {
@@ -175,6 +383,18 @@ const AdminResources = () => {
         ))}
       </div>
 
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="bg-green-900/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6">
+          {success}
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
         <div className="flex flex-col md:flex-row gap-4">
@@ -183,7 +403,7 @@ const AdminResources = () => {
               <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search resources..."
+                placeholder="Search resources by title, description, category, or speaker..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
@@ -203,6 +423,17 @@ const AdminResources = () => {
               <option value="cloud_credit">Cloud Credits</option>
               <option value="documentation">Documentation</option>
               <option value="recording">Recordings</option>
+            </select>
+            
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+            >
+              <option value="all">All Status</option>
+              <option value="Available">Available</option>
+              <option value="Coming Soon">Coming Soon</option>
+              <option value="Archived">Archived</option>
             </select>
           </div>
         </div>
@@ -280,17 +511,55 @@ const AdminResources = () => {
                         href={resource.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-blue-600"
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                        title="Open resource"
                       >
                         <ExternalLink size={16} />
                       </a>
                     )}
-                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-white">
+                    <button 
+                      onClick={() => handleToggleActive(resource)}
+                      disabled={togglingResourceId === resource.id}
+                      className={`p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        resource.is_active ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-400'
+                      }`}
+                      title={resource.is_active ? 'Deactivate resource' : 'Activate resource'}
+                    >
+                      {togglingResourceId === resource.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                      ) : resource.is_active ? (
+                        <Eye size={16} />
+                      ) : (
+                        <EyeOff size={16} />
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => handleMoveResource(resource, 'up')}
+                      disabled={resources.findIndex(r => r.id === resource.id) === 0}
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Move up"
+                    >
+                      <ArrowUp size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleMoveResource(resource, 'down')}
+                      disabled={resources.findIndex(r => r.id === resource.id) === resources.length - 1}
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Move down"
+                    >
+                      <ArrowDown size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleEditResource(resource)}
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                      title="Edit resource"
+                    >
                       <Edit3 size={16} />
                     </button>
                     <button 
                       onClick={() => handleDeleteResource(resource.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+                      className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                      title="Delete resource"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -302,92 +571,396 @@ const AdminResources = () => {
         </div>
       </div>
 
-      {/* Add Resource Modal */}
-      {showAddResourceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+      {/* Add/Edit Resource Modal */}
+      {(showAddResourceModal || editingResource) && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-semibold text-white">Add New Resource</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">
+                  {editingResource ? 'Edit Resource' : 'Add New Resource'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowAddResourceModal(false);
+                    setEditingResource(null);
+                    resetForm();
+                  }}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             
-            <form onSubmit={handleCreateResource} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={editingResource ? handleUpdateResource : handleCreateResource} className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white">Basic Information</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="Resource title"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Type *</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Resource['type'] }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    >
+                      <option value="study_jam">Study Jam</option>
+                      <option value="cloud_credit">Cloud Credit</option>
+                      <option value="documentation">Documentation</option>
+                      <option value="recording">Recording</option>
+                    </select>
+                  </div>
+                </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Description *</label>
+                  <textarea
                     required
-                    value={newResource.title}
-                    onChange={(e) => setNewResource(prev => ({ ...prev, title: e.target.value }))}
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
-                    placeholder="Resource title"
+                    placeholder="Resource description"
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Type</label>
-                  <select
-                    value={newResource.type}
-                    onChange={(e) => setNewResource(prev => ({ ...prev, type: e.target.value as Resource['type'] }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
-                  >
-                    <option value="study_jam">Study Jam</option>
-                    <option value="cloud_credit">Cloud Credit</option>
-                    <option value="documentation">Documentation</option>
-                    <option value="recording">Recording</option>
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                    <input
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="e.g., Android, Cloud, ML"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Level</label>
+                    <select
+                      value={formData.level}
+                      onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as Resource['level'] }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Resource['status'] }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    >
+                      <option value="Available">Available</option>
+                      <option value="Coming Soon">Coming Soon</option>
+                      <option value="Archived">Archived</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={newResource.description}
-                  onChange={(e) => setNewResource(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
-                  placeholder="Resource description"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">URL (optional)</label>
-                  <input
-                    type="url"
-                    value={newResource.url}
-                    onChange={(e) => setNewResource(prev => ({ ...prev, url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
-                    placeholder="https://example.com"
-                  />
+
+              {/* Links and Details */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white">Links and Details</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">URL</label>
+                    <input
+                      type="url"
+                      value={formData.url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Duration</label>
+                    <input
+                      type="text"
+                      value={formData.duration}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="e.g., 8 weeks, 1h 30m"
+                    />
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Duration (optional)</label>
-                  <input
-                    type="text"
-                    value={newResource.duration}
-                    onChange={(e) => setNewResource(prev => ({ ...prev, duration: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
-                    placeholder="e.g., 8 weeks, 1h 30m"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Provider</label>
+                    <input
+                      type="text"
+                      value={formData.provider}
+                      onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="e.g., Google Cloud, Firebase"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Amount/Value</label>
+                    <input
+                      type="text"
+                      value={formData.amount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="e.g., $300, Free"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Speaker</label>
+                    <input
+                      type="text"
+                      value={formData.speaker}
+                      onChange={(e) => setFormData(prev => ({ ...prev, speaker: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="For recordings"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {/* Arrays */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white">Additional Information</h3>
+                
+                {/* Requirements */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Requirements</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={requirementInput}
+                      onChange={(e) => setRequirementInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
+                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="Add a requirement"
+                    />
+                    <button
+                      type="button"
+                      onClick={addRequirement}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.requirements.map((req, index) => (
+                      <span key={index} className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-sm flex items-center gap-2">
+                        {req}
+                        <button
+                          type="button"
+                          onClick={() => removeRequirement(index)}
+                          className="text-gray-400 hover:text-red-400"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Materials */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Materials</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={materialInput}
+                      onChange={(e) => setMaterialInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMaterial())}
+                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="Add a material"
+                    />
+                    <button
+                      type="button"
+                      onClick={addMaterial}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.materials.map((material, index) => (
+                      <span key={index} className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-sm flex items-center gap-2">
+                        {material}
+                        <button
+                          type="button"
+                          onClick={() => removeMaterial(index)}
+                          className="text-gray-400 hover:text-red-400"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="Add a tag"
+                    />
+                    <button
+                      type="button"
+                      onClick={addTag}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag, index) => (
+                      <span key={index} className="px-3 py-1 bg-gray-800 text-gray-300 rounded-full text-sm flex items-center gap-2">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(index)}
+                          className="text-gray-400 hover:text-red-400"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Display Settings */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-white">Display Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Icon</label>
+                    <input
+                      type="text"
+                      value={formData.icon}
+                      onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="e.g., Smartphone, Cloud, Brain"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
+                    <input
+                      type="text"
+                      value={formData.color}
+                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="e.g., text-blue-600"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Order Index</label>
+                    <input
+                      type="number"
+                      value={formData.order_index}
+                      onChange={(e) => setFormData(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 bg-black border-gray-700 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <label htmlFor="is_active" className="text-sm font-medium text-gray-300">
+                    Active (visible on frontend)
+                  </label>
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
               
-              <div className="flex space-x-3 pt-6">
+              <div className="flex space-x-3 pt-6 border-t border-gray-800">
                 <button
                   type="button"
-                  onClick={() => setShowAddResourceModal(false)}
+                  onClick={() => {
+                    setShowAddResourceModal(false);
+                    setEditingResource(null);
+                    resetForm();
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  Add Resource
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {editingResource ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} className="mr-2" />
+                      {editingResource ? 'Update Resource' : 'Create Resource'}
+                    </>
+                  )}
                 </button>
               </div>
             </form>

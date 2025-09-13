@@ -1,5 +1,8 @@
-import React from 'react';
-import { Calendar, MapPin, Users, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, MapPin, Users, ExternalLink, Share2 } from 'lucide-react';
+import EventRegistrationModal from './EventRegistrationModal';
+import EventDetailsModal from './EventDetailsModal';
+
 
 interface EventCardProps {
   title: string;
@@ -12,8 +15,22 @@ interface EventCardProps {
   image?: string;
   description: string;
   level?: 'Beginner' | 'Intermediate' | 'Advanced';
-  type?: 'Workshop' | 'Talk' | 'Networking' | 'Study Jam';
+  type?: 'Workshop' | 'Talk' | 'Networking' | 'Study Jam' | 'Featured';
   isUpcoming?: boolean;
+  registrationUrl?: string;
+  googleFormUrl?: string;
+  registrationType?: 'external' | 'internal' | 'both';
+  maxParticipants?: number;
+  registrationEnabled?: boolean;
+  imageUrl?: string;
+  eventId?: string;
+  // Event detail fields
+  prerequisites?: string;
+  what_youll_learn?: string;
+  what_to_bring?: string;
+  schedule?: string;
+  additional_info?: string;
+  contact_info?: string;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -28,7 +45,21 @@ const EventCard: React.FC<EventCardProps> = ({
   description,
   level,
   type,
-  isUpcoming = true
+  isUpcoming = true,
+  registrationUrl,
+  googleFormUrl,
+  registrationType,
+  maxParticipants,
+  registrationEnabled,
+  imageUrl,
+  eventId,
+  // Event detail fields
+  prerequisites,
+  what_youll_learn,
+  what_to_bring,
+  schedule,
+  additional_info,
+  contact_info
 }) => {
   const getLevelColor = (level?: string) => {
     switch (level) {
@@ -45,16 +76,36 @@ const EventCard: React.FC<EventCardProps> = ({
       case 'Talk': return 'bg-gdg-red text-white';
       case 'Networking': return 'bg-gdg-yellow text-primary';
       case 'Study Jam': return 'bg-gdg-green text-white';
+      case 'Featured': return 'bg-gradient-to-r from-gdg-blue to-gdg-red text-white';
       default: return 'bg-muted text-muted-foreground';
     }
   };
 
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const handleRegister = () => {
+    if (registrationEnabled === false) {
+      alert('Registration for this event is currently closed.');
+      return;
+    }
+    if (eventId) {
+      setShowRegistrationModal(true);
+    } else {
+      alert('Registration will be available soon! Please check back later.');
+    }
+  };
+
+  const handleViewDetails = () => {
+    setShowDetailsModal(true);
+  };
+
   return (
     <article className="group bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
-      {image && (
+      {(image || imageUrl) && (
         <div className="aspect-video bg-muted overflow-hidden">
           <img 
-            src={image} 
+            src={image || imageUrl} 
             alt={title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -75,10 +126,22 @@ const EventCard: React.FC<EventCardProps> = ({
               </span>
             )}
           </div>
-          {isUpcoming && (
+          {isUpcoming ? (
             <span className="text-xs text-gdg-blue font-medium uppercase tracking-wide">
               Upcoming
             </span>
+          ) : (
+            <div className="flex items-center space-x-2">
+              {attendees !== undefined && (
+                <span className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                  <Users size={12} />
+                  <span>{attendees} attended</span>
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                Past Event
+              </span>
+            </div>
           )}
         </div>
 
@@ -101,23 +164,126 @@ const EventCard: React.FC<EventCardProps> = ({
             <span>{location}{room && `, ${room}`}</span>
           </div>
           
-          {attendees !== undefined && capacity && (
+          {attendees !== undefined && (
             <div className="flex items-center text-sm text-muted-foreground">
               <Users size={16} className="mr-2" />
-              <span>{attendees}/{capacity} registered</span>
+              {isUpcoming ? (
+                <span>
+                  {attendees} {(maxParticipants || capacity) ? `/ ${maxParticipants || capacity}` : ''} registered
+                </span>
+              ) : (
+                <span className="font-medium text-blue-600">
+                  {attendees} attended
+                </span>
+              )}
             </div>
           )}
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-border">
-          <button className="btn-editorial px-4 py-2 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90">
-            {isUpcoming ? 'Register' : 'View Details'}
-          </button>
-          <button className="p-2 hover:bg-secondary rounded-md transition-colors">
-            <ExternalLink size={16} className="text-muted-foreground" />
+          <div className="flex space-x-2">
+            {isUpcoming && (
+              <button 
+                onClick={handleRegister}
+                disabled={registrationEnabled === false}
+                className={`btn-editorial px-4 py-2 transition-colors ${
+                  registrationEnabled === false
+                    ? 'bg-gray-400 text-gray-600 border-gray-400 cursor-not-allowed'
+                    : 'bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90'
+                }`}
+              >
+                {registrationEnabled === false ? 'Registration Closed' : 'Register'}
+              </button>
+            )}
+            <button 
+              onClick={handleViewDetails}
+              className="btn-editorial px-4 py-2 bg-gray-600 text-white border-gray-600 hover:bg-gray-700 transition-colors"
+            >
+              View Details
+            </button>
+          </div>
+          <button 
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: title,
+                  text: `Check out this event: ${title} - ${description}`,
+                  url: window.location.href
+                });
+              } else {
+                // Fallback: copy to clipboard
+                const shareText = `Check out this event: ${title}\n${description}\n\nDate: ${date} at ${time}\nLocation: ${location}`;
+                navigator.clipboard.writeText(shareText).then(() => {
+                  alert('Event details copied to clipboard!');
+                }).catch(() => {
+                  alert('Unable to copy to clipboard');
+                });
+              }
+            }}
+            className="p-2 hover:bg-secondary rounded-md transition-colors"
+            title="Share event"
+          >
+            <Share2 size={16} className="text-muted-foreground" />
           </button>
         </div>
       </div>
+
+      {/* Registration Modal */}
+      {showRegistrationModal && eventId && (
+        <EventRegistrationModal
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          event={{
+            id: eventId,
+            title,
+            date,
+            time,
+            location,
+            registrationUrl,
+            googleFormUrl,
+            registrationType,
+            maxParticipants,
+            registrationEnabled
+          }}
+        />
+      )}
+
+      {/* Event Details Modal */}
+      {showDetailsModal && (
+        <EventDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          onRegister={isUpcoming ? () => {
+            setShowDetailsModal(false);
+            handleRegister();
+          } : undefined}
+          event={{
+            id: eventId || '',
+            title,
+            description,
+            date,
+            time,
+            location,
+            attendees,
+            capacity,
+            level,
+            type,
+            imageUrl: image || imageUrl,
+            registrationUrl,
+            googleFormUrl,
+            isUpcoming,
+            // Event detail fields
+            room,
+            prerequisites,
+            what_youll_learn,
+            what_to_bring,
+            schedule,
+            additional_info,
+            contact_info
+          }}
+        />
+      )}
+
     </article>
   );
 };

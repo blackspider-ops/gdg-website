@@ -2,9 +2,20 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Download, Play, BookOpen, Code, Cloud, Smartphone, Brain } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
+import { ResourcesService } from '@/services/resourcesService';
 
 const Resources = () => {
   const { resources, isLoading } = useContent();
+
+  const handleResourceClick = async (resourceId: string, url?: string) => {
+    // Increment view count
+    await ResourcesService.incrementViews(resourceId);
+    
+    // Open URL if provided
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   // Icon mapping
   const iconMap: Record<string, any> = {
@@ -68,80 +79,79 @@ const Resources = () => {
         </div>
       </section>
 
-      {/* Study Jams */}
-      <section className="py-20">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold mb-12">Study Jams</h2>
-            {isLoading ? (
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4 text-muted-foreground">Loading study jams...</p>
-              </div>
-            ) : studyJams.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                {studyJams.map((jam, index) => (
-                <div key={index} className="bg-card border border-border rounded-lg p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg bg-secondary ${jam.color || 'text-primary'}`}>
-                        <jam.icon size={24} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">{jam.title}</h3>
-                        <p className="text-sm text-muted-foreground">{jam.duration} • {jam.level}</p>
-                      </div>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      jam.status === 'Available' 
-                        ? 'bg-success/20 text-success' 
-                        : 'bg-accent/20 text-accent'
-                    }`}>
-                      {jam.status}
-                    </span>
-                  </div>
-                  
-                  <p className="text-muted-foreground mb-4">{jam.description}</p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {jam.materials.map((material, materialIndex) => (
-                      <span 
-                        key={materialIndex}
-                        className="px-2 py-1 bg-primary/10 text-primary text-xs rounded"
-                      >
-                        {material}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <button 
-                    className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-                      jam.status === 'Available'
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        : 'bg-secondary text-secondary-foreground cursor-not-allowed'
-                    }`}
-                    disabled={jam.status !== 'Available'}
-                  >
-                    {jam.status === 'Available' ? 'Access Materials' : 'Coming Soon'}
-                  </button>
+      {/* Study Jams - Only show if there are study jams or if loading */}
+      {(isLoading || studyJams.length > 0) && (
+        <section className="py-20">
+          <div className="editorial-grid">
+            <div className="col-span-12">
+              <h2 className="text-3xl font-display font-bold mb-12">Study Jams</h2>
+              {isLoading ? (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-4 text-muted-foreground">Loading study jams...</p>
                 </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No study jams available at the moment.</p>
-              </div>
-            )}
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                  {studyJams.map((jam, index) => (
+                  <div key={index} className="bg-card border border-border rounded-lg p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className={`p-2 rounded-lg bg-secondary ${jam.color || 'text-primary'}`}>
+                          <jam.icon size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold">{jam.title}</h3>
+                          <p className="text-sm text-muted-foreground">{jam.duration} • {jam.level}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        jam.status === 'Available' 
+                          ? 'bg-success/20 text-success' 
+                          : 'bg-accent/20 text-accent'
+                      }`}>
+                        {jam.status}
+                      </span>
+                    </div>
+                    
+                    <p className="text-muted-foreground mb-4">{jam.description}</p>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {jam.materials.map((material, materialIndex) => (
+                        <span 
+                          key={materialIndex}
+                          className="px-2 py-1 bg-primary/10 text-primary text-xs rounded"
+                        >
+                          {material}
+                        </span>
+                      ))}
+                    </div>
+                    
+                    <button 
+                      onClick={() => handleResourceClick(jam.id, jam.url)}
+                      className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
+                        jam.status === 'Available'
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'bg-secondary text-secondary-foreground cursor-not-allowed'
+                      }`}
+                      disabled={jam.status !== 'Available'}
+                    >
+                      {jam.status === 'Available' ? 'Access Materials' : 'Coming Soon'}
+                    </button>
+                  </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Cloud Credits */}
-      <section className="py-20 bg-card/30">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold mb-12">Cloud Credits & Free Tiers</h2>
-            {cloudCredits.length > 0 ? (
+      {/* Cloud Credits - Only show if there are cloud credits */}
+      {cloudCredits.length > 0 && (
+        <section className="py-20 bg-card/30">
+          <div className="editorial-grid">
+            <div className="col-span-12">
+              <h2 className="text-3xl font-display font-bold mb-12">Cloud Credits & Free Tiers</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {cloudCredits.map((credit, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6">
@@ -175,34 +185,34 @@ const Resources = () => {
                     </ul>
                   </div>
                   
-                  <a 
-                    href={credit.link}
+                  <button 
+                    onClick={() => handleResourceClick(credit.id, credit.link)}
                     className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors inline-flex items-center justify-center"
                   >
                     Get Credits
                     <ExternalLink size={16} className="ml-2" />
-                  </a>
+                  </button>
                 </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No cloud credits available at the moment.</p>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Documentation */}
-      <section className="py-20">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold mb-12">Documentation & Tutorials</h2>
-            {documentation.length > 0 ? (
+      {/* Documentation - Only show if there is documentation */}
+      {documentation.length > 0 && (
+        <section className="py-20">
+          <div className="editorial-grid">
+            <div className="col-span-12">
+              <h2 className="text-3xl font-display font-bold mb-12">Documentation & Tutorials</h2>
               <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {documentation.map((doc, index) => (
-                <div key={index} className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div 
+                  key={index} 
+                  onClick={() => handleResourceClick(doc.id, doc.link)}
+                  className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <h3 className="text-lg font-semibold mb-1">{doc.title}</h3>
@@ -228,24 +238,24 @@ const Resources = () => {
                 </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No documentation available at the moment.</p>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Recordings */}
-      <section className="py-20 bg-card/30">
-        <div className="editorial-grid">
-          <div className="col-span-12">
-            <h2 className="text-3xl font-display font-bold mb-12">Session Recordings</h2>
-            {recordings.length > 0 ? (
+      {/* Recordings - Only show if there are recordings */}
+      {recordings.length > 0 && (
+        <section className="py-20 bg-card/30">
+          <div className="editorial-grid">
+            <div className="col-span-12">
+              <h2 className="text-3xl font-display font-bold mb-12">Session Recordings</h2>
               <div className="space-y-4">
                 {recordings.map((recording, index) => (
-                <div key={index} className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div 
+                  key={index} 
+                  onClick={() => handleResourceClick(recording.id, recording.link)}
+                  className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -260,33 +270,51 @@ const Resources = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">{recording.views} views</p>
-                      <a 
-                        href={recording.link}
-                        className="text-primary hover:text-primary/80 text-sm font-medium"
-                      >
+                      <span className="text-primary hover:text-primary/80 text-sm font-medium">
                         Watch Recording
-                      </a>
+                      </span>
                     </div>
                   </div>
                 </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No recordings available at the moment.</p>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* No Resources Fallback */}
+      {!isLoading && studyJams.length === 0 && cloudCredits.length === 0 && documentation.length === 0 && recordings.length === 0 && (
+        <section className="py-20">
+          <div className="editorial-grid">
+            <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
+              <BookOpen size={64} className="mx-auto text-muted-foreground mb-6" />
+              <h2 className="text-3xl font-display font-bold mb-4">
+                Resources Coming Soon
+              </h2>
+              <p className="text-lg text-muted-foreground mb-8">
+                We're working on curating amazing learning resources for our community. 
+                Check back soon for study materials, cloud credits, documentation, and session recordings.
+              </p>
+              <Link 
+                to="/contact"
+                className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center focus-ring"
+              >
+                Get Notified
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Call to Action */}
-      <section className="py-20">
-        <div className="editorial-grid">
-          <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-            <h2 className="text-3xl font-display font-bold mb-4">
-              Need Help Getting Started?
-            </h2>
+      {(studyJams.length > 0 || cloudCredits.length > 0 || documentation.length > 0 || recordings.length > 0) && (
+        <section className="py-20">
+          <div className="editorial-grid">
+            <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
+              <h2 className="text-3xl font-display font-bold mb-4">
+                Need Help Getting Started?
+              </h2>
             <p className="text-lg text-muted-foreground mb-8">
               Our team is here to help you navigate these resources and find the right learning path for your goals.
             </p>
@@ -299,6 +327,7 @@ const Resources = () => {
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 };

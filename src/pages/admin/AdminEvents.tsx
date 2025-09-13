@@ -3,9 +3,11 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { useDev } from '@/contexts/DevContext';
 import { useContent } from '@/contexts/ContentContext';
 import { Navigate } from 'react-router-dom';
-import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { EventsService, type Event } from '@/services/eventsService';
+import { AttendanceService, type Attendee } from '@/services/attendanceService';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const AdminEvents = () => {
   const { isAuthenticated } = useAdmin();
@@ -19,7 +21,17 @@ const AdminEvents = () => {
     totalAttendees: 0
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  // Lock body scroll when any modal is open
+  useBodyScrollLock(showCreateForm || !!editingEvent);
 
   const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
 
@@ -27,13 +39,18 @@ const AdminEvents = () => {
     return <Navigate to="/" replace />;
   }
 
-  const [newEvent, setNewEvent] = useState({
+  // Unified form data state
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
     date: '',
     location: '',
     image_url: '',
     registration_url: '',
+    google_form_url: '',
+    registration_type: 'both' as 'external' | 'internal' | 'both',
+    max_participants: '',
+    registration_enabled: true,
     is_featured: false
   });
 
@@ -42,6 +59,24 @@ const AdminEvents = () => {
     loadEvents();
     loadEventStats();
   }, []);
+
+  // Filter events
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.location.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = filterType === 'all' || (event as any).type === filterType;
+    
+    const now = new Date();
+    const eventDate = new Date(event.date);
+    const matchesStatus = filterStatus === 'all' || 
+                         (filterStatus === 'upcoming' && eventDate > now) ||
+                         (filterStatus === 'past' && eventDate <= now) ||
+                         (filterStatus === 'featured' && event.is_featured);
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
 
   const loadEvents = async () => {
     setIsLoading(true);
@@ -64,42 +99,180 @@ const AdminEvents = () => {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      date: '',
+      location: '',
+      image_url: '',
+      registration_url: '',
+      google_form_url: '',
+      registration_type: 'both',
+      max_participants: '',
+      registration_enabled: true,
+      is_featured: false
+    });
+    setError(null);
+    setSuccess(null);
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+    
     try {
-      const created = await EventsService.createEvent(newEvent);
+      const eventData = {
+        title: formData.title,
+        description: formData.description,
+        date: formData.date,
+        location: formData.location,
+        image_url: formData.image_url,
+        registration_url: formData.registration_url,
+        google_form_url: formData.google_form_url,
+        registration_type: formData.registration_type,
+        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        registration_enabled: formData.registration_enabled,
+        is_featured: formData.is_featured
+      };
+      
+      const created = await EventsService.createEvent(eventData);
       if (created) {
         await loadEvents();
         await loadEventStats();
-        await refreshContent(); // Refresh the global content context
+        await refreshContent();
         setShowCreateForm(false);
-        setNewEvent({
-          title: '',
-          description: '',
-          date: '',
-          location: '',
-          image_url: '',
-          registration_url: '',
-          is_featured: false
-        });
+        resetForm();
+        setSuccess('Event created successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to create event. Please try again.');
       }
     } catch (error) {
       console.error('Error creating event:', error);
+      setError('An error occurred while creating the event.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditEvent = (event: Event) => {
+    const formattedDate = new Date(event.date).toISOString().slice(0, 16);
+    setFormData({
+      title: event.title,
+      description: event.description,
+      date: formattedDate,
+      location: event.location,
+      image_url: event.image_url || '',
+      registration_url: event.registration_url || '',
+      google_form_url: event.google_form_url || '',
+      registration_type: event.registration_type || 'both',
+      max_participants: event.max_participants?.toString() || '',
+      registration_enabled: event.registration_enabled !== false,
+      is_featured: event.is_featured
+    });
+    setEditingEvent(event);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleUpdateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) return;
+    
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const eventData = {
+        title: formData.title,
+        description: formData.description,
+        date: formData.date,
+        location: formData.location,
+        image_url: formData.image_url,
+        registration_url: formData.registration_url,
+        google_form_url: formData.google_form_url,
+        registration_type: formData.registration_type,
+        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        registration_enabled: formData.registration_enabled,
+        is_featured: formData.is_featured
+      };
+      
+      const updatedEvent = await EventsService.updateEvent(editingEvent.id, eventData);
+      
+      if (updatedEvent) {
+        await loadEvents();
+        await loadEventStats();
+        await refreshContent();
+        setEditingEvent(null);
+        resetForm();
+        setSuccess('Event updated successfully!');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError('Failed to update event. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      setError('An error occurred while updating the event.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteEvent = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
+    if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
       try {
         const success = await EventsService.deleteEvent(id);
         if (success) {
           await loadEvents();
           await loadEventStats();
           await refreshContent();
+          setSuccess('Event deleted successfully!');
+          setTimeout(() => setSuccess(null), 3000);
+        } else {
+          setError('Failed to delete event. Please try again.');
         }
       } catch (error) {
         console.error('Error deleting event:', error);
+        setError('An error occurred while deleting the event.');
       }
+    }
+  };
+
+  const handleToggleFeatured = async (event: Event) => {
+    try {
+      const updated = await EventsService.updateEvent(event.id, {
+        is_featured: !event.is_featured
+      });
+      if (updated) {
+        await loadEvents();
+        await loadEventStats();
+        await refreshContent();
+        setSuccess(`Event ${event.is_featured ? 'unfeatured' : 'featured'} successfully!`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+      setError('Failed to update event status.');
+    }
+  };
+
+  const handleToggleRegistration = async (event: Event) => {
+    try {
+      const updated = await EventsService.updateEvent(event.id, {
+        registration_enabled: !event.registration_enabled
+      });
+      if (updated) {
+        await loadEvents();
+        await loadEventStats();
+        await refreshContent();
+        setSuccess(`Registration ${event.registration_enabled ? 'disabled' : 'enabled'} successfully!`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (error) {
+      console.error('Error toggling registration:', error);
+      setError('Failed to update registration status.');
     }
   };
 
@@ -118,7 +291,6 @@ const AdminEvents = () => {
         </button>
       }
     >
-
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
@@ -154,10 +326,67 @@ const AdminEvents = () => {
         </div>
       </div>
 
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="bg-green-900/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6">
+          {success}
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search events by title, description, or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+            >
+              <option value="all">All Types</option>
+              <option value="Workshop">Workshops</option>
+              <option value="Talk">Talks</option>
+              <option value="Networking">Networking</option>
+              <option value="Study Jam">Study Jams</option>
+              <option value="Featured">Featured</option>
+            </select>
+            
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+            >
+              <option value="all">All Events</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+              <option value="featured">Featured Only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Events List */}
       <div className="bg-black rounded-xl shadow-sm border border-gray-800">
         <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-semibold text-white">All Events</h2>
+          <h2 className="text-xl font-semibold text-white">Events ({filteredEvents.length})</h2>
         </div>
             
         <div className="p-6">
@@ -166,21 +395,15 @@ const AdminEvents = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
               <p className="text-gray-400">Loading events...</p>
             </div>
-          ) : events.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <div className="text-center py-12">
               <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No events yet</h3>
-              <p className="text-gray-400 mb-6">Create your first event to get started</p>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Create Event
-              </button>
+              <h3 className="text-xl font-semibold text-white mb-2">No events found</h3>
+              <p className="text-gray-400 mb-6">Try adjusting your search or filters</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {events.map((event) => (
+              {filteredEvents.map((event) => (
                 <div key={event.id} className="border border-gray-800 rounded-lg p-6 hover:bg-gray-900 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -203,24 +426,39 @@ const AdminEvents = () => {
                           <MapPin size={16} />
                           <span>{event.location}</span>
                         </div>
-                        {event.registration_url && (
-                          <div className="flex items-center space-x-2">
-                            <ExternalLink size={16} />
-                            <a href={event.registration_url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
-                              Register
-                            </a>
-                          </div>
-                        )}
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-white">
+                      <button 
+                        onClick={() => handleToggleRegistration(event)}
+                        className={`p-2 hover:bg-gray-800 rounded-lg transition-colors ${
+                          event.registration_enabled ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-400'
+                        }`}
+                        title={event.registration_enabled ? 'Disable registration' : 'Enable registration'}
+                      >
+                        {event.registration_enabled ? <Eye size={18} /> : <EyeOff size={18} />}
+                      </button>
+                      <button 
+                        onClick={() => handleToggleFeatured(event)}
+                        className={`p-2 hover:bg-gray-800 rounded-lg transition-colors ${
+                          event.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-500 hover:text-gray-400'
+                        }`}
+                        title={event.is_featured ? 'Remove from featured' : 'Mark as featured'}
+                      >
+                        ⭐
+                      </button>
+                      <button 
+                        onClick={() => handleEditEvent(event)}
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                        title="Edit Event"
+                      >
                         <Edit size={18} />
                       </button>
                       <button 
                         onClick={() => handleDeleteEvent(event.id)}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+                        className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                        title="Delete Event"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -236,9 +474,20 @@ const AdminEvents = () => {
       {/* Create Event Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+          <div className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-semibold text-white">Create New Event</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Create New Event</h2>
+                <button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    resetForm();
+                  }}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
               
             <form onSubmit={handleCreateEvent} className="p-6 space-y-6">
@@ -247,9 +496,9 @@ const AdminEvents = () => {
                 <input
                   type="text"
                   required
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
                   placeholder="Enter event title"
                 />
               </div>
@@ -259,9 +508,9 @@ const AdminEvents = () => {
                 <textarea
                   required
                   rows={4}
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
                   placeholder="Enter event description"
                 />
               </div>
@@ -272,9 +521,9 @@ const AdminEvents = () => {
                   <input
                     type="datetime-local"
                     required
-                    value={newEvent.date}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
                   />
                 </div>
                 
@@ -283,62 +532,158 @@ const AdminEvents = () => {
                   <input
                     type="text"
                     required
-                    value={newEvent.location}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
                     placeholder="Event location"
                   />
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Image URL (optional)</label>
-                  <input
-                    type="url"
-                    value={newEvent.image_url}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, image_url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
-                    placeholder="https://example.com/image.jpg"
-                  />
+
+              {error && (
+                <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                  {error}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Registration URL (optional)</label>
-                  <input
-                    type="url"
-                    value={newEvent.registration_url}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, registration_url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
-                    placeholder="https://example.com/register"
-                  />
-                </div>
-              </div>
+              )}
               
-              <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  checked={newEvent.is_featured}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, is_featured: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
-                />
-                <label htmlFor="featured" className="text-sm font-medium text-gray-300">Featured Event</label>
-              </div>
-                
-              <div className="flex space-x-3 pt-6">
+              <div className="flex space-x-3 pt-6 border-t border-gray-800">
                 <button
                   type="button"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    resetForm();
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  Create Event
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} className="mr-2" />
+                      Create Event
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
+            <div className="p-6 border-b border-gray-800">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Edit Event</h2>
+                <button
+                  onClick={() => {
+                    setEditingEvent(null);
+                    resetForm();
+                  }}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <form onSubmit={handleUpdateEvent} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Title</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  placeholder="Enter event title"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  placeholder="Enter event description"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                    placeholder="Event location"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+              
+              <div className="flex space-x-3 pt-6 border-t border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEvent(null);
+                    resetForm();
+                  }}
+                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} className="mr-2" />
+                      Update Event
+                    </>
+                  )}
                 </button>
               </div>
             </form>

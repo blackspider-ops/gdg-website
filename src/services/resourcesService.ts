@@ -117,14 +117,83 @@ export class ResourcesService {
 
   static async incrementViews(id: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      // First try the RPC function
+      const { error: rpcError } = await supabase
         .rpc('increment_resource_views', { resource_id: id });
 
-      if (error) throw error;
+      if (rpcError) {
+        // Fallback to manual increment if RPC doesn't exist
+        const { data: resource, error: fetchError } = await supabase
+          .from('resources')
+          .select('views')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const { error: updateError } = await supabase
+          .from('resources')
+          .update({ views: (resource.views || 0) + 1 })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+      }
+
       return true;
     } catch (error) {
       console.error('Error incrementing views:', error);
       return false;
+    }
+  }
+
+  static async bulkUpdateOrder(updates: { id: string; order_index: number }[]): Promise<boolean> {
+    try {
+      const promises = updates.map(update =>
+        supabase
+          .from('resources')
+          .update({ order_index: update.order_index })
+          .eq('id', update.id)
+      );
+
+      const results = await Promise.all(promises);
+      const hasError = results.some(result => result.error);
+
+      if (hasError) {
+        throw new Error('Failed to update some resource orders');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error bulk updating resource order:', error);
+      return false;
+    }
+  }
+
+  static async toggleActive(id: string): Promise<Resource | null> {
+    try {
+      const { data: resource, error: fetchError } = await supabase
+        .from('resources')
+        .select('is_active')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const { data, error } = await supabase
+        .from('resources')
+        .update({ 
+          is_active: !resource.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error toggling resource active status:', error);
+      return null;
     }
   }
 

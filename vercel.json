@@ -1,8 +1,12 @@
 {
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+  "functions": {
+    "api/send-email.js": {
+      "runtime": "nodejs18.x"
     }
-  ]
+  },
+  "env": {
+    "RESEND_API_KEY": "@resend_api_key",
+    "FROM_EMAIL": "newsletter@decryptpsu.me",
+    "FROM_NAME": "GDG@PSU Newsletter"
+  }
 }

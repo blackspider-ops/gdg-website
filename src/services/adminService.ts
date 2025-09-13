@@ -97,7 +97,8 @@ export class AdminService {
   static async createAdmin(
     email: string, 
     password: string, 
-    role: 'admin' | 'super_admin' = 'admin'
+    role: 'admin' | 'super_admin' = 'admin',
+    isTemporary: boolean = false
   ): Promise<AdminUser | null> {
     try {
       // Hash the password
@@ -111,7 +112,9 @@ export class AdminService {
           email,
           password_hash: passwordHash,
           role,
-          is_active: true
+          is_active: true,
+          must_change_password: isTemporary, // Force password change if temporary
+          password_changed_at: isTemporary ? null : new Date().toISOString()
         })
         .select()
         .single();

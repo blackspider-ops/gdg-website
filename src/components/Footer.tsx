@@ -4,13 +4,20 @@ import { Github, Twitter, Instagram, Mail, MessageCircle, Linkedin, Facebook, Yo
 import AdminLoginModal from '@/components/AdminLoginModal';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useContent } from '@/contexts/ContentContext';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ContentService } from '@/services/contentService';
+import { NewsletterService } from '@/services/newsletterService';
 
 const Footer = () => {
   const [email, setEmail] = React.useState('');
   const [showAdminModal, setShowAdminModal] = React.useState(false);
   const [adminSecretCode, setAdminSecretCode] = React.useState('gdg-secret@mail.com');
+  const [isSubscribing, setIsSubscribing] = React.useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = React.useState('');
   const { login, isLoading, error } = useAdmin();
+  
+  // Lock body scroll when modal is open
+  useBodyScrollLock(showAdminModal);
   const navigate = useNavigate();
   const { getFooterSection, getSiteSetting, getAllLinks } = useContent();
 
@@ -143,7 +150,7 @@ const Footer = () => {
   const quickLinks = quickLinksData;
   const resources = resourcesData;
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Check for admin secret code
@@ -152,9 +159,24 @@ const Footer = () => {
       return;
     }
     
-    // TODO: Implement newsletter subscription when backend is connected
-    console.log('Newsletter subscription:', email);
-    setEmail('');
+    setIsSubscribing(true);
+    setSubscriptionMessage('');
+    
+    try {
+      await NewsletterService.subscribe(email);
+      setSubscriptionMessage('✅ Please check your email to confirm your subscription!');
+      setEmail('');
+    } catch (error: any) {
+      console.error('Newsletter subscription error:', error);
+      setSubscriptionMessage(`❌ ${error.message || 'Subscription failed. Please try again.'}`);
+    } finally {
+      setIsSubscribing(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setSubscriptionMessage('');
+      }, 5000);
+    }
   };
 
   const handleAdminLogin = async (credentials: { username: string; password: string }) => {
@@ -318,15 +340,25 @@ const Footer = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="flex-1 px-4 py-3 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-colors"
+                  disabled={isSubscribing}
+                  className="flex-1 px-4 py-3 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 focus:border-primary transition-colors disabled:opacity-50"
                 />
                 <button 
                   type="submit"
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap"
+                  disabled={isSubscribing}
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {newsletterContent.buttonText}
+                  {isSubscribing ? 'Subscribing...' : newsletterContent.buttonText}
                 </button>
               </form>
+              
+              {subscriptionMessage && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm font-medium">
+                    {subscriptionMessage}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

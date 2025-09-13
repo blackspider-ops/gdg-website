@@ -15,13 +15,14 @@ import {
   Building2,
   MessageSquare,
   FolderOpen,
-  Download
+  RefreshCw
 } from 'lucide-react';
 import DevSettings from '@/components/admin/DevSettings';
 import { EventsService } from '@/services/eventsService';
 import { MembersService } from '@/services/membersService';
 import { ProjectsService } from '@/services/projectsService';
 import { SponsorsService } from '@/services/sponsorsService';
+import { NewsletterService } from '@/services/newsletterService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -33,6 +34,13 @@ const AdminDashboard = () => {
     activeProjects: 0,
     totalSponsors: 0
   });
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    id: string;
+    type: string;
+    message: string;
+    timestamp: string;
+    color: string;
+  }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Allow direct access in development mode if enabled
@@ -50,22 +58,87 @@ const AdminDashboard = () => {
   const loadDashboardStats = async () => {
     setIsLoading(true);
     try {
-      const [memberStats, eventStats, projectStats, sponsorStats] = await Promise.all([
+      const [memberStats, eventStats, projectStats, sponsorStats, newsletterStats] = await Promise.all([
         MembersService.getMemberStats(),
         EventsService.getEventStats(),
         ProjectsService.getProjectStats(),
-        SponsorsService.getSponsorStats()
+        SponsorsService.getSponsorStats(),
+        NewsletterService.getSubscriberStats()
       ]);
 
       setDashboardStats({
         totalMembers: memberStats.total,
         upcomingEvents: eventStats.upcoming,
-        newsletterSubscribers: 189, // This would come from a newsletter service
+        newsletterSubscribers: newsletterStats.active, // Now using real data
         activeProjects: projectStats.total,
         totalSponsors: sponsorStats.active
       });
+
+      // Generate recent activity based on real data
+      const activities = [];
+      
+      if (memberStats.recent > 0) {
+        activities.push({
+          id: 'members',
+          type: 'member',
+          message: `${memberStats.recent} new member${memberStats.recent > 1 ? 's' : ''} joined recently`,
+          timestamp: 'Recent',
+          color: 'bg-green-500'
+        });
+      }
+      
+      if (eventStats.upcoming > 0) {
+        activities.push({
+          id: 'events',
+          type: 'event',
+          message: `${eventStats.upcoming} upcoming event${eventStats.upcoming > 1 ? 's' : ''} scheduled`,
+          timestamp: 'Upcoming',
+          color: 'bg-blue-500'
+        });
+      }
+      
+      if (newsletterStats.recent > 0) {
+        activities.push({
+          id: 'newsletter',
+          type: 'newsletter',
+          message: `${newsletterStats.recent} new newsletter subscriber${newsletterStats.recent > 1 ? 's' : ''} this month`,
+          timestamp: 'This month',
+          color: 'bg-purple-500'
+        });
+      }
+      
+      if (projectStats.total > 0) {
+        activities.push({
+          id: 'projects',
+          type: 'project',
+          message: `${projectStats.total} active project${projectStats.total > 1 ? 's' : ''} in development`,
+          timestamp: 'Active',
+          color: 'bg-orange-500'
+        });
+      }
+
+      // Add fallback activity if no real activities
+      if (activities.length === 0) {
+        activities.push({
+          id: 'system',
+          type: 'system',
+          message: 'System is running smoothly',
+          timestamp: 'Now',
+          color: 'bg-green-500'
+        });
+      }
+      
+      setRecentActivity(activities.slice(0, 4)); // Show max 4 activities
     } catch (error) {
       console.error('Error loading dashboard stats:', error);
+      // Set fallback values in case of error
+      setDashboardStats({
+        totalMembers: 0,
+        upcomingEvents: 0,
+        newsletterSubscribers: 0,
+        activeProjects: 0,
+        totalSponsors: 0
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,14 +158,12 @@ const AdminDashboard = () => {
     { label: 'View Members', icon: Users, href: '/admin/members' },
     { label: 'Resources', icon: FileText, href: '/admin/resources' },
     { label: 'Newsletter', icon: Mail, href: '/admin/newsletter' },
-    { label: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   ];
 
   const businessActions = [
     { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors' },
     { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications' },
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media' },
-    { label: 'Reports & Export', icon: Download, href: '/admin/reports' },
   ];
 
   // Add admin user management for super admins
@@ -130,15 +201,26 @@ const AdminDashboard = () => {
             </div>
           </div>
           
-          {currentAdmin && (
+          <div className="flex items-center space-x-3">
             <button
-              onClick={logout}
-              className="flex items-center space-x-2 px-4 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors text-gray-300"
+              onClick={loadDashboardStats}
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-4 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors text-gray-300 disabled:opacity-50"
             >
-              <LogOut size={16} />
-              <span>Logout</span>
+              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              <span>Refresh</span>
             </button>
-          )}
+            
+            {currentAdmin && (
+              <button
+                onClick={logout}
+                className="flex items-center space-x-2 px-4 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors text-gray-300"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Development Settings */}
@@ -272,74 +354,40 @@ const AdminDashboard = () => {
           <div className="bg-black border border-gray-800 rounded-lg p-6">
             <h2 className="font-display text-lg font-semibold mb-6 text-white">Recent Activity</h2>
             
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <div>
-                  <div className="text-sm font-medium text-white">New member joined</div>
-                  <div className="text-xs text-gray-400">2 hours ago</div>
-                </div>
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="flex items-start space-x-3 animate-pulse">
+                    <div className="w-2 h-2 bg-gray-700 rounded-full mt-2"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-700 rounded mb-1"></div>
+                      <div className="h-3 bg-gray-700 rounded w-16"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-gray-9000 rounded-full mt-2"></div>
-                <div>
-                  <div className="text-sm font-medium text-white">Event created</div>
-                  <div className="text-xs text-gray-400">5 hours ago</div>
-                </div>
+            ) : recentActivity.length > 0 ? (
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-3">
+                    <div className={`w-2 h-2 ${activity.color} rounded-full mt-2`}></div>
+                    <div>
+                      <div className="text-sm font-medium text-white">{activity.message}</div>
+                      <div className="text-xs text-gray-400">{activity.timestamp}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                <div>
-                  <div className="text-sm font-medium text-white">Newsletter sent</div>
-                  <div className="text-xs text-gray-400">1 day ago</div>
-                </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity size={32} className="mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-400">No recent activity</p>
               </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-                <div>
-                  <div className="text-sm font-medium">Project updated</div>
-                  <div className="text-xs text-gray-400">2 days ago</div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* System Status */}
-        <div className="col-span-12">
-          <div className="bg-black border border-gray-800 rounded-lg p-6">
-            <h2 className="font-display text-lg font-semibold mb-6">System Status</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <div className="font-medium">Database</div>
-                  <div className="text-sm text-gray-400">Operational</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <div className="font-medium">API Services</div>
-                  <div className="text-sm text-gray-400">Operational</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <div className="font-medium">Email Service</div>
-                  <div className="text-sm text-gray-400">Operational</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );

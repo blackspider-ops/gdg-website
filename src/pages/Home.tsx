@@ -2,47 +2,42 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar, Code, Users, BookOpen, Smartphone, Cloud, Brain } from 'lucide-react';
 import EventCard from '@/components/EventCard';
+import { useContent } from '@/contexts/ContentContext';
 
 const Home = () => {
-  // Mock data - will be replaced with real data later
-  const upcomingEvents = [
-    {
-      title: 'Build Your First Android App',
-      date: 'March 15, 2025',
-      time: '6:00 PM',
-      location: 'IST Building',
-      room: 'Room 220',
-      attendees: 45,
-      capacity: 60,
-      description: 'Learn the fundamentals of Android development using Kotlin and Android Studio.',
-      level: 'Beginner' as const,
-      type: 'Workshop' as const,
-    },
-    {
-      title: 'AI & Machine Learning Symposium',
-      date: 'March 22, 2025',
-      time: '2:00 PM',
-      location: 'Forum Building',
-      room: 'Auditorium',
-      attendees: 120,
-      capacity: 200,
-      description: 'Industry experts discuss the latest trends in AI and ML development.',
-      level: 'Intermediate' as const,
-      type: 'Talk' as const,
-    },
-    {
-      title: 'Firebase Study Jam',
-      date: 'March 28, 2025',
-      time: '7:00 PM',
-      location: 'Westgate Building',
-      room: 'Lab E262',
-      attendees: 25,
-      capacity: 30,
-      description: 'Hands-on workshop building real-time applications with Firebase.',
-      level: 'Intermediate' as const,
-      type: 'Study Jam' as const,
-    },
-  ];
+  const { getPageSection, events, projects } = useContent();
+  
+  // Get dynamic content from admin panel
+  const heroContent = getPageSection('home', 'hero') || {};
+  const tracksContent = getPageSection('home', 'tracks') || {};
+  const eventsContent = getPageSection('home', 'events') || {};
+  const projectsContent = getPageSection('home', 'projects') || {};
+  const communityContent = getPageSection('home', 'community') || {};
+  
+  // Get upcoming events from the events system
+  const getUpcomingEvents = () => {
+    if (!events || events.length === 0) return [];
+    
+    const now = new Date();
+    
+    // Filter events that are in the future and sort by date
+    const futureEvents = events
+      .filter(event => {
+        if (!event.date) return false;
+        const eventDate = new Date(event.date);
+        return eventDate > now;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(0, 3); // Take only the next 3 events
+    
+    return futureEvents;
+  };
+  
+  const upcomingEvents = getUpcomingEvents();
 
   const highlights = [
     {
@@ -67,39 +62,43 @@ const Home = () => {
     },
   ];
 
-  const recentProjects = [
-    {
-      title: 'Campus Navigation App',
-      tech: ['Flutter', 'Firebase', 'Maps API'],
-      description: 'AR-powered navigation for PSU campus with real-time crowd data.',
-    },
-    {
-      title: 'Study Group Matcher',
-      tech: ['React', 'Node.js', 'PostgreSQL'],
-      description: 'ML-based platform connecting students for collaborative learning.',
-    },
-  ];
+  // Get recent projects from the projects system
+  const getRecentProjects = () => {
+    if (!projects || projects.length === 0) return [];
+    
+    // Sort projects by creation date (newest first) and take only 2
+    const sortedProjects = projects
+      .filter(project => project.title && project.description) // Only show projects with essential info
+      .sort((a, b) => {
+        const dateA = new Date(a.created_at || a.date || 0);
+        const dateB = new Date(b.created_at || b.date || 0);
+        return dateB.getTime() - dateA.getTime(); // Newest first
+      })
+      .slice(0, 2); // Take only the 2 most recent projects
+    
+    return sortedProjects;
+  };
+  
+  const recentProjects = getRecentProjects();
 
-  const tracks = [
-    {
-      title: 'Android',
-      icon: Smartphone,
-      description: 'Build mobile apps with Kotlin, Jetpack Compose, and Android Studio.',
-      color: 'text-gdg-green',
-    },
-    {
-      title: 'Cloud',
-      icon: Cloud,
-      description: 'Deploy scalable applications using Google Cloud Platform services.',
-      color: 'text-gdg-blue',
-    },
-    {
-      title: 'AI & ML',
-      icon: Brain,
-      description: 'Explore machine learning, TensorFlow, and AI-powered solutions.',
-      color: 'text-gdg-red',
-    },
-  ];
+  // Get dynamic tracks from admin panel
+  const dynamicTracks = tracksContent.items || [];
+  
+  // Icon mapping for dynamic tracks
+  const iconMap: Record<string, any> = {
+    Smartphone,
+    Cloud,
+    Brain,
+    Code,
+    Users,
+    BookOpen
+  };
+  
+  // Map dynamic tracks to include proper icon components
+  const tracks = dynamicTracks.map((track: any) => ({
+    ...track,
+    icon: iconMap[track.icon] || Code // fallback to Code icon
+  }));
 
   return (
     <div className="min-h-screen relative z-10">
@@ -108,149 +107,244 @@ const Home = () => {
         <div className="editorial-grid relative z-10">
           <div className="col-span-12 text-center">
             <div className="animate-fade-up">
-              <div className="flex items-center justify-center space-x-2 mb-6">
-                <span className="text-sm font-medium text-primary uppercase tracking-wide">
-                  Student Chapter
-                </span>
-                <div className="w-12 h-px bg-border"></div>
-              </div>
+              {heroContent.badge_text && (
+                <div className="flex items-center justify-center space-x-2 mb-6">
+                  <span className="text-sm font-medium text-primary uppercase tracking-wide">
+                    {heroContent.badge_text}
+                  </span>
+                  <div className="w-12 h-px bg-border"></div>
+                </div>
+              )}
               
-              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-                Google Developer Groups
-                <br />
-                <span className="text-primary">at Penn State</span>
-              </h1>
+              {heroContent.title && (
+                <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+                  {heroContent.title}
+                  {heroContent.subtitle && (
+                    <>
+                      <br />
+                      <span className="text-primary">{heroContent.subtitle}</span>
+                    </>
+                  )}
+                </h1>
+              )}
               
-              <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
-                Hands-on workshops, study jams, and projects across Android, Cloud, and AI.
-              </p>
+              {heroContent.description && (
+                <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
+                  {heroContent.description}
+                </p>
+              )}
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                <Link 
-                  to="/events"
-                  className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center justify-center group focus-ring"
-                >
-                  Browse Events
-                  <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link 
-                  to="/contact"
-                  className="magnetic-button underline-slide px-8 py-4 text-primary hover:text-primary/80 inline-flex items-center justify-center focus-ring"
-                >
-                  Join Chapter
-                </Link>
-              </div>
+              {(heroContent.primary_cta_text || heroContent.secondary_cta_text) && (
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                  {heroContent.primary_cta_text && heroContent.primary_cta_link && (
+                    <Link 
+                      to={heroContent.primary_cta_link}
+                      className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center justify-center group focus-ring"
+                    >
+                      {heroContent.primary_cta_text}
+                      <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  )}
+                  {heroContent.secondary_cta_text && heroContent.secondary_cta_link && (
+                    <Link 
+                      to={heroContent.secondary_cta_link}
+                      className="magnetic-button underline-slide px-8 py-4 text-primary hover:text-primary/80 inline-flex items-center justify-center focus-ring"
+                    >
+                      {heroContent.secondary_cta_text}
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* What We Build Section */}
-      <section className="py-24 relative">
-        <div className="editorial-grid">
-          <div className="col-span-12 text-center mb-16">
-            <h2 className="font-display text-4xl lg:text-5xl font-bold mb-4">What We Build</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Explore technology tracks where our community creates innovative solutions
-            </p>
-          </div>
+      {(tracksContent.title || tracks.length > 0) && (
+        <section className="py-24 relative">
+          <div className="editorial-grid">
+            {tracksContent.title && (
+              <div className="col-span-12 text-center mb-16">
+                <h2 className="font-display text-4xl lg:text-5xl font-bold mb-4">
+                  {tracksContent.title}
+                </h2>
+                {tracksContent.description && (
+                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                    {tracksContent.description}
+                  </p>
+                )}
+              </div>
+            )}
 
-          <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
-            {tracks.map((track, index) => {
-              const Icon = track.icon;
-              return (
-                <div key={index} className="panel-hover group">
-                  <div className="p-8 rounded-xl bg-card border border-border hover:border-primary/20 transition-all">
-                    <div className={`w-16 h-16 rounded-lg bg-current/10 flex items-center justify-center mb-6 ${track.color}`}>
-                      <Icon size={32} className="text-current" />
+            {tracks.length > 0 && (
+              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+                {tracks.map((track, index) => {
+                  const Icon = track.icon;
+                  return (
+                    <div key={track.id || index} className="panel-hover group">
+                      <div className="p-8 rounded-xl bg-card border border-border hover:border-primary/20 transition-all">
+                        <div className={`w-16 h-16 rounded-lg bg-current/10 flex items-center justify-center mb-6 ${track.color}`}>
+                          <Icon size={32} className="text-current" />
+                        </div>
+                        <h3 className="font-display text-2xl font-semibold mb-4">{track.title}</h3>
+                        <p className="text-muted-foreground leading-relaxed">{track.description}</p>
+                      </div>
                     </div>
-                    <h3 className="font-display text-2xl font-semibold mb-4">{track.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{track.description}</p>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Upcoming Events Section */}
-      <section className="py-24 bg-card/20">
-        <div className="editorial-grid">
-          <div className="col-span-12 lg:col-span-8">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <h2 className="font-display text-4xl font-bold mb-4">Upcoming Events</h2>
-                <p className="text-xl text-muted-foreground">Join us for workshops, talks, and networking opportunities</p>
-              </div>
-              <Link 
-                to="/events" 
-                className="hidden sm:inline-flex items-center text-primary hover:text-primary/80 transition-colors group underline-slide"
-              >
-                View All Events
-                <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingEvents.map((event, index) => (
-              <EventCard key={index} {...event} />
-            ))}
-          </div>
-
-          <div className="col-span-12 text-center mt-8 sm:hidden">
-            <Link 
-              to="/events"
-              className="magnetic-button px-6 py-3 bg-primary text-primary-foreground rounded-lg inline-flex items-center focus-ring"
-            >
-              View All Events
-              <ArrowRight size={18} className="ml-2" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Projects Section */}
-      <section className="py-24">
-        <div className="editorial-grid">
-          <div className="col-span-12 text-center mb-16">
-            <h2 className="font-display text-4xl lg:text-5xl font-bold mb-4">Student Projects</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Our members are building innovative solutions to real campus problems. 
-              From mobile apps to AI research, discover what our community creates.
-            </p>
-          </div>
-            
-          <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
-            {recentProjects.map((project, index) => (
-              <div key={index} className="panel-hover group">
-                <div className="p-8 bg-card border border-border rounded-xl hover:border-primary/20 transition-all">
-                  <h3 className="font-display text-2xl font-semibold mb-4">{project.title}</h3>
-                  <p className="text-muted-foreground mb-6 leading-relaxed">{project.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {project.tech.map((tech) => (
-                      <span key={tech} className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
-                        {tech}
-                      </span>
-                    ))}
+      {(eventsContent.title || upcomingEvents.length > 0) && (
+        <section className="py-24 bg-card/20">
+          <div className="editorial-grid">
+            <div className="col-span-12 lg:col-span-8">
+              {eventsContent.title && (
+                <div className="flex items-center justify-between mb-12">
+                  <div>
+                    <h2 className="font-display text-4xl font-bold mb-4">
+                      {eventsContent.title}
+                    </h2>
+                    {eventsContent.description && (
+                      <p className="text-xl text-muted-foreground">
+                        {eventsContent.description}
+                      </p>
+                    )}
                   </div>
+                  {eventsContent.cta_text && eventsContent.cta_link && (
+                    <Link 
+                      to={eventsContent.cta_link} 
+                      className="hidden sm:inline-flex items-center text-primary hover:text-primary/80 transition-colors group underline-slide"
+                    >
+                      {eventsContent.cta_text}
+                      <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {upcomingEvents.length > 0 ? (
+              <>
+                <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {upcomingEvents.map((event, index) => (
+                    <EventCard key={event.id || index} {...event} />
+                  ))}
+                </div>
+
+                {eventsContent.cta_text && eventsContent.cta_link && (
+                  <div className="col-span-12 text-center mt-8 sm:hidden">
+                    <Link 
+                      to={eventsContent.cta_link}
+                      className="magnetic-button px-6 py-3 bg-primary text-primary-foreground rounded-lg inline-flex items-center focus-ring"
+                    >
+                      {eventsContent.cta_text}
+                      <ArrowRight size={18} className="ml-2" />
+                    </Link>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="col-span-12 text-center py-12">
+                <div className="max-w-md mx-auto">
+                  <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Upcoming Events</h3>
+                  <p className="text-muted-foreground mb-6">
+                    We're planning exciting events for our community. Check back soon or follow us for updates!
+                  </p>
+                  {eventsContent.cta_text && eventsContent.cta_link && (
+                    <Link 
+                      to={eventsContent.cta_link}
+                      className="magnetic-button px-6 py-3 bg-primary text-primary-foreground rounded-lg inline-flex items-center focus-ring"
+                    >
+                      {eventsContent.cta_text}
+                      <ArrowRight size={18} className="ml-2" />
+                    </Link>
+                  )}
                 </div>
               </div>
-            ))}
+            )}
           </div>
+        </section>
+      )}
 
-          <div className="col-span-12 text-center">
-            <Link 
-              to="/projects" 
-              className="magnetic-button inline-flex items-center text-primary hover:text-primary/80 transition-colors group underline-slide text-lg"
-            >
-              Explore All Projects
-              <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </Link>
+      {/* Featured Projects Section */}
+      {(projectsContent.title || recentProjects.length > 0) && (
+        <section className="py-24">
+          <div className="editorial-grid">
+            {projectsContent.title && (
+              <div className="col-span-12 text-center mb-16">
+                <h2 className="font-display text-4xl lg:text-5xl font-bold mb-4">
+                  {projectsContent.title}
+                </h2>
+                {projectsContent.description && (
+                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                    {projectsContent.description}
+                  </p>
+                )}
+              </div>
+            )}
+              
+            {recentProjects.length > 0 ? (
+              <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
+                {recentProjects.map((project, index) => (
+                  <div key={project.id || index} className="panel-hover group">
+                    <div className="p-8 bg-card border border-border rounded-xl hover:border-primary/20 transition-all">
+                      <h3 className="font-display text-2xl font-semibold mb-4">{project.title}</h3>
+                      <p className="text-muted-foreground mb-6 leading-relaxed">{project.description}</p>
+                      {project.technologies && project.technologies.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {project.technologies.map((tech: string, techIndex: number) => (
+                            <span key={techIndex} className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {project.tech && project.tech.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {project.tech.map((tech: string, techIndex: number) => (
+                            <span key={techIndex} className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="col-span-12 text-center py-12 mb-12">
+                <div className="max-w-md mx-auto">
+                  <Code size={48} className="text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Projects Yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Our community is working on exciting projects. Check back soon to see what we're building!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {projectsContent.cta_text && projectsContent.cta_link && (
+              <div className="col-span-12 text-center">
+                <Link 
+                  to={projectsContent.cta_link} 
+                  className="magnetic-button inline-flex items-center text-primary hover:text-primary/80 transition-colors group underline-slide text-lg"
+                >
+                  {projectsContent.cta_text}
+                  <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Join Community Section */}
       <section className="py-24 bg-gradient-to-b from-background to-card/20">
@@ -262,34 +356,55 @@ const Home = () => {
                   <Users size={40} className="text-primary-foreground" />
                 </div>
                 
-                <h3 className="font-display text-3xl font-bold mb-4">Join Our Community</h3>
-                <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                  Connect with fellow developers, attend exclusive workshops, 
-                  and build your portfolio with real projects.
-                </p>
+                {communityContent.title && (
+                  <h3 className="font-display text-3xl font-bold mb-4">
+                    {communityContent.title}
+                  </h3>
+                )}
+                {communityContent.description && (
+                  <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                    {communityContent.description}
+                  </p>
+                )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                  <div className="flex flex-col items-center text-center">
-                    <Calendar size={24} className="text-primary mb-3" />
-                    <span className="font-medium">Weekly workshops and events</span>
+                {(communityContent.feature_1 || communityContent.feature_2 || communityContent.feature_3) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                    {communityContent.feature_1 && (
+                      <div className="flex flex-col items-center text-center">
+                        <Calendar size={24} className="text-primary mb-3" />
+                        <span className="font-medium">
+                          {communityContent.feature_1}
+                        </span>
+                      </div>
+                    )}
+                    {communityContent.feature_2 && (
+                      <div className="flex flex-col items-center text-center">
+                        <Code size={24} className="text-primary mb-3" />
+                        <span className="font-medium">
+                          {communityContent.feature_2}
+                        </span>
+                      </div>
+                    )}
+                    {communityContent.feature_3 && (
+                      <div className="flex flex-col items-center text-center">
+                        <BookOpen size={24} className="text-primary mb-3" />
+                        <span className="font-medium">
+                          {communityContent.feature_3}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <Code size={24} className="text-primary mb-3" />
-                    <span className="font-medium">Collaborative coding projects</span>
-                  </div>
-                  <div className="flex flex-col items-center text-center">
-                    <BookOpen size={24} className="text-primary mb-3" />
-                    <span className="font-medium">Study jams and certifications</span>
-                  </div>
-                </div>
+                )}
 
-                <Link 
-                  to="/contact"
-                  className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center focus-ring"
-                >
-                  Get Started Today
-                  <ArrowRight size={18} className="ml-2" />
-                </Link>
+                {communityContent.cta_text && communityContent.cta_link && (
+                  <Link 
+                    to={communityContent.cta_link}
+                    className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center focus-ring"
+                  >
+                    {communityContent.cta_text}
+                    <ArrowRight size={18} className="ml-2" />
+                  </Link>
+                )}
               </div>
             </div>
           </div>

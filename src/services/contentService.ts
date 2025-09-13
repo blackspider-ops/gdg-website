@@ -358,7 +358,7 @@ export class ContentService {
     // Admin Secret Code Management
     static async getAdminSecretCode(): Promise<string> {
         const code = await this.getSiteSetting('admin_secret_code');
-        return code || 'gdg-secret@mail.com'; // Default fallback
+        return code || 'gdg-secret@psu.edu'; // Default fallback
     }
 
     static async updateAdminSecretCode(newCode: string, adminId?: string): Promise<boolean> {
