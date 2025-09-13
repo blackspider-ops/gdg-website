@@ -1,5 +1,5 @@
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
+
 import { Navigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { 
@@ -15,9 +15,10 @@ import {
   Building2,
   MessageSquare,
   FolderOpen,
-  RefreshCw
+  RefreshCw,
+  BookOpen
 } from 'lucide-react';
-import DevSettings from '@/components/admin/DevSettings';
+
 import { EventsService } from '@/services/eventsService';
 import { MembersService } from '@/services/membersService';
 import { ProjectsService } from '@/services/projectsService';
@@ -26,7 +27,6 @@ import { NewsletterService } from '@/services/newsletterService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
   const [dashboardStats, setDashboardStats] = useState({
     totalMembers: 0,
     upcomingEvents: 0,
@@ -43,10 +43,7 @@ const AdminDashboard = () => {
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Allow direct access in development mode if enabled
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
-
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -58,9 +55,21 @@ const AdminDashboard = () => {
   const loadDashboardStats = async () => {
     setIsLoading(true);
     try {
-      const [memberStats, eventStats, projectStats, sponsorStats, newsletterStats] = await Promise.all([
+      // Load stats in batches to improve perceived performance
+      const [memberStats, eventStats] = await Promise.all([
         MembersService.getMemberStats(),
-        EventsService.getEventStats(),
+        EventsService.getEventStats()
+      ]);
+
+      // Update UI with first batch
+      setDashboardStats(prev => ({
+        ...prev,
+        totalMembers: memberStats.total,
+        upcomingEvents: eventStats.upcoming
+      }));
+
+      // Load remaining stats
+      const [projectStats, sponsorStats, newsletterStats] = await Promise.all([
         ProjectsService.getProjectStats(),
         SponsorsService.getSponsorStats(),
         NewsletterService.getSubscriberStats()
@@ -130,7 +139,6 @@ const AdminDashboard = () => {
       
       setRecentActivity(activities.slice(0, 4)); // Show max 4 activities
     } catch (error) {
-      console.error('Error loading dashboard stats:', error);
       // Set fallback values in case of error
       setDashboardStats({
         totalMembers: 0,
@@ -171,33 +179,28 @@ const AdminDashboard = () => {
     { label: 'Admin Users', icon: Shield, href: '/admin/users' },
   ] : [];
 
+  const helpActions = [
+    { label: 'Project Guide', icon: BookOpen, href: '/admin/guide' },
+  ];
+
   const profileActions = [
     { label: 'My Profile', icon: Users, href: '/admin/profile' },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 pt-20">
+    <div className="min-h-screen bg-background pt-20">
       <div className="editorial-grid py-8">
         {/* Header */}
         <div className="col-span-12 flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Shield size={20} className="text-white" />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Shield size={20} className="text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold text-white">Admin Dashboard</h1>
-              <p className="text-gray-400 text-sm">
-                {currentAdmin ? (
-                  <>Welcome, {currentAdmin.email} ({currentAdmin.role})</>
-                ) : (
-                  <>Development Mode - Direct Access Enabled</>
-                )}
+              <h1 className="font-display text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-muted-foreground text-sm">
+                Welcome, {currentAdmin.email} ({currentAdmin.role})
               </p>
-              {isDevelopmentMode && (
-                <div className="mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
-                  🚧 Development Mode Active
-                </div>
-              )}
             </div>
           </div>
           
@@ -205,34 +208,29 @@ const AdminDashboard = () => {
             <button
               onClick={loadDashboardStats}
               disabled={isLoading}
-              className="flex items-center space-x-2 px-4 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors text-gray-300 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground disabled:opacity-50"
             >
               <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
               <span>Refresh</span>
             </button>
             
-            {currentAdmin && (
-              <button
-                onClick={logout}
-                className="flex items-center space-x-2 px-4 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors text-gray-300"
-              >
-                <LogOut size={16} />
-                <span>Logout</span>
-              </button>
-            )}
+            <button
+              onClick={logout}
+              className="flex items-center space-x-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 
-        {/* Development Settings */}
-        <div className="col-span-12 mb-8">
-          <DevSettings />
-        </div>
+
 
         {/* Stats Grid */}
         <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="bg-black border border-gray-800 rounded-lg p-6">
+              <div key={index} className="bg-card border border-border rounded-lg p-6">
                 <div className="animate-pulse">
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-6 h-6 bg-gray-200 rounded"></div>
@@ -247,14 +245,14 @@ const AdminDashboard = () => {
             stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="bg-black border border-gray-800 rounded-lg p-6">
+                <div key={index} className="bg-card border border-border rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                     <Icon size={24} className={stat.color} />
-                    <Activity size={16} className="text-gray-500" />
+                    <Activity size={16} className="text-muted-foreground" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold mb-1 text-white">{stat.value}</div>
-                    <div className="text-sm text-gray-400">{stat.label}</div>
+                    <div className="text-2xl font-bold mb-1 text-foreground">{stat.value}</div>
+                    <div className="text-sm text-muted-foreground">{stat.label}</div>
                   </div>
                 </div>
               );
@@ -264,8 +262,8 @@ const AdminDashboard = () => {
 
         {/* Quick Actions */}
         <div className="col-span-12 lg:col-span-8">
-          <div className="bg-black border border-gray-800 rounded-lg p-6">
-            <h2 className="font-display text-lg font-semibold mb-6 text-white">Quick Actions</h2>
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h2 className="font-display text-lg font-semibold mb-6 text-foreground">Quick Actions</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {quickActions.map((action, index) => {
@@ -274,10 +272,10 @@ const AdminDashboard = () => {
                   <Link
                     key={index}
                     to={action.href}
-                    className="flex items-center space-x-3 p-4 border border-gray-800 rounded-lg hover:bg-gray-900 transition-colors group"
+                    className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:bg-muted transition-colors group"
                   >
-                    <Icon size={20} className="text-blue-600 group-hover:text-blue-700" />
-                    <span className="font-medium text-white">{action.label}</span>
+                    <Icon size={20} className="text-primary group-hover:text-primary/80" />
+                    <span className="font-medium text-foreground">{action.label}</span>
                   </Link>
                 );
               })}
@@ -286,8 +284,8 @@ const AdminDashboard = () => {
             {/* Admin Management Section (Super Admins Only) */}
             {adminActions.length > 0 && (
               <>
-                <div className="border-t border-gray-800 mt-6 pt-6">
-                  <h3 className="font-display text-md font-semibold mb-4 text-red-700">Admin Management</h3>
+                <div className="border-t border-border mt-6 pt-6">
+                  <h3 className="font-display text-md font-semibold mb-4 text-destructive">Admin Management</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {adminActions.map((action, index) => {
                       const Icon = action.icon;
@@ -308,8 +306,8 @@ const AdminDashboard = () => {
             )}
 
             {/* Business Management Section */}
-            <div className="border-t border-gray-800 mt-6 pt-6">
-              <h3 className="font-display text-md font-semibold mb-4 text-green-700">Business Management</h3>
+            <div className="border-t border-border mt-6 pt-6">
+              <h3 className="font-display text-md font-semibold mb-4 text-gdg-green">Business Management</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {businessActions.map((action, index) => {
                   const Icon = action.icon;
@@ -328,8 +326,8 @@ const AdminDashboard = () => {
             </div>
 
             {/* Profile Section */}
-            <div className="border-t border-gray-800 mt-6 pt-6">
-              <h3 className="font-display text-md font-semibold mb-4 text-white">Account</h3>
+            <div className="border-t border-border mt-6 pt-6">
+              <h3 className="font-display text-md font-semibold mb-4 text-foreground">Account</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {profileActions.map((action, index) => {
                   const Icon = action.icon;
@@ -337,10 +335,30 @@ const AdminDashboard = () => {
                     <Link
                       key={index}
                       to={action.href}
-                      className="flex items-center space-x-3 p-4 border border-gray-800 rounded-lg hover:bg-gray-900 transition-colors group"
+                      className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:bg-muted transition-colors group"
                     >
-                      <Icon size={20} className="text-blue-600 group-hover:text-blue-700" />
-                      <span className="font-medium text-white">{action.label}</span>
+                      <Icon size={20} className="text-primary group-hover:text-blue-700" />
+                      <span className="font-medium text-foreground">{action.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Help & Documentation */}
+            <div className="border-t border-border mt-6 pt-6">
+              <h3 className="font-display text-md font-semibold mb-4 text-accent">Help & Documentation</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {helpActions.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <Link
+                      key={index}
+                      to={action.href}
+                      className="flex items-center space-x-3 p-4 border border-purple-200 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
+                    >
+                      <Icon size={20} className="text-purple-600 group-hover:text-purple-700" />
+                      <span className="font-medium text-purple-700">{action.label}</span>
                     </Link>
                   );
                 })}
@@ -351,17 +369,17 @@ const AdminDashboard = () => {
 
         {/* Recent Activity */}
         <div className="col-span-12 lg:col-span-4">
-          <div className="bg-black border border-gray-800 rounded-lg p-6">
-            <h2 className="font-display text-lg font-semibold mb-6 text-white">Recent Activity</h2>
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h2 className="font-display text-lg font-semibold mb-6 text-foreground">Recent Activity</h2>
             
             {isLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div key={index} className="flex items-start space-x-3 animate-pulse">
-                    <div className="w-2 h-2 bg-gray-700 rounded-full mt-2"></div>
+                    <div className="w-2 h-2 bg-muted rounded-full mt-2"></div>
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-700 rounded mb-1"></div>
-                      <div className="h-3 bg-gray-700 rounded w-16"></div>
+                      <div className="h-4 bg-muted rounded mb-1"></div>
+                      <div className="h-3 bg-muted rounded w-16"></div>
                     </div>
                   </div>
                 ))}
@@ -372,16 +390,16 @@ const AdminDashboard = () => {
                   <div key={activity.id} className="flex items-start space-x-3">
                     <div className={`w-2 h-2 ${activity.color} rounded-full mt-2`}></div>
                     <div>
-                      <div className="text-sm font-medium text-white">{activity.message}</div>
-                      <div className="text-xs text-gray-400">{activity.timestamp}</div>
+                      <div className="text-sm font-medium text-foreground">{activity.message}</div>
+                      <div className="text-xs text-muted-foreground">{activity.timestamp}</div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8">
-                <Activity size={32} className="mx-auto text-gray-400 mb-2" />
-                <p className="text-sm text-gray-400">No recent activity</p>
+                <Activity size={32} className="mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No recent activity</p>
               </div>
             )}
           </div>

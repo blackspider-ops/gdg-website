@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useContent } from '@/contexts/ContentContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import {
   Settings,
@@ -22,7 +21,6 @@ import { ContentService } from '@/services/contentService';
 
 const AdminContent = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
   const {
     siteSettings,
     pageContent,
@@ -38,9 +36,9 @@ const AdminContent = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Allow direct access in development mode if enabled
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+  
 
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -114,7 +112,6 @@ const AdminContent = () => {
         contactLinks = mainContent.contact_links;
       }
     } catch (error) {
-      console.warn('Error parsing contact links:', error);
     }
 
 
@@ -154,7 +151,6 @@ const AdminContent = () => {
           setAllLinks(parsedLinks);
           return;
         } catch (error) {
-          console.error('Error parsing links:', error);
         }
       }
 
@@ -201,7 +197,6 @@ const AdminContent = () => {
         }
         return sectionData || fallback;
       } catch (error) {
-        console.warn('Error parsing footer section:', error);
         return fallback;
       }
     };
@@ -275,8 +270,7 @@ const AdminContent = () => {
 
       // Show success feedback
     } catch (error) {
-      console.error('Error saving site settings:', error);
-      // TODO: Add proper error handling/toast notification
+      // Error handling implemented
     } finally {
       setIsSaving(false);
     }
@@ -339,7 +333,6 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving home page:', error);
     } finally {
       setIsSaving(false);
     }
@@ -359,7 +352,6 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving contact page:', error);
     } finally {
       setIsSaving(false);
     }
@@ -378,7 +370,6 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving links:', error);
     } finally {
       setIsSaving(false);
     }
@@ -501,7 +492,6 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving navigation:', error);
     } finally {
       setIsSaving(false);
     }
@@ -533,7 +523,6 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-      console.error('Error saving footer:', error);
     } finally {
       setIsSaving(false);
     }
@@ -693,7 +682,6 @@ const AdminContent = () => {
           contactLinks = mainContent.contact_links;
         }
       } catch (error) {
-        console.warn('Error parsing contact links:', error);
       }
 
       setContactPageForm({
@@ -777,7 +765,7 @@ const AdminContent = () => {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsEditing(false)}
-              className="px-4 py-2 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+              className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
             >
               Cancel
             </button>
@@ -801,7 +789,7 @@ const AdminContent = () => {
       }
     >
       {/* Tabs */}
-      <div className="border-b border-gray-800 mb-8">
+      <div className="border-b border-border mb-8">
         <nav className="flex space-x-8 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -813,8 +801,8 @@ const AdminContent = () => {
                   setIsEditing(false);
                 }}
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                  ? 'border-blue-600 text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
                   }`}
               >
                 <Icon size={16} />
@@ -827,16 +815,16 @@ const AdminContent = () => {
 
       {/* Site Settings */}
       {activeTab === 'site-settings' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Site Settings</h2>
-              <p className="text-gray-400 mt-1">Configure basic site information</p>
+              <h2 className="text-xl font-semibold text-foreground">Site Settings</h2>
+              <p className="text-muted-foreground mt-1">Configure basic site information</p>
             </div>
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Edit3 size={16} />
                 <span>Edit</span>
@@ -853,10 +841,10 @@ const AdminContent = () => {
                     type="text"
                     value={siteSettingsForm.site_title}
                     onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, site_title: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {siteSettingsForm.site_title}
                   </div>
                 )}
@@ -869,10 +857,10 @@ const AdminContent = () => {
                     type="text"
                     value={siteSettingsForm.site_subtitle}
                     onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, site_subtitle: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {siteSettingsForm.site_subtitle}
                   </div>
                 )}
@@ -885,10 +873,10 @@ const AdminContent = () => {
                     rows={3}
                     value={siteSettingsForm.site_description}
                     onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, site_description: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {siteSettingsForm.site_description}
                   </div>
                 )}
@@ -901,10 +889,10 @@ const AdminContent = () => {
                     type="email"
                     value={siteSettingsForm.contact_email}
                     onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, contact_email: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {siteSettingsForm.contact_email}
                   </div>
                 )}
@@ -917,10 +905,10 @@ const AdminContent = () => {
                     type="text"
                     value={siteSettingsForm.meeting_time}
                     onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, meeting_time: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {siteSettingsForm.meeting_time}
                   </div>
                 )}
@@ -933,10 +921,10 @@ const AdminContent = () => {
                     type="text"
                     value={siteSettingsForm.meeting_location}
                     onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, meeting_location: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {siteSettingsForm.meeting_location}
                   </div>
                 )}
@@ -948,16 +936,16 @@ const AdminContent = () => {
 
       {/* Home Page */}
       {activeTab === 'home-page' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Home Page Content</h2>
-              <p className="text-gray-400 mt-1">Edit all sections of the homepage</p>
+              <h2 className="text-xl font-semibold text-foreground">Home Page Content</h2>
+              <p className="text-muted-foreground mt-1">Edit all sections of the homepage</p>
             </div>
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Edit3 size={16} />
                 <span>Edit</span>
@@ -967,8 +955,8 @@ const AdminContent = () => {
 
           <div className="p-6 space-y-8">
             {/* Hero Section */}
-            <div className="border-b border-gray-800 pb-8">
-              <h3 className="text-lg font-semibold text-white mb-6">Hero Section</h3>
+            <div className="border-b border-border pb-8">
+              <h3 className="text-lg font-semibold text-foreground mb-6">Hero Section</h3>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Badge Text</label>
@@ -977,10 +965,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.hero_badge_text}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_badge_text: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {homePageForm.hero_badge_text}
                     </div>
                   )}
@@ -993,10 +981,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.hero_title}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-2xl font-bold">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-2xl font-bold">
                       {homePageForm.hero_title}
                     </div>
                   )}
@@ -1009,10 +997,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.hero_subtitle}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_subtitle: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-lg">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-lg">
                       {homePageForm.hero_subtitle}
                     </div>
                   )}
@@ -1025,10 +1013,10 @@ const AdminContent = () => {
                       rows={3}
                       value={homePageForm.hero_description}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_description: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {homePageForm.hero_description}
                     </div>
                   )}
@@ -1042,10 +1030,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.hero_primary_cta_text}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_primary_cta_text: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.hero_primary_cta_text}
                       </div>
                     )}
@@ -1058,10 +1046,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.hero_primary_cta_link}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_primary_cta_link: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.hero_primary_cta_link}
                       </div>
                     )}
@@ -1074,10 +1062,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.hero_secondary_cta_text}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_secondary_cta_text: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.hero_secondary_cta_text}
                       </div>
                     )}
@@ -1090,10 +1078,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.hero_secondary_cta_link}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, hero_secondary_cta_link: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.hero_secondary_cta_link}
                       </div>
                     )}
@@ -1103,8 +1091,8 @@ const AdminContent = () => {
             </div>
 
             {/* What We Build Section */}
-            <div className="border-b border-gray-800 pb-8">
-              <h3 className="text-lg font-semibold text-white mb-6">What We Build Section</h3>
+            <div className="border-b border-border pb-8">
+              <h3 className="text-lg font-semibold text-foreground mb-6">What We Build Section</h3>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
@@ -1113,10 +1101,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.tracks_title}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, tracks_title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-xl font-semibold">
                       {homePageForm.tracks_title}
                     </div>
                   )}
@@ -1129,26 +1117,26 @@ const AdminContent = () => {
                       rows={3}
                       value={homePageForm.tracks_description}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, tracks_description: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {homePageForm.tracks_description}
                     </div>
                   )}
                 </div>
 
                 {/* Tracks Management */}
-                <div className="border-t border-gray-700 pt-6">
+                <div className="border-t border-border pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h4 className="text-md font-semibold text-white">Technology Tracks</h4>
-                      <p className="text-sm text-gray-400">Manage the technology tracks displayed in this section</p>
+                      <h4 className="text-md font-semibold text-foreground">Technology Tracks</h4>
+                      <p className="text-sm text-muted-foreground">Manage the technology tracks displayed in this section</p>
                     </div>
                     {isEditing && (
                       <button
                         onClick={addTrack}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                       >
                         <Plus size={16} />
                         <span>Add Track</span>
@@ -1157,7 +1145,7 @@ const AdminContent = () => {
                   </div>
 
                   {(!homePageForm.tracks_items || homePageForm.tracks_items.length === 0) ? (
-                    <div className="text-center py-6 text-gray-400 border border-gray-800 rounded-lg">
+                    <div className="text-center py-6 text-muted-foreground border border-border rounded-lg">
                       <p>No tracks added yet.</p>
                       {isEditing && (
                         <p className="text-sm mt-2">Click "Add Track" to create your first technology track.</p>
@@ -1166,7 +1154,7 @@ const AdminContent = () => {
                   ) : (
                     <div className="space-y-4">
                       {(homePageForm.tracks_items || []).map((track) => (
-                        <div key={track.id} className="border border-gray-800 rounded-lg p-4 bg-gray-900">
+                        <div key={track.id} className="border border-border rounded-lg p-4 bg-muted">
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
@@ -1176,11 +1164,11 @@ const AdminContent = () => {
                                     type="text"
                                     value={track.title}
                                     onChange={(e) => updateTrack(track.id, 'title', e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                                     placeholder="e.g., Android"
                                   />
                                 ) : (
-                                  <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-medium">
+                                  <div className="px-4 py-3 bg-gray-800 border border-border rounded-lg text-foreground font-medium">
                                     {track.title}
                                   </div>
                                 )}
@@ -1192,7 +1180,7 @@ const AdminContent = () => {
                                   <select
                                     value={track.icon}
                                     onChange={(e) => updateTrack(track.id, 'icon', e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    className="w-full px-4 py-3 border border-border rounded-lg bg-gray-800 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                                   >
                                     <option value="Smartphone">📱 Smartphone (Android)</option>
                                     <option value="Cloud">☁️ Cloud</option>
@@ -1202,7 +1190,7 @@ const AdminContent = () => {
                                     <option value="BookOpen">📖 Book</option>
                                   </select>
                                 ) : (
-                                  <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                                  <div className="px-4 py-3 bg-gray-800 border border-border rounded-lg text-foreground">
                                     {track.icon}
                                   </div>
                                 )}
@@ -1215,7 +1203,7 @@ const AdminContent = () => {
                                 <select
                                   value={track.color}
                                   onChange={(e) => updateTrack(track.id, 'color', e.target.value)}
-                                  className="w-full px-4 py-3 border border-gray-700 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                  className="w-full px-4 py-3 border border-border rounded-lg bg-gray-800 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 >
                                   <option value="text-gdg-blue">🔵 Blue</option>
                                   <option value="text-gdg-red">🔴 Red</option>
@@ -1223,7 +1211,7 @@ const AdminContent = () => {
                                   <option value="text-gdg-yellow">🟡 Yellow</option>
                                 </select>
                               ) : (
-                                <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                                <div className="px-4 py-3 bg-gray-800 border border-border rounded-lg text-foreground">
                                   {track.color}
                                 </div>
                               )}
@@ -1236,11 +1224,11 @@ const AdminContent = () => {
                                   rows={3}
                                   value={track.description}
                                   onChange={(e) => updateTrack(track.id, 'description', e.target.value)}
-                                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                                   placeholder="Describe what this track covers..."
                                 />
                               ) : (
-                                <div className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white">
+                                <div className="px-4 py-3 bg-gray-800 border border-border rounded-lg text-foreground">
                                   {track.description}
                                 </div>
                               )}
@@ -1267,8 +1255,8 @@ const AdminContent = () => {
             </div>
 
             {/* Upcoming Events Section */}
-            <div className="border-b border-gray-800 pb-8">
-              <h3 className="text-lg font-semibold text-white mb-6">Upcoming Events Section</h3>
+            <div className="border-b border-border pb-8">
+              <h3 className="text-lg font-semibold text-foreground mb-6">Upcoming Events Section</h3>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
@@ -1277,10 +1265,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.events_title}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, events_title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-xl font-semibold">
                       {homePageForm.events_title}
                     </div>
                   )}
@@ -1293,10 +1281,10 @@ const AdminContent = () => {
                       rows={2}
                       value={homePageForm.events_description}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, events_description: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {homePageForm.events_description}
                     </div>
                   )}
@@ -1310,10 +1298,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.events_cta_text}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, events_cta_text: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.events_cta_text}
                       </div>
                     )}
@@ -1326,10 +1314,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.events_cta_link}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, events_cta_link: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.events_cta_link}
                       </div>
                     )}
@@ -1339,8 +1327,8 @@ const AdminContent = () => {
             </div>
 
             {/* Featured Projects Section */}
-            <div className="border-b border-gray-800 pb-8">
-              <h3 className="text-lg font-semibold text-white mb-6">Featured Projects Section</h3>
+            <div className="border-b border-border pb-8">
+              <h3 className="text-lg font-semibold text-foreground mb-6">Featured Projects Section</h3>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
@@ -1349,10 +1337,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.projects_title}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-xl font-semibold">
                       {homePageForm.projects_title}
                     </div>
                   )}
@@ -1365,10 +1353,10 @@ const AdminContent = () => {
                       rows={3}
                       value={homePageForm.projects_description}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_description: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {homePageForm.projects_description}
                     </div>
                   )}
@@ -1382,10 +1370,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.projects_cta_text}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_cta_text: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.projects_cta_text}
                       </div>
                     )}
@@ -1398,10 +1386,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.projects_cta_link}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, projects_cta_link: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.projects_cta_link}
                       </div>
                     )}
@@ -1412,7 +1400,7 @@ const AdminContent = () => {
 
             {/* Join Community Section */}
             <div>
-              <h3 className="text-lg font-semibold text-white mb-6">Join Community Section</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-6">Join Community Section</h3>
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Section Title</label>
@@ -1421,10 +1409,10 @@ const AdminContent = () => {
                       type="text"
                       value={homePageForm.community_title}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, community_title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-xl font-semibold">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-xl font-semibold">
                       {homePageForm.community_title}
                     </div>
                   )}
@@ -1437,10 +1425,10 @@ const AdminContent = () => {
                       rows={3}
                       value={homePageForm.community_description}
                       onChange={(e) => setHomePageForm(prev => ({ ...prev, community_description: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {homePageForm.community_description}
                     </div>
                   )}
@@ -1454,10 +1442,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.community_feature_1}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, community_feature_1: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.community_feature_1}
                       </div>
                     )}
@@ -1470,10 +1458,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.community_feature_2}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, community_feature_2: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.community_feature_2}
                       </div>
                     )}
@@ -1486,10 +1474,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.community_feature_3}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, community_feature_3: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.community_feature_3}
                       </div>
                     )}
@@ -1504,10 +1492,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.community_cta_text}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, community_cta_text: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.community_cta_text}
                       </div>
                     )}
@@ -1520,10 +1508,10 @@ const AdminContent = () => {
                         type="text"
                         value={homePageForm.community_cta_link}
                         onChange={(e) => setHomePageForm(prev => ({ ...prev, community_cta_link: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {homePageForm.community_cta_link}
                       </div>
                     )}
@@ -1537,16 +1525,16 @@ const AdminContent = () => {
 
       {/* Contact Page */}
       {activeTab === 'contact-page' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Contact Page Content</h2>
-              <p className="text-gray-400 mt-1">Edit the contact page content and messaging</p>
+              <h2 className="text-xl font-semibold text-foreground">Contact Page Content</h2>
+              <p className="text-muted-foreground mt-1">Edit the contact page content and messaging</p>
             </div>
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Edit3 size={16} />
                 <span>Edit</span>
@@ -1563,10 +1551,10 @@ const AdminContent = () => {
                     type="text"
                     value={contactPageForm.title}
                     onChange={(e) => setContactPageForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-2xl font-bold">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-2xl font-bold">
                     {contactPageForm.title}
                   </div>
                 )}
@@ -1579,10 +1567,10 @@ const AdminContent = () => {
                     type="text"
                     value={contactPageForm.subtitle}
                     onChange={(e) => setContactPageForm(prev => ({ ...prev, subtitle: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white text-lg">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground text-lg">
                     {contactPageForm.subtitle}
                   </div>
                 )}
@@ -1595,10 +1583,10 @@ const AdminContent = () => {
                     rows={4}
                     value={contactPageForm.description}
                     onChange={(e) => setContactPageForm(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {contactPageForm.description}
                   </div>
                 )}
@@ -1611,10 +1599,10 @@ const AdminContent = () => {
                     type="text"
                     value={contactPageForm.form_title}
                     onChange={(e) => setContactPageForm(prev => ({ ...prev, form_title: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {contactPageForm.form_title}
                   </div>
                 )}
@@ -1627,10 +1615,10 @@ const AdminContent = () => {
                     rows={3}
                     value={contactPageForm.success_message}
                     onChange={(e) => setContactPageForm(prev => ({ ...prev, success_message: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {contactPageForm.success_message}
                   </div>
                 )}
@@ -1643,17 +1631,17 @@ const AdminContent = () => {
                     type="text"
                     value={contactPageForm.button_text}
                     onChange={(e) => setContactPageForm(prev => ({ ...prev, button_text: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   />
                 ) : (
-                  <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                  <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                     {contactPageForm.button_text}
                   </div>
                 )}
               </div>
 
-              <div className="border-t border-gray-800 pt-6 mt-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Contact Information Section</h3>
+              <div className="border-t border-border pt-6 mt-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Contact Information Section</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -1663,10 +1651,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.quick_contact_title}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, quick_contact_title: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.quick_contact_title}
                       </div>
                     )}
@@ -1679,10 +1667,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.email_label}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, email_label: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.email_label}
                       </div>
                     )}
@@ -1695,10 +1683,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.discord_label}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, discord_label: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.discord_label}
                       </div>
                     )}
@@ -1711,10 +1699,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.discord_description}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, discord_description: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.discord_description}
                       </div>
                     )}
@@ -1732,7 +1720,7 @@ const AdminContent = () => {
                               setContactPageForm(prev => ({ ...prev, email_url: selectedLink.url }));
                             }
                           }}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                         >
                           <option value="custom">Custom URL or select from links</option>
                           {allLinks
@@ -1748,11 +1736,11 @@ const AdminContent = () => {
                           value={contactPageForm.email_url || ''}
                           onChange={(e) => setContactPageForm(prev => ({ ...prev, email_url: e.target.value }))}
                           placeholder="mailto:contact@gdgpsu.org or custom URL"
-                          className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                          className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                         />
                       </div>
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.email_url || 'mailto:contact@gdgpsu.org'}
                       </div>
                     )}
@@ -1770,7 +1758,7 @@ const AdminContent = () => {
                               setContactPageForm(prev => ({ ...prev, discord_url: selectedLink.url }));
                             }
                           }}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                         >
                           <option value="custom">Custom URL or select from links</option>
                           {allLinks
@@ -1786,11 +1774,11 @@ const AdminContent = () => {
                           value={contactPageForm.discord_url || ''}
                           onChange={(e) => setContactPageForm(prev => ({ ...prev, discord_url: e.target.value }))}
                           placeholder="https://discord.gg/gdgpsu or custom URL"
-                          className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                          className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                         />
                       </div>
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.discord_url || 'Not set'}
                       </div>
                     )}
@@ -1803,10 +1791,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.office_hours_label}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, office_hours_label: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.office_hours_label}
                       </div>
                     )}
@@ -1819,10 +1807,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.office_hours_info}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, office_hours_info: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.office_hours_info}
                       </div>
                     )}
@@ -1834,7 +1822,7 @@ const AdminContent = () => {
 
 
                 {/* Additional Links Title */}
-                <div className="border-t border-gray-800 pt-6 mt-6">
+                <div className="border-t border-border pt-6 mt-6">
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-300 mb-2">Additional Links Section Title</label>
                     {isEditing ? (
@@ -1842,10 +1830,10 @@ const AdminContent = () => {
                         type="text"
                         value={contactPageForm.additional_links_title}
                         onChange={(e) => setContactPageForm(prev => ({ ...prev, additional_links_title: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                      <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                         {contactPageForm.additional_links_title}
                       </div>
                     )}
@@ -1853,11 +1841,11 @@ const AdminContent = () => {
                 </div>
 
                 {/* Contact Page Links Section */}
-                <div className="border-t border-gray-800 pt-6 mt-6">
+                <div className="border-t border-border pt-6 mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">Additional Contact Links</h3>
-                      <p className="text-sm text-gray-400">Select additional links from your Links & URLs to display in the contact info section</p>
+                      <h3 className="text-lg font-semibold text-foreground">Additional Contact Links</h3>
+                      <p className="text-sm text-muted-foreground">Select additional links from your Links & URLs to display in the contact info section</p>
                     </div>
                     {isEditing && allLinks.length > 0 && (
                       <div className="flex items-center space-x-2">
@@ -1868,7 +1856,7 @@ const AdminContent = () => {
                               e.target.value = '';
                             }
                           }}
-                          className="px-3 py-2 border border-gray-700 rounded-lg bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                          className="px-3 py-2 border border-border rounded-lg bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                         >
                           <option value="">Select a link to add</option>
                           {allLinks
@@ -1884,7 +1872,7 @@ const AdminContent = () => {
                   </div>
 
                   {contactPageForm.contact_links.length === 0 ? (
-                    <div className="text-center py-6 text-gray-400 border border-gray-800 rounded-lg">
+                    <div className="text-center py-6 text-muted-foreground border border-border rounded-lg">
                       <p>No links selected for the contact page.</p>
                       {isEditing && allLinks.length > 0 && (
                         <p className="text-sm mt-2">Use the dropdown above to add links from your Links & URLs section.</p>
@@ -1896,17 +1884,17 @@ const AdminContent = () => {
                   ) : (
                     <div className="space-y-3">
                       {contactPageForm.contact_links.map((link) => (
-                        <div key={link.id} className="flex items-center justify-between p-4 border border-gray-800 rounded-lg bg-gray-900">
+                        <div key={link.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3">
                               <div>
-                                <h4 className="font-medium text-white">{link.name}</h4>
-                                <p className="text-sm text-gray-400">{link.url}</p>
+                                <h4 className="font-medium text-foreground">{link.name}</h4>
+                                <p className="text-sm text-muted-foreground">{link.url}</p>
                                 {link.description && (
-                                  <p className="text-xs text-gray-500 mt-1">{link.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{link.description}</p>
                                 )}
                               </div>
-                              <span className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded-full">
+                              <span className="px-2 py-1 bg-primary text-blue-100 text-xs rounded-full">
                                 {link.category}
                               </span>
                             </div>
@@ -1932,17 +1920,17 @@ const AdminContent = () => {
 
       {/* Links & URLs */}
       {activeTab === 'links-urls' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Links & URLs</h2>
-              <p className="text-gray-400 mt-1">Manage all external links used throughout the site</p>
+              <h2 className="text-xl font-semibold text-foreground">Links & URLs</h2>
+              <p className="text-muted-foreground mt-1">Manage all external links used throughout the site</p>
             </div>
             <div className="flex items-center space-x-3">
               {!isEditing ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Edit3 size={16} />
                   <span>Edit</span>
@@ -1951,7 +1939,7 @@ const AdminContent = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                    className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
                   >
                     Cancel
                   </button>
@@ -1963,13 +1951,13 @@ const AdminContent = () => {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-white">All Links</h3>
-                <p className="text-sm text-gray-400">Manage all links used throughout your website</p>
+                <h3 className="text-lg font-semibold text-foreground">All Links</h3>
+                <p className="text-sm text-muted-foreground">Manage all links used throughout your website</p>
               </div>
               {isEditing && (
                 <button
                   onClick={addLink}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Plus size={16} />
                   <span>Add Link</span>
@@ -1978,7 +1966,7 @@ const AdminContent = () => {
             </div>
 
             {allLinks.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 <p>No links added yet.</p>
                 {isEditing && (
                   <p className="text-sm mt-2">Click "Add Link" to create your first link.</p>
@@ -1987,7 +1975,7 @@ const AdminContent = () => {
             ) : (
               <div className="space-y-4">
                 {allLinks.map((link) => (
-                  <div key={link.id} className="border border-gray-800 rounded-lg p-4">
+                  <div key={link.id} className="border border-border rounded-lg p-4">
                     <div className="space-y-4">
                       {/* First Row: Name, URL, Category */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1998,11 +1986,11 @@ const AdminContent = () => {
                               type="text"
                               value={link.name}
                               onChange={(e) => updateLink(link.id, 'name', e.target.value)}
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500 appearance-none"
+                              className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground appearance-none"
                               placeholder="e.g., Discord Server"
                             />
                           ) : (
-                            <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                            <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                               {link.name || 'Unnamed Link'}
                             </div>
                           )}
@@ -2015,11 +2003,11 @@ const AdminContent = () => {
                               type="url"
                               value={link.url}
                               onChange={(e) => updateLink(link.id, 'url', e.target.value)}
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500 appearance-none"
+                              className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground appearance-none"
                               placeholder="https://example.com"
                             />
                           ) : (
-                            <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white break-all">
+                            <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground break-all">
                               {link.url || 'No URL'}
                             </div>
                           )}
@@ -2032,12 +2020,12 @@ const AdminContent = () => {
                               type="text"
                               value={link.category}
                               onChange={(e) => updateLink(link.id, 'category', e.target.value)}
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500 appearance-none"
+                              className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground appearance-none"
                               placeholder="e.g., Social, Development, Official"
                               list={`categories-${link.id}`}
                             />
                           ) : (
-                            <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                            <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                               {link.category || 'No category'}
                             </div>
                           )}
@@ -2065,11 +2053,11 @@ const AdminContent = () => {
                               type="text"
                               value={link.description}
                               onChange={(e) => updateLink(link.id, 'description', e.target.value)}
-                              className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500 appearance-none"
+                              className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground appearance-none"
                               placeholder="Optional description"
                             />
                           ) : (
-                            <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                            <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                               {link.description || 'No description'}
                             </div>
                           )}
@@ -2090,14 +2078,14 @@ const AdminContent = () => {
               </div>
             )}
 
-            <div className="mt-8 p-4 bg-gray-900 rounded-lg">
-              <h4 className="font-semibold text-white mb-2">📝 How it works</h4>
+            <div className="mt-8 p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold text-foreground mb-2">📝 How it works</h4>
               <p className="text-sm text-gray-300">
                 These links will automatically populate throughout your website wherever they're referenced.
                 Update them here once and they'll be updated everywhere - in the footer, contact page, social media sections, etc.
               </p>
               <p className="text-sm text-gray-300 mt-2">
-                <strong>Usage:</strong> Use <code className="bg-black px-1 rounded">getLink('discord')</code> or <code className="bg-black px-1 rounded">getLink('github')</code> in your components to reference links.
+                <strong>Usage:</strong> Use <code className="bg-card px-1 rounded">getLink('discord')</code> or <code className="bg-card px-1 rounded">getLink('github')</code> in your components to reference links.
               </p>
             </div>
           </div>
@@ -2106,17 +2094,17 @@ const AdminContent = () => {
 
       {/* Navigation */}
       {activeTab === 'navigation' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Navigation Menu</h2>
-              <p className="text-gray-400 mt-1">Manage the main navigation menu items</p>
+              <h2 className="text-xl font-semibold text-foreground">Navigation Menu</h2>
+              <p className="text-muted-foreground mt-1">Manage the main navigation menu items</p>
             </div>
             <div className="flex items-center space-x-3">
               {isEditing && (
                 <button
                   onClick={addNavigationItem}
-                  className="flex items-center space-x-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 border border-blue-600 text-primary rounded-lg hover:bg-muted transition-colors font-medium"
                 >
                   <Plus size={16} />
                   <span>Add Item</span>
@@ -2125,7 +2113,7 @@ const AdminContent = () => {
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Edit3 size={16} />
                   <span>Edit</span>
@@ -2143,7 +2131,7 @@ const AdminContent = () => {
                     ? 'opacity-50 scale-95 border-gray-600'
                     : dragOverIndex === index && draggedItem !== null && draggedItem !== index
                       ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-gray-800'
+                      : 'border-border'
                     }`}
                   draggable={isEditing}
                   onDragStart={(e) => handleDragStart(e, index)}
@@ -2154,7 +2142,7 @@ const AdminContent = () => {
                 >
                   {/* Drag Handle */}
                   {isEditing && (
-                    <div className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 transition-colors">
+                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-gray-300 transition-colors">
                       <GripVertical size={20} />
                     </div>
                   )}
@@ -2171,11 +2159,11 @@ const AdminContent = () => {
                             newNav[index].label = e.target.value;
                             setNavigationForm(newNav);
                           }}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                          className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                           placeholder="Menu item label"
                         />
                       ) : (
-                        <div className="px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                        <div className="px-3 py-2 bg-muted border border-border rounded-lg text-foreground">
                           {item.label || 'Untitled'}
                         </div>
                       )}
@@ -2191,13 +2179,13 @@ const AdminContent = () => {
                             newNav[index].href = e.target.value;
                             setNavigationForm(newNav);
                           }}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                          className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                           placeholder="/page-url or https://external.com"
                         />
                       ) : (
-                        <div className="px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white flex items-center">
+                        <div className="px-3 py-2 bg-muted border border-border rounded-lg text-foreground flex items-center">
                           {item.href || 'No link'}
-                          {item.href && item.href.startsWith('http') && <ExternalLink size={14} className="ml-2 text-gray-400" />}
+                          {item.href && item.href.startsWith('http') && <ExternalLink size={14} className="ml-2 text-muted-foreground" />}
                         </div>
                       )}
                     </div>
@@ -2214,7 +2202,7 @@ const AdminContent = () => {
               ))}
 
               {navigationForm.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   No navigation items yet. {isEditing && 'Click "Add Item" to get started.'}
                 </div>
               )}
@@ -2225,16 +2213,16 @@ const AdminContent = () => {
 
       {/* Footer */}
       {activeTab === 'footer' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Footer Content</h2>
-              <p className="text-gray-400 mt-1">Manage footer text and social media links</p>
+              <h2 className="text-xl font-semibold text-foreground">Footer Content</h2>
+              <p className="text-muted-foreground mt-1">Manage footer text and social media links</p>
             </div>
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Edit3 size={16} />
                 <span>Edit</span>
@@ -2245,7 +2233,7 @@ const AdminContent = () => {
           <div className="p-6 space-y-8">
             {/* Footer Text */}
             <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Footer Text</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Footer Text</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
@@ -2254,10 +2242,10 @@ const AdminContent = () => {
                       rows={3}
                       value={footerForm.description}
                       onChange={(e) => setFooterForm(prev => ({ ...prev, description: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {footerForm.description}
                     </div>
                   )}
@@ -2270,10 +2258,10 @@ const AdminContent = () => {
                       type="text"
                       value={footerForm.copyright}
                       onChange={(e) => setFooterForm(prev => ({ ...prev, copyright: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
                   ) : (
-                    <div className="px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg text-white">
+                    <div className="px-4 py-3 bg-muted border border-border rounded-lg text-foreground">
                       {footerForm.copyright}
                     </div>
                   )}
@@ -2285,12 +2273,12 @@ const AdminContent = () => {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Social Media Links</h3>
-                  <p className="text-sm text-gray-400 mt-1">Links are managed in the "Links & URLs" tab above</p>
+                  <h3 className="text-lg font-semibold text-foreground">Social Media Links</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Links are managed in the "Links & URLs" tab above</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('links-urls')}
-                  className="flex items-center space-x-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 border border-blue-600 text-primary rounded-lg hover:bg-muted transition-colors font-medium"
                 >
                   <ExternalLink size={16} />
                   <span>Manage Links</span>
@@ -2301,32 +2289,32 @@ const AdminContent = () => {
               <div className="space-y-4">
                 {allLinks.filter(link => link.category === 'Social').length > 0 ? (
                   allLinks.filter(link => link.category === 'Social').map((link) => (
-                    <div key={link.id} className="p-4 border border-gray-800 rounded-lg bg-gray-900">
+                    <div key={link.id} className="p-4 border border-border rounded-lg bg-muted">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">Link Name</label>
-                          <div className="text-white font-medium">{link.name}</div>
+                          <label className="block text-sm font-medium text-muted-foreground mb-1">Link Name</label>
+                          <div className="text-foreground font-medium">{link.name}</div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">URL</label>
-                          <div className="text-white break-all">{link.url}</div>
+                          <label className="block text-sm font-medium text-muted-foreground mb-1">URL</label>
+                          <div className="text-foreground break-all">{link.url}</div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
-                          <div className="text-white">{link.description || 'No description'}</div>
+                          <label className="block text-sm font-medium text-muted-foreground mb-1">Description</label>
+                          <div className="text-foreground">{link.description || 'No description'}</div>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 border border-gray-800 rounded-lg bg-gray-900">
-                    <div className="text-gray-400 mb-2">No social media links found</div>
-                    <p className="text-sm text-gray-500 mb-4">
+                  <div className="text-center py-8 border border-border rounded-lg bg-muted">
+                    <div className="text-muted-foreground mb-2">No social media links found</div>
+                    <p className="text-sm text-muted-foreground mb-4">
                       Add links with category "Social" in the Links & URLs tab to display them here.
                     </p>
                     <button
                       onClick={() => setActiveTab('links-urls')}
-                      className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                     >
                       <Plus size={16} />
                       <span>Add Social Links</span>
@@ -2341,16 +2329,16 @@ const AdminContent = () => {
 
                   return (
                     <div key={category} className="mt-6">
-                      <h4 className="text-md font-semibold text-white mb-3">{category} Links</h4>
+                      <h4 className="text-md font-semibold text-foreground mb-3">{category} Links</h4>
                       <div className="space-y-3">
                         {categoryLinks.map((link) => (
-                          <div key={link.id} className="p-3 border border-gray-800 rounded-lg bg-gray-900">
+                          <div key={link.id} className="p-3 border border-border rounded-lg bg-muted">
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="text-white font-medium">{link.name}</div>
-                                <div className="text-sm text-gray-400">{link.url}</div>
+                                <div className="text-foreground font-medium">{link.name}</div>
+                                <div className="text-sm text-muted-foreground">{link.url}</div>
                               </div>
-                              <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                              <div className="text-xs text-muted-foreground bg-gray-800 px-2 py-1 rounded">
                                 {category}
                               </div>
                             </div>
@@ -2366,14 +2354,14 @@ const AdminContent = () => {
             {/* Quick Links */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Quick Links</h3>
+                <h3 className="text-lg font-semibold text-foreground">Quick Links</h3>
                 {isEditing && (
                   <button
                     onClick={() => setFooterForm(prev => ({
                       ...prev,
                       quickLinks: [...prev.quickLinks, { name: '', href: '' }]
                     }))}
-                    className="flex items-center space-x-2 px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-gray-900 transition-colors text-sm"
+                    className="flex items-center space-x-2 px-3 py-2 border border-blue-600 text-primary rounded-lg hover:bg-muted transition-colors text-sm"
                   >
                     <Plus size={14} />
                     <span>Add Link</span>
@@ -2383,9 +2371,9 @@ const AdminContent = () => {
 
               <div className="space-y-3">
                 {footerForm.quickLinks.map((link, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-gray-800 rounded-lg bg-gray-900">
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-border rounded-lg bg-muted">
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">Link Name</label>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">Link Name</label>
                       {isEditing ? (
                         <input
                           type="text"
@@ -2395,18 +2383,18 @@ const AdminContent = () => {
                             newLinks[index].name = e.target.value;
                             setFooterForm(prev => ({ ...prev, quickLinks: newLinks }));
                           }}
-                          className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                          className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                           placeholder="e.g., Events"
                         />
                       ) : (
-                        <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                        <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                           {link.name}
                         </div>
                       )}
                     </div>
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-400 mb-2">URL</label>
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">URL</label>
                         {isEditing ? (
                           <input
                             type="text"
@@ -2416,11 +2404,11 @@ const AdminContent = () => {
                               newLinks[index].href = e.target.value;
                               setFooterForm(prev => ({ ...prev, quickLinks: newLinks }));
                             }}
-                            className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                            className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                             placeholder="/events"
                           />
                         ) : (
-                          <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                          <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                             {link.href}
                           </div>
                         )}
@@ -2445,14 +2433,14 @@ const AdminContent = () => {
             {/* Resources */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Resources</h3>
+                <h3 className="text-lg font-semibold text-foreground">Resources</h3>
                 {isEditing && (
                   <button
                     onClick={() => setFooterForm(prev => ({
                       ...prev,
                       resources: [...prev.resources, { name: '', href: '' }]
                     }))}
-                    className="flex items-center space-x-2 px-3 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-gray-900 transition-colors text-sm"
+                    className="flex items-center space-x-2 px-3 py-2 border border-blue-600 text-primary rounded-lg hover:bg-muted transition-colors text-sm"
                   >
                     <Plus size={14} />
                     <span>Add Resource</span>
@@ -2462,9 +2450,9 @@ const AdminContent = () => {
 
               <div className="space-y-3">
                 {footerForm.resources.map((resource, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-gray-800 rounded-lg bg-gray-900">
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-border rounded-lg bg-muted">
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">Resource Name</label>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">Resource Name</label>
                       {isEditing ? (
                         <input
                           type="text"
@@ -2474,18 +2462,18 @@ const AdminContent = () => {
                             newResources[index].name = e.target.value;
                             setFooterForm(prev => ({ ...prev, resources: newResources }));
                           }}
-                          className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                          className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                           placeholder="e.g., Study Jams"
                         />
                       ) : (
-                        <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                        <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                           {resource.name}
                         </div>
                       )}
                     </div>
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-400 mb-2">URL</label>
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">URL</label>
                         {isEditing ? (
                           <input
                             type="text"
@@ -2495,11 +2483,11 @@ const AdminContent = () => {
                               newResources[index].href = e.target.value;
                               setFooterForm(prev => ({ ...prev, resources: newResources }));
                             }}
-                            className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                            className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                             placeholder="/resources"
                           />
                         ) : (
-                          <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                          <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                             {resource.href}
                           </div>
                         )}
@@ -2523,10 +2511,10 @@ const AdminContent = () => {
 
             {/* Contact Information */}
             <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Contact Information</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Contact Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
                   {isEditing ? (
                     <input
                       type="email"
@@ -2535,17 +2523,17 @@ const AdminContent = () => {
                         ...prev,
                         contactInfo: { ...prev.contactInfo, email: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                       placeholder="contact@gdgpsu.org"
                     />
                   ) : (
-                    <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                    <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                       {footerForm.contactInfo.email}
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Phone (Optional)</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Phone (Optional)</label>
                   {isEditing ? (
                     <input
                       type="tel"
@@ -2554,17 +2542,17 @@ const AdminContent = () => {
                         ...prev,
                         contactInfo: { ...prev.contactInfo, phone: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                       placeholder="(555) 123-4567"
                     />
                   ) : (
-                    <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                    <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                       {footerForm.contactInfo.phone || 'Not provided'}
                     </div>
                   )}
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Address</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Address</label>
                   {isEditing ? (
                     <input
                       type="text"
@@ -2573,17 +2561,17 @@ const AdminContent = () => {
                         ...prev,
                         contactInfo: { ...prev.contactInfo, address: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                       placeholder="Penn State University, University Park, PA"
                     />
                   ) : (
-                    <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                    <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                       {footerForm.contactInfo.address}
                     </div>
                   )}
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Office Hours</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Office Hours</label>
                   {isEditing ? (
                     <input
                       type="text"
@@ -2592,11 +2580,11 @@ const AdminContent = () => {
                         ...prev,
                         contactInfo: { ...prev.contactInfo, officeHours: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                       placeholder="Wednesdays 4-6 PM, IST Building"
                     />
                   ) : (
-                    <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                    <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                       {footerForm.contactInfo.officeHours}
                     </div>
                   )}
@@ -2606,10 +2594,10 @@ const AdminContent = () => {
 
             {/* Newsletter Settings */}
             <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Newsletter Settings</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Newsletter Settings</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Newsletter Title</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Newsletter Title</label>
                   {isEditing ? (
                     <input
                       type="text"
@@ -2618,17 +2606,17 @@ const AdminContent = () => {
                         ...prev,
                         newsletter: { ...prev.newsletter, title: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                       placeholder="Stay Updated"
                     />
                   ) : (
-                    <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                    <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                       {footerForm.newsletter.title}
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Newsletter Description</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Newsletter Description</label>
                   {isEditing ? (
                     <textarea
                       rows={3}
@@ -2637,18 +2625,18 @@ const AdminContent = () => {
                         ...prev,
                         newsletter: { ...prev.newsletter, description: e.target.value }
                       }))}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                      className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                       placeholder="Get the latest updates on events, workshops, and opportunities."
                     />
                   ) : (
-                    <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                    <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                       {footerForm.newsletter.description}
                     </div>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Input Placeholder</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Input Placeholder</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -2657,17 +2645,17 @@ const AdminContent = () => {
                           ...prev,
                           newsletter: { ...prev.newsletter, placeholder: e.target.value }
                         }))}
-                        className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                        className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                         placeholder="Enter your email"
                       />
                     ) : (
-                      <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                      <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                         {footerForm.newsletter.placeholder}
                       </div>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Button Text</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">Button Text</label>
                     {isEditing ? (
                       <input
                         type="text"
@@ -2676,11 +2664,11 @@ const AdminContent = () => {
                           ...prev,
                           newsletter: { ...prev.newsletter, buttonText: e.target.value }
                         }))}
-                        className="w-full px-3 py-2 bg-black border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-500"
+                        className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
                         placeholder="Subscribe"
                       />
                     ) : (
-                      <div className="px-3 py-2 bg-black border border-gray-700 rounded-lg text-white">
+                      <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
                         {footerForm.newsletter.buttonText}
                       </div>
                     )}

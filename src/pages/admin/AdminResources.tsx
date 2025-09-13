@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { BookOpen, Plus, Edit3, Trash2, ExternalLink, Search, Filter, Save, X, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
@@ -9,7 +8,6 @@ import { ResourcesService, type Resource } from '@/services/resourcesService';
 
 const AdminResources = () => {
   const { isAuthenticated } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
   const [resources, setResources] = useState<Resource[]>([]);
   const [resourceStats, setResourceStats] = useState({
     total: 0,
@@ -30,9 +28,9 @@ const AdminResources = () => {
   // Lock body scroll when modal is open
   useBodyScrollLock(showAddResourceModal || !!editingResource);
 
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+  
 
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -48,7 +46,6 @@ const AdminResources = () => {
       const resourcesData = await ResourcesService.getResources();
       setResources(resourcesData);
     } catch (error) {
-      console.error('Error loading resources:', error);
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +56,6 @@ const AdminResources = () => {
       const stats = await ResourcesService.getResourceStats();
       setResourceStats(stats);
     } catch (error) {
-      console.error('Error loading resource stats:', error);
     }
   };
 
@@ -146,7 +142,6 @@ const AdminResources = () => {
         setError('Failed to create resource. Please try again.');
       }
     } catch (error) {
-      console.error('Error creating resource:', error);
       setError('An error occurred while creating the resource.');
     } finally {
       setIsSaving(false);
@@ -199,7 +194,6 @@ const AdminResources = () => {
         setError('Failed to update resource. Please try again.');
       }
     } catch (error) {
-      console.error('Error updating resource:', error);
       setError('An error occurred while updating the resource.');
     } finally {
       setIsSaving(false);
@@ -234,7 +228,6 @@ const AdminResources = () => {
         setError('Failed to update resource status.');
       }
     } catch (error) {
-      console.error('Error toggling resource status:', error);
       // Revert optimistic update on error
       setResources(resources);
       setError('Failed to update resource status.');
@@ -262,7 +255,6 @@ const AdminResources = () => {
       setSuccess('Resource order updated successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
-      console.error('Error updating resource order:', error);
       setError('Failed to update resource order.');
     }
   };
@@ -280,7 +272,6 @@ const AdminResources = () => {
           setError('Failed to delete resource. Please try again.');
         }
       } catch (error) {
-        console.error('Error deleting resource:', error);
         setError('An error occurred while deleting the resource.');
       }
     }
@@ -363,7 +354,7 @@ const AdminResources = () => {
       actions={
         <button 
           onClick={() => setShowAddResourceModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <Plus size={16} />
           <span>Add Resource</span>
@@ -373,12 +364,12 @@ const AdminResources = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {resourceStatsDisplay.map((stat, index) => (
-          <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+          <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
             <div className="flex items-center justify-between mb-4">
               <BookOpen size={24} className={stat.color} />
             </div>
-            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-400">{stat.label}</div>
+            <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+            <div className="text-sm text-muted-foreground">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -396,27 +387,27 @@ const AdminResources = () => {
       )}
 
       {/* Filters */}
-      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search resources by title, description, category, or speaker..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
               />
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <Filter size={16} className="text-gray-400" />
+            <Filter size={16} className="text-muted-foreground" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+              className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
             >
               <option value="all">All Types</option>
               <option value="study_jam">Study Jams</option>
@@ -428,7 +419,7 @@ const AdminResources = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+              className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
             >
               <option value="all">All Status</option>
               <option value="Available">Available</option>
@@ -440,30 +431,30 @@ const AdminResources = () => {
       </div>
 
       {/* Resources List */}
-      <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-semibold text-white">Resources ({filteredResources.length})</h2>
+      <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Resources ({filteredResources.length})</h2>
         </div>
         
         <div className="divide-y divide-gray-200">
           {isLoading ? (
             <div className="p-6 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading resources...</p>
+              <p className="text-muted-foreground">Loading resources...</p>
             </div>
           ) : filteredResources.length === 0 ? (
             <div className="p-6 text-center">
-              <BookOpen size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No resources found</h3>
-              <p className="text-gray-400">Try adjusting your search or filters</p>
+              <BookOpen size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No resources found</h3>
+              <p className="text-muted-foreground">Try adjusting your search or filters</p>
             </div>
           ) : (
             filteredResources.map((resource) => (
-              <div key={resource.id} className="p-6 hover:bg-gray-900 transition-colors">
+              <div key={resource.id} className="p-6 hover:bg-muted transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-white">{resource.title}</h3>
+                      <h3 className="text-lg font-semibold text-foreground">{resource.title}</h3>
                       <span className={`px-2 py-1 text-xs rounded-full font-medium ${getTypeColor(resource.type)}`}>
                         {resource.type.replace('_', ' ')}
                       </span>
@@ -474,9 +465,9 @@ const AdminResources = () => {
                       )}
                     </div>
                     
-                    <p className="text-gray-400 mb-3">{resource.description}</p>
+                    <p className="text-muted-foreground mb-3">{resource.description}</p>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       {resource.duration && (
                         <span>Duration: {resource.duration}</span>
                       )}
@@ -497,7 +488,7 @@ const AdminResources = () => {
                     {(resource.tags && resource.tags.length > 0) && (
                       <div className="flex items-center space-x-2 mt-3">
                         {resource.tags.map((tag, index) => (
-                          <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-400 rounded-full">
+                          <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-muted-foreground rounded-full">
                             {tag}
                           </span>
                         ))}
@@ -511,7 +502,7 @@ const AdminResources = () => {
                         href={resource.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-blue-400"
                         title="Open resource"
                       >
                         <ExternalLink size={16} />
@@ -521,7 +512,7 @@ const AdminResources = () => {
                       onClick={() => handleToggleActive(resource)}
                       disabled={togglingResourceId === resource.id}
                       className={`p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        resource.is_active ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-400'
+                        resource.is_active ? 'text-green-400 hover:text-green-300' : 'text-muted-foreground hover:text-muted-foreground'
                       }`}
                       title={resource.is_active ? 'Deactivate resource' : 'Activate resource'}
                     >
@@ -536,7 +527,7 @@ const AdminResources = () => {
                     <button 
                       onClick={() => handleMoveResource(resource, 'up')}
                       disabled={resources.findIndex(r => r.id === resource.id) === 0}
-                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Move up"
                     >
                       <ArrowUp size={16} />
@@ -544,21 +535,21 @@ const AdminResources = () => {
                     <button 
                       onClick={() => handleMoveResource(resource, 'down')}
                       disabled={resources.findIndex(r => r.id === resource.id) === resources.length - 1}
-                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Move down"
                     >
                       <ArrowDown size={16} />
                     </button>
                     <button 
                       onClick={() => handleEditResource(resource)}
-                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-blue-400"
                       title="Edit resource"
                     >
                       <Edit3 size={16} />
                     </button>
                     <button 
                       onClick={() => handleDeleteResource(resource.id)}
-                      className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                      className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-muted-foreground hover:text-red-400"
                       title="Delete resource"
                     >
                       <Trash2 size={16} />
@@ -574,7 +565,7 @@ const AdminResources = () => {
       {/* Add/Edit Resource Modal */}
       {(showAddResourceModal || editingResource) && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-card/50"
           style={{ 
             overflow: 'hidden',
             position: 'fixed',
@@ -588,14 +579,14 @@ const AdminResources = () => {
           onScroll={(e) => e.preventDefault()}
         >
           <div 
-            className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800"
+            className="bg-card rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border"
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-800">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-xl font-semibold text-foreground">
                   {editingResource ? 'Edit Resource' : 'Add New Resource'}
                 </h2>
                 <button
@@ -604,7 +595,7 @@ const AdminResources = () => {
                     setEditingResource(null);
                     resetForm();
                   }}
-                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
                   <X size={20} />
                 </button>
@@ -614,7 +605,7 @@ const AdminResources = () => {
             <form onSubmit={editingResource ? handleUpdateResource : handleCreateResource} className="p-6 space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Basic Information</h3>
+                <h3 className="text-lg font-medium text-foreground">Basic Information</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -624,7 +615,7 @@ const AdminResources = () => {
                       required
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="Resource title"
                     />
                   </div>
@@ -634,7 +625,7 @@ const AdminResources = () => {
                     <select
                       value={formData.type}
                       onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Resource['type'] }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     >
                       <option value="study_jam">Study Jam</option>
                       <option value="cloud_credit">Cloud Credit</option>
@@ -651,7 +642,7 @@ const AdminResources = () => {
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="Resource description"
                   />
                 </div>
@@ -663,7 +654,7 @@ const AdminResources = () => {
                       type="text"
                       value={formData.category}
                       onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="e.g., Android, Cloud, ML"
                     />
                   </div>
@@ -673,7 +664,7 @@ const AdminResources = () => {
                     <select
                       value={formData.level}
                       onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as Resource['level'] }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     >
                       <option value="Beginner">Beginner</option>
                       <option value="Intermediate">Intermediate</option>
@@ -686,7 +677,7 @@ const AdminResources = () => {
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Resource['status'] }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     >
                       <option value="Available">Available</option>
                       <option value="Coming Soon">Coming Soon</option>
@@ -698,7 +689,7 @@ const AdminResources = () => {
 
               {/* Links and Details */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Links and Details</h3>
+                <h3 className="text-lg font-medium text-foreground">Links and Details</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -707,7 +698,7 @@ const AdminResources = () => {
                       type="url"
                       value={formData.url}
                       onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="https://example.com"
                     />
                   </div>
@@ -718,7 +709,7 @@ const AdminResources = () => {
                       type="text"
                       value={formData.duration}
                       onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="e.g., 8 weeks, 1h 30m"
                     />
                   </div>
@@ -731,7 +722,7 @@ const AdminResources = () => {
                       type="text"
                       value={formData.provider}
                       onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="e.g., Google Cloud, Firebase"
                     />
                   </div>
@@ -742,7 +733,7 @@ const AdminResources = () => {
                       type="text"
                       value={formData.amount}
                       onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="e.g., $300, Free"
                     />
                   </div>
@@ -753,7 +744,7 @@ const AdminResources = () => {
                       type="text"
                       value={formData.speaker}
                       onChange={(e) => setFormData(prev => ({ ...prev, speaker: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="For recordings"
                     />
                   </div>
@@ -762,7 +753,7 @@ const AdminResources = () => {
 
               {/* Arrays */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Additional Information</h3>
+                <h3 className="text-lg font-medium text-foreground">Additional Information</h3>
                 
                 {/* Requirements */}
                 <div>
@@ -773,13 +764,13 @@ const AdminResources = () => {
                       value={requirementInput}
                       onChange={(e) => setRequirementInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
-                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="Add a requirement"
                     />
                     <button
                       type="button"
                       onClick={addRequirement}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       Add
                     </button>
@@ -791,7 +782,7 @@ const AdminResources = () => {
                         <button
                           type="button"
                           onClick={() => removeRequirement(index)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-muted-foreground hover:text-red-400"
                         >
                           <X size={14} />
                         </button>
@@ -809,13 +800,13 @@ const AdminResources = () => {
                       value={materialInput}
                       onChange={(e) => setMaterialInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMaterial())}
-                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="Add a material"
                     />
                     <button
                       type="button"
                       onClick={addMaterial}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       Add
                     </button>
@@ -827,7 +818,7 @@ const AdminResources = () => {
                         <button
                           type="button"
                           onClick={() => removeMaterial(index)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-muted-foreground hover:text-red-400"
                         >
                           <X size={14} />
                         </button>
@@ -845,13 +836,13 @@ const AdminResources = () => {
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="Add a tag"
                     />
                     <button
                       type="button"
                       onClick={addTag}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       Add
                     </button>
@@ -863,7 +854,7 @@ const AdminResources = () => {
                         <button
                           type="button"
                           onClick={() => removeTag(index)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-muted-foreground hover:text-red-400"
                         >
                           <X size={14} />
                         </button>
@@ -875,7 +866,7 @@ const AdminResources = () => {
 
               {/* Display Settings */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Display Settings</h3>
+                <h3 className="text-lg font-medium text-foreground">Display Settings</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
@@ -884,7 +875,7 @@ const AdminResources = () => {
                       type="text"
                       value={formData.icon}
                       onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="e.g., Smartphone, Cloud, Brain"
                     />
                   </div>
@@ -895,8 +886,8 @@ const AdminResources = () => {
                       type="text"
                       value={formData.color}
                       onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
-                      placeholder="e.g., text-blue-600"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
+                      placeholder="e.g., text-primary"
                     />
                   </div>
                   
@@ -906,7 +897,7 @@ const AdminResources = () => {
                       type="number"
                       value={formData.order_index}
                       onChange={(e) => setFormData(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="0"
                     />
                   </div>
@@ -918,7 +909,7 @@ const AdminResources = () => {
                     id="is_active"
                     checked={formData.is_active}
                     onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border-gray-700 rounded focus:ring-blue-500 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border-border rounded focus:ring-blue-500 focus:ring-2"
                   />
                   <label htmlFor="is_active" className="text-sm font-medium text-gray-300">
                     Active (visible on frontend)
@@ -932,7 +923,7 @@ const AdminResources = () => {
                 </div>
               )}
               
-              <div className="flex space-x-3 pt-6 border-t border-gray-800">
+              <div className="flex space-x-3 pt-6 border-t border-border">
                 <button
                   type="button"
                   onClick={() => {
@@ -940,7 +931,7 @@ const AdminResources = () => {
                     setEditingResource(null);
                     resetForm();
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
                   disabled={isSaving}
                 >
                   Cancel
@@ -948,7 +939,7 @@ const AdminResources = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSaving ? (
                     <>

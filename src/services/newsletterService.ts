@@ -71,13 +71,11 @@ export class NewsletterService {
       try {
         await this.sendConfirmationEmail(email, name, confirmationToken);
       } catch (emailError) {
-        console.warn('Could not send confirmation email:', emailError);
         // Don't fail the subscription if email fails
       }
 
       return data;
     } catch (error) {
-      console.error('Error subscribing to newsletter:', error);
       throw error;
     }
   }
@@ -101,10 +99,8 @@ export class NewsletterService {
         throw new Error('Failed to send confirmation email via Resend');
       }
 
-      console.log('✅ Newsletter confirmation email sent successfully to:', email);
 
     } catch (error) {
-      console.error('❌ Error sending newsletter confirmation email:', error);
       throw error;
     }
   }
@@ -128,7 +124,6 @@ export class NewsletterService {
 
       return true;
     } catch (error) {
-      console.error('Error confirming subscription:', error);
       return false;
     }
   }
@@ -151,7 +146,6 @@ export class NewsletterService {
 
       return true;
     } catch (error) {
-      console.error('Error unsubscribing:', error);
       return false;
     }
   }
@@ -167,7 +161,6 @@ export class NewsletterService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching subscribers:', error);
       return [];
     }
   }
@@ -182,7 +175,6 @@ export class NewsletterService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching all subscribers:', error);
       return [];
     }
   }
@@ -201,7 +193,6 @@ export class NewsletterService {
         recent: recentSubs.count || 0
       };
     } catch (error) {
-      console.error('Error fetching subscriber stats:', error);
       return {
         total: 0,
         active: 0,
@@ -229,7 +220,6 @@ export class NewsletterService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating newsletter campaign:', error);
       return null;
     }
   }
@@ -244,7 +234,6 @@ export class NewsletterService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching newsletter campaigns:', error);
       return [];
     }
   }
@@ -264,7 +253,6 @@ export class NewsletterService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating newsletter campaign:', error);
       return null;
     }
   }
@@ -279,7 +267,6 @@ export class NewsletterService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting newsletter campaign:', error);
       return false;
     }
   }
@@ -310,7 +297,6 @@ export class NewsletterService {
         recipient_count: subscribers.length
       });
 
-      console.log(`🚀 Starting to send campaign "${campaign.subject}" to ${subscribers.length} subscribers`);
 
       // Send emails to all subscribers
       const emailResults = await this.sendBulkEmails(campaign, subscribers);
@@ -321,21 +307,17 @@ export class NewsletterService {
           status: 'sent',
           sent_at: new Date().toISOString()
         });
-        console.log(`✅ Campaign "${campaign.subject}" sent successfully!`);
         return true;
       } else {
         await this.updateCampaign(id, { status: 'failed' });
-        console.error(`❌ Campaign "${campaign.subject}" failed to send`);
         return false;
       }
     } catch (error) {
-      console.error('Error sending newsletter campaign:', error);
       
       // Update campaign status to failed
       try {
         await this.updateCampaign(id, { status: 'failed' });
       } catch (updateError) {
-        console.error('Error updating campaign status:', updateError);
       }
       
       return false;
@@ -360,18 +342,15 @@ export class NewsletterService {
       // Use Resend service directly
       const { ResendService } = await import('@/services/resendService');
       
-      console.log(`📧 Sending newsletter "${campaign.subject}" to ${emails.length} subscribers using Resend...`);
       
       const result = await ResendService.sendBulkEmails(emails);
 
-      console.log(`✅ Email sending completed: ${result.sent} sent, ${result.failed} failed`);
       return {
         success: result.success,
         sent: result.sent,
         failed: result.failed
       };
     } catch (error) {
-      console.error('Error in bulk email sending:', error);
       return { success: false, sent: 0, failed: subscribers.length };
     }
   }
@@ -398,7 +377,6 @@ export class NewsletterService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching scheduled campaigns:', error);
       return [];
     }
   }
@@ -408,11 +386,9 @@ export class NewsletterService {
       const scheduledCampaigns = await this.getScheduledCampaigns();
       
       for (const campaign of scheduledCampaigns) {
-        console.log(`Processing scheduled campaign: ${campaign.subject}`);
         await this.sendCampaign(campaign.id);
       }
     } catch (error) {
-      console.error('Error processing scheduled campaigns:', error);
     }
   }
 
@@ -432,7 +408,6 @@ export class NewsletterService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating newsletter template:', error);
       return null;
     }
   }
@@ -448,7 +423,6 @@ export class NewsletterService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching newsletter templates:', error);
       return [];
     }
   }
@@ -468,7 +442,6 @@ export class NewsletterService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating newsletter template:', error);
       return null;
     }
   }
@@ -483,7 +456,6 @@ export class NewsletterService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting newsletter template:', error);
       return false;
     }
   }

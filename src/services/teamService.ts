@@ -28,7 +28,6 @@ export class TeamService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching team members:', error);
       return [];
     }
   }
@@ -43,7 +42,6 @@ export class TeamService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching all team members:', error);
       return [];
     }
   }
@@ -60,7 +58,6 @@ export class TeamService {
       );
       
       if (memberExists) {
-        console.log('Member already exists, skipping creation');
         return true;
       }
 
@@ -109,7 +106,6 @@ export class TeamService {
       
       return !!created;
     } catch (error) {
-      console.error('Error creating member from team member:', error);
       return false;
     }
   }
@@ -129,7 +125,6 @@ export class TeamService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating team member:', error);
       return null;
     }
   }
@@ -147,7 +142,6 @@ export class TeamService {
       );
       
       if (!member) {
-        console.log('No corresponding member found for team member:', teamMember.name);
         return false;
       }
 
@@ -181,7 +175,6 @@ export class TeamService {
       const updated = await MembersService.updateMember(member.id, updates, true); // Skip sync to prevent loop
       return !!updated;
     } catch (error) {
-      console.error('Error syncing team member to member:', error);
       return false;
     }
   }
@@ -207,7 +200,6 @@ export class TeamService {
       
       return data;
     } catch (error) {
-      console.error('Error updating team member:', error);
       return null;
     }
   }
@@ -231,7 +223,6 @@ export class TeamService {
       
       return true; // No corresponding member found or not core team, consider it successful
     } catch (error) {
-      console.error('Error deleting member by name:', error);
       return false;
     }
   }
@@ -262,7 +253,6 @@ export class TeamService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting team member:', error);
       return false;
     }
   }
@@ -291,7 +281,6 @@ export class TeamService {
         roleDistribution: roleStats
       };
     } catch (error) {
-      console.error('Error fetching team stats:', error);
       return {
         total: 0,
         active: 0,

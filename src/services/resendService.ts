@@ -11,7 +11,7 @@ export interface ResendEmailData {
 }
 
 export class ResendService {
-  private static readonly EMAIL_API_URL = import.meta.env.VITE_EMAIL_API_URL || 'https://your-app.vercel.app/api/send-email';
+  private static readonly EMAIL_API_URL = import.meta.env.VITE_EMAIL_API_URL || '/api/send-email';
   private static readonly FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'newsletter@decryptpsu.me';
   private static readonly FROM_NAME = import.meta.env.VITE_FROM_NAME || 'GDG@PSU Newsletter';
   private static readonly DOMAIN = import.meta.env.VITE_DOMAIN || 'decryptpsu.me';
@@ -30,14 +30,11 @@ export class ResendService {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        console.log(`✅ Email sent successfully to ${emailData.to}:`, result.id);
         return { success: true, id: result.id };
       } else {
-        console.error(`❌ Failed to send email to ${emailData.to}:`, result);
         return { success: false, error: result.error || 'Unknown error' };
       }
     } catch (error) {
-      console.error(`❌ Error sending email to ${emailData.to}:`, error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -47,14 +44,12 @@ export class ResendService {
     let failed = 0;
     const results: Array<{email: string, success: boolean, id?: string, error?: string}> = [];
 
-    console.log(`📧 Starting bulk email send to ${emails.length} recipients...`);
 
     // Send emails in batches to respect rate limits
     const batchSize = 10; // Resend allows good throughput
     for (let i = 0; i < emails.length; i += batchSize) {
       const batch = emails.slice(i, i + batchSize);
       
-      console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(emails.length/batchSize)} (${batch.length} emails)`);
 
       const batchPromises = batch.map(async (email) => {
         const result = await this.sendEmail(email);
@@ -79,12 +74,10 @@ export class ResendService {
       
       // Small delay between batches to be respectful
       if (i + batchSize < emails.length) {
-        console.log('⏳ Waiting before next batch...');
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
-    console.log(`📊 Bulk email send completed: ${sent} sent, ${failed} failed`);
 
     return {
       success: failed === 0 || sent > failed,

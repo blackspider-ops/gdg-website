@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import {
   User,
@@ -30,7 +29,6 @@ import { AuditService } from '@/services/auditService';
 
 const AdminProfile = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,7 +65,7 @@ const AdminProfile = () => {
     confirm: false
   });
 
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+  
 
   useEffect(() => {
     if (canAccess && currentAdmin) {
@@ -75,7 +73,7 @@ const AdminProfile = () => {
     }
   }, [canAccess, currentAdmin]);
 
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -114,7 +112,6 @@ const AdminProfile = () => {
         bio: ''
       });
     } catch (error) {
-      console.error('Error loading profile data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -171,7 +168,6 @@ const AdminProfile = () => {
         setMessage({ type: 'error', text: 'Failed to change password. Please try again.' });
       }
     } catch (error) {
-      console.error('Error changing password:', error);
       setMessage({ type: 'error', text: 'An error occurred while changing password' });
     } finally {
       setIsSaving(false);
@@ -198,7 +194,6 @@ const AdminProfile = () => {
       setIsEditingProfile(false);
       await loadProfileData();
     } catch (error) {
-      console.error('Error updating profile:', error);
       setMessage({ type: 'error', text: 'Failed to update profile' });
     } finally {
       setIsSaving(false);
@@ -247,7 +242,7 @@ const AdminProfile = () => {
           <button
             onClick={() => loadProfileData()}
             disabled={isLoading}
-            className="flex items-center space-x-2 px-3 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+            className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
           >
             <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -278,28 +273,28 @@ const AdminProfile = () => {
           {/* Main Profile Section */}
           <div className="lg:col-span-2 space-y-8">
             {/* Profile Information */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-              <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-card rounded-xl shadow-sm border border-border">
+              <div className="p-6 border-b border-border flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Profile Information</h2>
-                  <p className="text-gray-400 mt-1">Your admin account details</p>
+                  <h2 className="text-xl font-semibold text-foreground">Profile Information</h2>
+                  <p className="text-muted-foreground mt-1">Your admin account details</p>
                 </div>
               </div>
 
               <div className="p-6">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <RefreshCw size={24} className="animate-spin text-gray-400" />
+                    <RefreshCw size={24} className="animate-spin text-muted-foreground" />
                   </div>
                 ) : (
                   <div className="space-y-6">
                     <div className="flex items-center space-x-4">
                       <div className="relative">
                         <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                          <User size={32} className="text-white" />
+                          <User size={32} className="text-foreground" />
                         </div>
-                        <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-gray-800 border-2 border-gray-700 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors">
-                          <Camera size={14} className="text-gray-400" />
+                        <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-gray-800 border-2 border-border rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors">
+                          <Camera size={14} className="text-muted-foreground" />
                         </button>
                       </div>
                       <div className="flex-1">
@@ -311,14 +306,14 @@ const AdminProfile = () => {
                                 placeholder="First Name"
                                 value={profileForm.firstName}
                                 onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
-                                className="px-3 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                               />
                               <input
                                 type="text"
                                 placeholder="Last Name"
                                 value={profileForm.lastName}
                                 onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
-                                className="px-3 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                               />
                             </div>
                             <input
@@ -326,12 +321,12 @@ const AdminProfile = () => {
                               placeholder="Email"
                               value={profileForm.email}
                               onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                              className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                             />
                           </div>
                         ) : (
                           <>
-                            <h3 className="text-xl font-semibold text-white">{currentAdmin.email}</h3>
+                            <h3 className="text-xl font-semibold text-foreground">{currentAdmin.email}</h3>
                             <div className="flex items-center space-x-2 mt-1">
                               {currentAdmin.role === 'super_admin' ? (
                                 <ShieldCheck size={16} className="text-red-500" />
@@ -358,13 +353,13 @@ const AdminProfile = () => {
                           value={profileForm.bio}
                           onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                          className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                         />
                       </div>
                     )}
 
                     {isEditingProfile && (
-                      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-800">
+                      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-border">
                         <button
                           onClick={() => {
                             setIsEditingProfile(false);
@@ -375,14 +370,14 @@ const AdminProfile = () => {
                               bio: ''
                             });
                           }}
-                          className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                          className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={handleUpdateProfile}
                           disabled={isSaving}
-                          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                         >
                           <Save size={16} />
                           <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
@@ -392,36 +387,36 @@ const AdminProfile = () => {
 
                     {!isEditingProfile && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center space-x-3 p-4 bg-gray-900 rounded-lg">
+                        <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
                           <Mail size={20} className="text-blue-400" />
                           <div>
-                            <p className="text-sm font-medium text-white">Email</p>
-                            <p className="text-sm text-gray-400">{currentAdmin.email}</p>
+                            <p className="text-sm font-medium text-foreground">Email</p>
+                            <p className="text-sm text-muted-foreground">{currentAdmin.email}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-3 p-4 bg-gray-900 rounded-lg">
+                        <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
                           <Calendar size={20} className="text-green-400" />
                           <div>
-                            <p className="text-sm font-medium text-white">Account Created</p>
-                            <p className="text-sm text-gray-400">{formatDate(currentAdmin.created_at)}</p>
+                            <p className="text-sm font-medium text-foreground">Account Created</p>
+                            <p className="text-sm text-muted-foreground">{formatDate(currentAdmin.created_at)}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-3 p-4 bg-gray-900 rounded-lg">
+                        <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
                           <Clock size={20} className="text-purple-400" />
                           <div>
-                            <p className="text-sm font-medium text-white">Last Login</p>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm font-medium text-foreground">Last Login</p>
+                            <p className="text-sm text-muted-foreground">
                               {currentAdmin.last_login ? formatDate(currentAdmin.last_login) : 'Never'}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-3 p-4 bg-gray-900 rounded-lg">
+                        <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
                           <Shield size={20} className="text-orange-400" />
                           <div>
-                            <p className="text-sm font-medium text-white">Account Status</p>
+                            <p className="text-sm font-medium text-foreground">Account Status</p>
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${currentAdmin.is_active
                               ? 'bg-green-900/20 text-green-400'
                               : 'bg-red-900/20 text-red-400'
@@ -438,16 +433,16 @@ const AdminProfile = () => {
             </div>
 
             {/* Password Management */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-              <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+            <div className="bg-card rounded-xl shadow-sm border border-border">
+              <div className="p-6 border-b border-border flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Password & Security</h2>
-                  <p className="text-gray-400 mt-1">Change your password to keep your account secure</p>
+                  <h2 className="text-xl font-semibold text-foreground">Password & Security</h2>
+                  <p className="text-muted-foreground mt-1">Change your password to keep your account secure</p>
                 </div>
                 {!isChangingPassword && (
                   <button
                     onClick={() => setIsChangingPassword(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                   >
                     <Key size={16} />
                     <span>Change Password</span>
@@ -461,11 +456,11 @@ const AdminProfile = () => {
                     <div className="w-16 h-16 bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Lock size={32} className="text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">Password Security</h3>
-                    <p className="text-gray-400 mb-4">
+                    <h3 className="text-lg font-medium text-foreground mb-2">Password Security</h3>
+                    <p className="text-muted-foreground mb-4">
                       Keep your account secure by using a strong, unique password.
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Last password change: {profileStats.lastPasswordChange ? formatDate(profileStats.lastPasswordChange) : 'Unknown'}
                     </p>
                   </div>
@@ -478,13 +473,13 @@ const AdminProfile = () => {
                           type={showPasswords.current ? 'text' : 'password'}
                           value={passwordForm.currentPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                          className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                          className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                           placeholder="Enter your current password"
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility('current')}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                         >
                           {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -498,13 +493,13 @@ const AdminProfile = () => {
                           type={showPasswords.new ? 'text' : 'password'}
                           value={passwordForm.newPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                          className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                          className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                           placeholder="Enter your new password"
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility('new')}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                         >
                           {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -518,7 +513,7 @@ const AdminProfile = () => {
                             return (
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-400">Password Strength</span>
+                                  <span className="text-xs text-muted-foreground">Password Strength</span>
                                   <span className={`text-xs font-medium text-${strength.color}-400`}>
                                     {strength.label}
                                   </span>
@@ -535,7 +530,7 @@ const AdminProfile = () => {
                         </div>
                       )}
 
-                      <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
+                      <p className="text-xs text-muted-foreground mt-1">Password must be at least 8 characters long</p>
                     </div>
 
                     <div>
@@ -545,13 +540,13 @@ const AdminProfile = () => {
                           type={showPasswords.confirm ? 'text' : 'password'}
                           value={passwordForm.confirmPassword}
                           onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                          className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                          className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                           placeholder="Confirm your new password"
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility('confirm')}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                         >
                           {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -568,14 +563,14 @@ const AdminProfile = () => {
                           setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                           setMessage(null);
                         }}
-                        className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                        className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleChangePassword}
                         disabled={isSaving || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                        className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                       >
                         <Save size={16} />
                         <span>{isSaving ? 'Changing...' : 'Change Password'}</span>
@@ -590,41 +585,41 @@ const AdminProfile = () => {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Account Stats */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-              <div className="p-6 border-b border-gray-800">
-                <h3 className="text-lg font-semibold text-white">Account Statistics</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-lg font-semibold text-foreground">Account Statistics</h3>
               </div>
               <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Activity size={16} className="text-blue-400" />
-                    <span className="text-sm text-gray-400">Total Logins</span>
+                    <span className="text-sm text-muted-foreground">Total Logins</span>
                   </div>
-                  <span className="text-sm font-medium text-white">{profileStats.totalLogins}</span>
+                  <span className="text-sm font-medium text-foreground">{profileStats.totalLogins}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Calendar size={16} className="text-green-400" />
-                    <span className="text-sm text-gray-400">Account Age</span>
+                    <span className="text-sm text-muted-foreground">Account Age</span>
                   </div>
-                  <span className="text-sm font-medium text-white">{profileStats.accountAge} days</span>
+                  <span className="text-sm font-medium text-foreground">{profileStats.accountAge} days</span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Settings size={16} className="text-purple-400" />
-                    <span className="text-sm text-gray-400">Recent Actions</span>
+                    <span className="text-sm text-muted-foreground">Recent Actions</span>
                   </div>
-                  <span className="text-sm font-medium text-white">{profileStats.recentActions}</span>
+                  <span className="text-sm font-medium text-foreground">{profileStats.recentActions}</span>
                 </div>
               </div>
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-              <div className="p-6 border-b border-gray-800">
-                <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-lg font-semibold text-foreground">Recent Activity</h3>
               </div>
               <div className="p-6">
                 {recentActivity.length > 0 ? (
@@ -634,7 +629,7 @@ const AdminProfile = () => {
                         <div className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0" />
                         <div className="flex-1">
                           <p className="text-gray-300">{AuditService.getActionDescription(activity.action)}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {new Date(activity.created_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -642,24 +637,24 @@ const AdminProfile = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-4">No recent activity</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
                 )}
               </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-              <div className="p-6 border-b border-gray-800">
-                <h3 className="text-lg font-semibold text-white">Quick Actions</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
               </div>
               <div className="p-6 space-y-3">
-                <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-900 rounded-lg transition-colors">
-                  <Download size={16} className="text-gray-400" />
+                <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-muted rounded-lg transition-colors">
+                  <Download size={16} className="text-muted-foreground" />
                   <span className="text-sm text-gray-300">Export Account Data</span>
                 </button>
 
-                <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-900 rounded-lg transition-colors">
-                  <Activity size={16} className="text-gray-400" />
+                <button className="w-full flex items-center space-x-3 p-3 text-left hover:bg-muted rounded-lg transition-colors">
+                  <Activity size={16} className="text-muted-foreground" />
                   <span className="text-sm text-gray-300">View Activity Log</span>
                 </button>
 

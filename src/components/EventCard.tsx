@@ -63,20 +63,20 @@ const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const getLevelColor = (level?: string) => {
     switch (level) {
-      case 'Beginner': return 'bg-gdg-green text-white';
+      case 'Beginner': return 'bg-gdg-green text-primary-foreground';
       case 'Intermediate': return 'bg-gdg-yellow text-primary';
-      case 'Advanced': return 'bg-gdg-red text-white';
+      case 'Advanced': return 'bg-gdg-red text-primary-foreground';
       default: return 'bg-secondary text-foreground';
     }
   };
 
   const getTypeColor = (type?: string) => {
     switch (type) {
-      case 'Workshop': return 'bg-gdg-blue text-white';
-      case 'Talk': return 'bg-gdg-red text-white';
+      case 'Workshop': return 'bg-gdg-blue text-primary-foreground';
+      case 'Talk': return 'bg-gdg-red text-primary-foreground';
       case 'Networking': return 'bg-gdg-yellow text-primary';
-      case 'Study Jam': return 'bg-gdg-green text-white';
-      case 'Featured': return 'bg-gradient-to-r from-gdg-blue to-gdg-red text-white';
+      case 'Study Jam': return 'bg-gdg-green text-primary-foreground';
+      case 'Featured': return 'bg-gradient-to-r from-gdg-blue to-gdg-red text-primary-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -86,13 +86,11 @@ const EventCard: React.FC<EventCardProps> = ({
 
   const handleRegister = () => {
     if (registrationEnabled === false) {
-      alert('Registration for this event is currently closed.');
       return;
     }
     if (eventId) {
       setShowRegistrationModal(true);
     } else {
-      alert('Registration will be available soon! Please check back later.');
     }
   };
 
@@ -172,7 +170,7 @@ const EventCard: React.FC<EventCardProps> = ({
                   {attendees} {(maxParticipants || capacity) ? `/ ${maxParticipants || capacity}` : ''} registered
                 </span>
               ) : (
-                <span className="font-medium text-blue-600">
+                <span className="font-medium text-primary">
                   {attendees} attended
                 </span>
               )}
@@ -188,8 +186,8 @@ const EventCard: React.FC<EventCardProps> = ({
                 disabled={registrationEnabled === false}
                 className={`btn-editorial px-4 py-2 transition-colors ${
                   registrationEnabled === false
-                    ? 'bg-gray-400 text-gray-600 border-gray-400 cursor-not-allowed'
-                    : 'bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90'
+                    ? 'bg-muted text-muted-foreground border-border cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
                 }`}
               >
                 {registrationEnabled === false ? 'Registration Closed' : 'Register'}
@@ -197,7 +195,7 @@ const EventCard: React.FC<EventCardProps> = ({
             )}
             <button 
               onClick={handleViewDetails}
-              className="btn-editorial px-4 py-2 bg-gray-600 text-white border-gray-600 hover:bg-gray-700 transition-colors"
+              className="btn-editorial px-4 py-2 bg-secondary text-secondary-foreground border-border hover:bg-secondary/80 transition-colors"
             >
               View Details
             </button>
@@ -214,9 +212,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 // Fallback: copy to clipboard
                 const shareText = `Check out this event: ${title}\n${description}\n\nDate: ${date} at ${time}\nLocation: ${location}`;
                 navigator.clipboard.writeText(shareText).then(() => {
-                  alert('Event details copied to clipboard!');
                 }).catch(() => {
-                  alert('Unable to copy to clipboard');
                 });
               }
             }}

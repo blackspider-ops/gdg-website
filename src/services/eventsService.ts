@@ -28,7 +28,6 @@ export class EventsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching events:', error);
       return [];
     }
   }
@@ -44,7 +43,6 @@ export class EventsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching upcoming events:', error);
       return [];
     }
   }
@@ -60,7 +58,6 @@ export class EventsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching featured events:', error);
       return [];
     }
   }
@@ -80,7 +77,6 @@ export class EventsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating event:', error);
       return null;
     }
   }
@@ -100,7 +96,6 @@ export class EventsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating event:', error);
       return null;
     }
   }
@@ -115,7 +110,6 @@ export class EventsService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting event:', error);
       return false;
     }
   }
@@ -141,7 +135,6 @@ export class EventsService {
         totalAttendees: totalAttendees
       };
     } catch (error) {
-      console.error('Error fetching event stats:', error);
       return {
         total: 0,
         upcoming: 0,

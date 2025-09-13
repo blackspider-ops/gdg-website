@@ -11,7 +11,6 @@ export const useNewsletterScheduler = (enabled: boolean = true) => {
       try {
         await NewsletterService.processScheduledCampaigns();
       } catch (error) {
-        console.error('Error processing scheduled campaigns:', error);
       }
     };
 
@@ -32,7 +31,6 @@ export const useNewsletterScheduler = (enabled: boolean = true) => {
     try {
       await NewsletterService.processScheduledCampaigns();
     } catch (error) {
-      console.error('Error in force check:', error);
     }
   };
 

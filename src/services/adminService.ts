@@ -17,7 +17,6 @@ export class AdminService {
         .single();
 
       if (error || !adminUser) {
-        console.error('Admin user not found:', error);
         return null;
       }
 
@@ -25,7 +24,6 @@ export class AdminService {
       const isPasswordValid = await bcrypt.compare(password, adminUser.password_hash);
       
       if (!isPasswordValid) {
-        console.error('Invalid password for admin:', email);
         return null;
       }
 
@@ -40,7 +38,6 @@ export class AdminService {
 
       return adminUser;
     } catch (error) {
-      console.error('Authentication error:', error);
       return null;
     }
   }
@@ -64,7 +61,6 @@ export class AdminService {
           details
         });
     } catch (error) {
-      console.error('Failed to log admin action:', error);
     }
   }
 
@@ -86,7 +82,6 @@ export class AdminService {
 
       return adminUser;
     } catch (error) {
-      console.error('Error fetching admin user:', error);
       return null;
     }
   }
@@ -120,13 +115,11 @@ export class AdminService {
         .single();
 
       if (error || !newAdmin) {
-        console.error('Failed to create admin user:', error);
         return null;
       }
 
       return newAdmin;
     } catch (error) {
-      console.error('Error creating admin user:', error);
       return null;
     }
   }
@@ -145,13 +138,11 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
-        console.error('Failed to update password:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error updating password:', error);
       return false;
     }
   }
@@ -167,13 +158,11 @@ export class AdminService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Failed to fetch admin users:', error);
         return [];
       }
 
       return admins || [];
     } catch (error) {
-      console.error('Error fetching admin users:', error);
       return [];
     }
   }
@@ -197,7 +186,6 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
-        console.error('Failed to update admin user:', error);
         return false;
       }
 
@@ -206,7 +194,6 @@ export class AdminService {
 
       return true;
     } catch (error) {
-      console.error('Error updating admin user:', error);
       return false;
     }
   }
@@ -225,7 +212,6 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
-        console.error('Failed to delete admin user:', error);
         return false;
       }
 
@@ -234,7 +220,6 @@ export class AdminService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting admin user:', error);
       return false;
     }
   }
@@ -258,7 +243,6 @@ export class AdminService {
 
       return success;
     } catch (error) {
-      console.error('Error resetting admin password:', error);
       return false;
     }
   }
@@ -285,13 +269,11 @@ export class AdminService {
         .limit(limit);
 
       if (error) {
-        console.error('Failed to fetch admin actions:', error);
         return [];
       }
 
       return actions || [];
     } catch (error) {
-      console.error('Error fetching admin actions:', error);
       return [];
     }
   }

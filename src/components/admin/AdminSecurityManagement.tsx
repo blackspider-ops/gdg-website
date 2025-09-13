@@ -52,7 +52,6 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
       // Load current secret code
       await loadSecretCode();
     } catch (error) {
-      console.error('Error loading security data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +63,6 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
       setCurrentSecretCode(code);
       setSecretCode(code);
     } catch (error) {
-      console.error('Error loading secret code:', error);
       setSecretMessage({ type: 'error', text: 'Failed to load current secret code' });
     }
   };
@@ -127,7 +125,6 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
         setSecretMessage({ type: 'error', text: 'Failed to update secret code. Please try again.' });
       }
     } catch (error) {
-      console.error('Error updating secret code:', error);
       setSecretMessage({ type: 'error', text: 'An error occurred while updating the secret code' });
     } finally {
       setIsSavingSecret(false);
@@ -162,7 +159,7 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="text-gray-400 mt-2">Loading security dashboard...</p>
+        <p className="text-muted-foreground mt-2">Loading security dashboard...</p>
       </div>
     );
   }
@@ -171,36 +168,36 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
     <div className="space-y-6">
       {/* Security Overview */}
       <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-        <h3 className="text-lg font-semibold text-white mb-6">Security Overview</h3>
+        <h3 className="text-lg font-semibold text-primary-foreground mb-6">Security Overview</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-gray-900 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-2">
               <Shield size={20} className="text-green-600" />
-              <span className="font-medium text-white">Active Sessions</span>
+              <span className="font-medium text-primary-foreground">Active Sessions</span>
             </div>
             <div className="text-2xl font-bold text-green-600">{metrics.activeSessionsCount}</div>
-            <div className="text-sm text-gray-400">Currently active</div>
+            <div className="text-sm text-muted-foreground">Currently active</div>
           </div>
           
           <div className="bg-gray-900 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-2">
-              <Clock size={20} className="text-blue-600" />
-              <span className="font-medium text-white">Recent Logins</span>
+              <Clock size={20} className="text-primary" />
+              <span className="font-medium text-primary-foreground">Recent Logins</span>
             </div>
-            <div className="text-2xl font-bold text-blue-600">{metrics.recentLoginsCount}</div>
-            <div className="text-sm text-gray-400">Last 24 hours</div>
+            <div className="text-2xl font-bold text-primary">{metrics.recentLoginsCount}</div>
+            <div className="text-sm text-muted-foreground">Last 24 hours</div>
           </div>
           
           <div className="bg-gray-900 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-2">
               <AlertTriangle size={20} className={metrics.securityAlertsCount > 0 ? "text-red-600" : "text-yellow-600"} />
-              <span className="font-medium text-white">Security Alerts</span>
+              <span className="font-medium text-primary-foreground">Security Alerts</span>
             </div>
             <div className={`text-2xl font-bold ${metrics.securityAlertsCount > 0 ? "text-red-600" : "text-yellow-600"}`}>
               {metrics.securityAlertsCount}
             </div>
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-muted-foreground">
               {metrics.securityAlertsCount > 0 ? "Issues detected" : "All clear"}
             </div>
           </div>
@@ -208,10 +205,10 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
           <div className="bg-gray-900 rounded-lg p-4">
             <div className="flex items-center space-x-3 mb-2">
               <XCircle size={20} className="text-red-600" />
-              <span className="font-medium text-white">Failed Attempts</span>
+              <span className="font-medium text-primary-foreground">Failed Attempts</span>
             </div>
             <div className="text-2xl font-bold text-red-600">{metrics.failedLoginAttempts}</div>
-            <div className="text-sm text-gray-400">Recent failures</div>
+            <div className="text-sm text-muted-foreground">Recent failures</div>
           </div>
         </div>
       </div>
@@ -219,8 +216,8 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
       {/* Admin Secret Code Management */}
       <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
         <div className="flex items-center space-x-3 mb-6">
-          <Key size={20} className="text-blue-600" />
-          <h3 className="font-semibold text-lg text-white">Admin Access Secret Code</h3>
+          <Key size={20} className="text-primary" />
+          <h3 className="font-semibold text-lg text-primary-foreground">Admin Access Secret Code</h3>
         </div>
 
         <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
@@ -258,16 +255,16 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
                 className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
                   isEditingSecret 
                     ? secretValidationError 
-                      ? 'border-red-300 bg-black focus:ring-red-500 focus:border-red-500 text-white' 
-                      : 'border-gray-700 bg-black focus:ring-blue-400 focus:border-blue-400 text-white'
-                    : 'border-gray-700 bg-gray-900 text-gray-500'
+                      ? 'border-red-300 bg-black focus:ring-red-500 focus:border-red-500 text-primary-foreground' 
+                      : 'border-gray-700 bg-black focus:ring-blue-400 focus:border-blue-400 text-primary-foreground'
+                    : 'border-gray-700 bg-gray-900 text-muted-foreground'
                 }`}
                 placeholder="Enter new secret code (e.g., gdg-secret@psu.edu)"
               />
               <button
                 type="button"
                 onClick={() => setShowSecretCode(!showSecretCode)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300 transition-colors"
               >
                 {showSecretCode ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -278,14 +275,14 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
                 <span>{secretValidationError}</span>
               </p>
             ) : (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Must be in email format with @ symbol and end with .edu or .com (e.g., gdg-secret@psu.edu)
               </p>
             )}
           </div>
 
           <div className="flex items-center justify-between pt-4">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-muted-foreground">
               <strong>How it works:</strong> Enter this code in the newsletter signup field on the website footer to trigger the admin login popup.
             </div>
             
@@ -301,7 +298,7 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
                   <button
                     onClick={handleSaveSecretCode}
                     disabled={isSavingSecret || !secretCode.trim() || !!secretValidationError}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                   >
                     <Save size={16} />
                     <span>{isSavingSecret ? 'Saving...' : 'Save Code'}</span>
@@ -310,7 +307,7 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
               ) : (
                 <button
                   onClick={() => setIsEditingSecret(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   <Key size={16} />
                   <span>Change Secret Code</span>
@@ -323,12 +320,12 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
 
       {/* Security Policy Status */}
       <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-        <h3 className="text-lg font-semibold text-white mb-6">Security Policy Status</h3>
+        <h3 className="text-lg font-semibold text-primary-foreground mb-6">Security Policy Status</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Password Policy */}
           <div className="border border-gray-800 rounded-lg p-4">
-            <h4 className="font-medium text-white mb-4 flex items-center space-x-2">
+            <h4 className="font-medium text-primary-foreground mb-4 flex items-center space-x-2">
               <Key size={16} />
               <span>Password Policy</span>
             </h4>
@@ -337,7 +334,7 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
                 <span className="text-gray-300">Minimum length</span>
                 <div className="flex items-center space-x-2">
                   <CheckCircle size={16} className="text-green-600" />
-                  <span className="text-white font-medium">8 chars</span>
+                  <span className="text-primary-foreground font-medium">8 chars</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -349,21 +346,21 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">Password expiration</span>
-                <span className="text-white font-medium">90 days</span>
+                <span className="text-primary-foreground font-medium">90 days</span>
               </div>
             </div>
           </div>
 
           {/* Session Settings */}
           <div className="border border-gray-800 rounded-lg p-4">
-            <h4 className="font-medium text-white mb-4 flex items-center space-x-2">
+            <h4 className="font-medium text-primary-foreground mb-4 flex items-center space-x-2">
               <Clock size={16} />
               <span>Session Settings</span>
             </h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">Session timeout</span>
-                <span className="text-white font-medium">24h</span>
+                <span className="text-primary-foreground font-medium">24h</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">Auto-logout</span>
@@ -374,7 +371,7 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">Remember login</span>
-                <span className="text-white font-medium">7 days</span>
+                <span className="text-primary-foreground font-medium">7 days</span>
               </div>
             </div>
           </div>
@@ -382,7 +379,7 @@ const AdminSecurityManagement: React.FC<AdminSecurityManagementProps> = ({ curre
       </div>
 
       {/* Security Recommendations */}
-      <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6">
+      <div className="bg-blue-900/20 border border-primary/30 rounded-xl p-6">
         <div className="flex items-start space-x-3">
           <Info size={24} className="text-blue-400 flex-shrink-0 mt-1" />
           <div>

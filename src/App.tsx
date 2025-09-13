@@ -10,7 +10,8 @@ import SmoothScroll from "@/components/SmoothScroll";
 import GlobalBackground from "@/components/GlobalBackground";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { ContentProvider } from "@/contexts/ContentContext";
-import { DevProvider } from "@/contexts/DevContext";
+import PerformanceMonitor from "@/components/PerformanceMonitor";
+
 import Home from "./pages/Home";
 import Events from "./pages/Events";
 import Blog from "./pages/Blog";
@@ -32,6 +33,7 @@ import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSponsors from "./pages/admin/AdminSponsors";
 import AdminCommunications from "./pages/admin/AdminCommunications";
 import AdminMedia from "./pages/admin/AdminMedia";
+import AdminGuide from "./pages/admin/AdminGuide";
 import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NotFound from "./pages/NotFound";
 
@@ -75,19 +77,19 @@ const ScrollToTop = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <DevProvider>
       <AdminProvider>
         <ContentProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <ScrollToTop />
-              <SmoothScroll />
-              <GlobalBackground />
-              <div className="min-h-screen flex flex-col relative z-10">
-                <Navigation />
-                <main className="flex-1">
+          <PerformanceMonitor>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <ScrollToTop />
+                <SmoothScroll />
+                <GlobalBackground />
+                <div className="min-h-screen flex flex-col relative z-10">
+                  <Navigation />
+                  <main className="flex-1">
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/events" element={<Events />} />
@@ -110,18 +112,19 @@ const App = () => (
                     <Route path="/admin/sponsors" element={<AdminSponsors />} />
                     <Route path="/admin/communications" element={<AdminCommunications />} />
                     <Route path="/admin/media" element={<AdminMedia />} />
+                    <Route path="/admin/guide" element={<AdminGuide />} />
                     <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </main>
-                <Footer />
-              </div>
-            </BrowserRouter>
-          </TooltipProvider>
+                  </main>
+                  <Footer />
+                </div>
+              </BrowserRouter>
+            </TooltipProvider>
+          </PerformanceMonitor>
         </ContentProvider>
       </AdminProvider>
-    </DevProvider>
   </QueryClientProvider>
 );
 

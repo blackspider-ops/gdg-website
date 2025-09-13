@@ -45,21 +45,21 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
     const getLevelColor = (level?: string) => {
         switch (level) {
-            case 'Beginner': return 'bg-green-100 text-green-800 border border-green-200';
-            case 'Intermediate': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-            case 'Advanced': return 'bg-red-100 text-red-800 border border-red-200';
-            default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+            case 'Beginner': return 'bg-gdg-green/20 text-gdg-green border border-gdg-green/30';
+            case 'Intermediate': return 'bg-gdg-yellow/20 text-gdg-yellow border border-gdg-yellow/30';
+            case 'Advanced': return 'bg-gdg-red/20 text-gdg-red border border-gdg-red/30';
+            default: return 'bg-muted text-muted-foreground border border-border';
         }
     };
 
     const getTypeColor = (type?: string) => {
         switch (type) {
-            case 'Workshop': return 'bg-blue-100 text-blue-800 border border-blue-200';
-            case 'Talk': return 'bg-purple-100 text-purple-800 border border-purple-200';
-            case 'Networking': return 'bg-orange-100 text-orange-800 border border-orange-200';
-            case 'Study Jam': return 'bg-green-100 text-green-800 border border-green-200';
-            case 'Featured': return 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0';
-            default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+            case 'Workshop': return 'bg-gdg-blue/20 text-gdg-blue border border-gdg-blue/30';
+            case 'Talk': return 'bg-accent/20 text-accent border border-accent/30';
+            case 'Networking': return 'bg-gdg-yellow/20 text-gdg-yellow border border-gdg-yellow/30';
+            case 'Study Jam': return 'bg-gdg-green/20 text-gdg-green border border-gdg-green/30';
+            case 'Featured': return 'bg-gradient-to-r from-primary to-accent text-primary-foreground border-0';
+            default: return 'bg-muted text-muted-foreground border border-border';
         }
     };
 
@@ -69,7 +69,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-black/50 overflow-hidden"
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm overflow-hidden"
             onClick={(e) => {
                 if (e.target === e.currentTarget) {
                     onClose();
@@ -87,18 +87,18 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 }}
             >
                 <div
-                    className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] shadow-xl overflow-hidden flex flex-col"
+                    className="bg-card rounded-xl w-full max-w-2xl max-h-[80vh] shadow-xl overflow-hidden flex flex-col"
                     onClick={(e) => e.stopPropagation()}
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                 >
                     {/* Fixed Header */}
-                    <div className="flex-shrink-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+                    <div className="flex-shrink-0 bg-card border-b border-border p-6 rounded-t-xl">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-gray-900">{event.title}</h2>
+                            <h2 className="text-xl font-semibold text-foreground">{event.title}</h2>
                             <button
                                 onClick={onClose}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-muted-foreground hover:text-foreground"
                             >
                                 <X size={20} />
                             </button>
@@ -110,7 +110,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                         {/* Header Image */}
                         {event.imageUrl && (
                             <div className="relative -mx-6 -mt-6 mb-6">
-                                <div className="h-48 bg-gray-100 overflow-hidden">
+                                <div className="h-48 bg-muted overflow-hidden">
                                     <img
                                         src={event.imageUrl}
                                         alt={event.title}
@@ -136,51 +136,51 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                 )}
                             </div>
                             {event.isUpcoming ? (
-                                <span className="px-3 py-1.5 text-sm font-medium bg-green-100 text-green-800 rounded-full border border-green-200">
+                                <span className="px-3 py-1.5 text-sm font-medium bg-gdg-green/20 text-green-800 rounded-full border border-green-200">
                                     Upcoming
                                 </span>
                             ) : (
-                                <span className="px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-full border border-gray-200">
+                                <span className="px-3 py-1.5 text-sm font-medium bg-muted text-foreground rounded-full border border-border">
                                     Past Event
                                 </span>
                             )}
                         </div>
 
                         {/* Event Details */}
-                        <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                        <div className="bg-muted/30 rounded-xl p-4 mb-6">
                             <div className="grid gap-3">
-                                <div className="flex items-center text-gray-700">
-                                    <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg mr-3">
-                                        <Calendar size={20} className="text-blue-600" />
+                                <div className="flex items-center text-muted-foreground">
+                                    <div className="flex items-center justify-center w-10 h-10 bg-primary/20 rounded-lg mr-3">
+                                        <Calendar size={20} className="text-primary" />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-900">{event.date}</p>
-                                        <p className="text-sm text-gray-600">{event.time}</p>
+                                        <p className="font-medium text-foreground">{event.date}</p>
+                                        <p className="text-sm text-muted-foreground">{event.time}</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center text-gray-700">
-                                    <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg mr-3">
-                                        <MapPin size={20} className="text-green-600" />
+                                <div className="flex items-center text-muted-foreground">
+                                    <div className="flex items-center justify-center w-10 h-10 bg-gdg-green/20 rounded-lg mr-3">
+                                        <MapPin size={20} className="text-gdg-green" />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-gray-900">Location</p>
-                                        <p className="text-sm text-gray-600">{event.location}</p>
+                                        <p className="font-medium text-foreground">Location</p>
+                                        <p className="text-sm text-muted-foreground">{event.location}</p>
                                     </div>
                                 </div>
 
                                 {event.attendees !== undefined && event.capacity && (
-                                    <div className="flex items-center text-gray-700">
-                                        <div className="flex items-center justify-center w-10 h-10 bg-purple-100 rounded-lg mr-3">
-                                            <Users size={20} className="text-purple-600" />
+                                    <div className="flex items-center text-muted-foreground">
+                                        <div className="flex items-center justify-center w-10 h-10 bg-accent/20 rounded-lg mr-3">
+                                            <Users size={20} className="text-accent" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className="font-medium text-gray-900">Attendance</p>
+                                            <p className="font-medium text-foreground">Attendance</p>
                                             <div className="flex items-center space-x-2">
-                                                <span className="text-sm text-gray-600">{event.attendees}/{event.capacity} registered</span>
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-24">
+                                                <span className="text-sm text-muted-foreground">{event.attendees}/{event.capacity} registered</span>
+                                                <div className="flex-1 bg-border rounded-full h-2 max-w-24">
                                                     <div
-                                                        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                                                        className="bg-accent h-2 rounded-full transition-all duration-300"
                                                         style={{ width: `${Math.min((event.attendees / event.capacity) * 100, 100)}%` }}
                                                     ></div>
                                                 </div>
@@ -193,64 +193,64 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
                         {/* Event Description */}
                         <div className="mb-6">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                                <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mr-3">
-                                    <FileText size={18} className="text-blue-600" />
+                            <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+                                <div className="flex items-center justify-center w-8 h-8 bg-primary/20 rounded-lg mr-3">
+                                    <FileText size={18} className="text-primary" />
                                 </div>
                                 About This Event
                             </h3>
-                            <div className="bg-white border border-gray-200 rounded-xl p-4">
-                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{event.description}</p>
+                            <div className="bg-card border border-border rounded-xl p-4">
+                                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{event.description}</p>
 
                                 {/* Add some extra content to make it scrollable for testing */}
                                 {/* Dynamic Event Details */}
                                 <div className="mt-6 space-y-4">
                                     {event.room && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Room/Venue Details</h4>
-                                            <p className="text-gray-700">{event.room}</p>
+                                            <h4 className="font-semibold text-foreground mb-2">Room/Venue Details</h4>
+                                            <p className="text-muted-foreground">{event.room}</p>
                                         </div>
                                     )}
 
                                     {event.what_youll_learn && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">What You'll Learn</h4>
-                                            <div className="text-gray-700 whitespace-pre-wrap">{event.what_youll_learn}</div>
+                                            <h4 className="font-semibold text-foreground mb-2">What You'll Learn</h4>
+                                            <div className="text-muted-foreground whitespace-pre-wrap">{event.what_youll_learn}</div>
                                         </div>
                                     )}
 
                                     {event.prerequisites && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Prerequisites</h4>
-                                            <div className="text-gray-700 whitespace-pre-wrap">{event.prerequisites}</div>
+                                            <h4 className="font-semibold text-foreground mb-2">Prerequisites</h4>
+                                            <div className="text-muted-foreground whitespace-pre-wrap">{event.prerequisites}</div>
                                         </div>
                                     )}
 
                                     {event.what_to_bring && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">What to Bring</h4>
-                                            <div className="text-gray-700 whitespace-pre-wrap">{event.what_to_bring}</div>
+                                            <h4 className="font-semibold text-foreground mb-2">What to Bring</h4>
+                                            <div className="text-muted-foreground whitespace-pre-wrap">{event.what_to_bring}</div>
                                         </div>
                                     )}
 
                                     {event.schedule && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Schedule</h4>
-                                            <div className="text-gray-700 whitespace-pre-wrap">{event.schedule}</div>
+                                            <h4 className="font-semibold text-foreground mb-2">Schedule</h4>
+                                            <div className="text-muted-foreground whitespace-pre-wrap">{event.schedule}</div>
                                         </div>
                                     )}
 
                                     {event.additional_info && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Additional Information</h4>
-                                            <div className="text-gray-700 whitespace-pre-wrap">{event.additional_info}</div>
+                                            <h4 className="font-semibold text-foreground mb-2">Additional Information</h4>
+                                            <div className="text-muted-foreground whitespace-pre-wrap">{event.additional_info}</div>
                                         </div>
                                     )}
 
                                     {event.contact_info && (
                                         <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Contact Information</h4>
-                                            <div className="text-gray-700 whitespace-pre-wrap">{event.contact_info}</div>
+                                            <h4 className="font-semibold text-foreground mb-2">Contact Information</h4>
+                                            <div className="text-muted-foreground whitespace-pre-wrap">{event.contact_info}</div>
                                         </div>
                                     )}
                                 </div>
@@ -265,7 +265,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                     {event.googleFormUrl && (
                                         <button
                                             onClick={() => handleExternalLink(event.googleFormUrl!)}
-                                            className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                            className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-green-600 text-primary-foreground rounded-xl hover:bg-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                                         >
                                             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                                 <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
@@ -280,21 +280,21 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                         {/* Past Event Information */}
                         {!event.isUpcoming && (
                             <div className="mb-6">
-                                <h3 className="text-xl font-semibold text-gray-900 mb-4">Event Summary</h3>
-                                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+                                <h3 className="text-xl font-semibold text-foreground mb-4">Event Summary</h3>
+                                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-border">
                                     <div className="flex items-center space-x-3 mb-3">
                                         <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                        <p className="text-gray-700 font-medium">
+                                        <p className="text-muted-foreground font-medium">
                                             This event has concluded
                                         </p>
                                     </div>
-                                    <p className="text-gray-600 mb-3">
+                                    <p className="text-muted-foreground mb-3">
                                         Thank you to everyone who attended! We hope you found it valuable and engaging.
                                     </p>
                                     {event.attendees && (
-                                        <div className="bg-white rounded-lg p-3 inline-block">
-                                            <p className="text-gray-900 font-semibold">
-                                                <span className="text-2xl text-blue-600">{event.attendees}</span> attendees
+                                        <div className="bg-card rounded-lg p-3 inline-block">
+                                            <p className="text-foreground font-semibold">
+                                                <span className="text-2xl text-primary">{event.attendees}</span> attendees
                                             </p>
                                         </div>
                                     )}
@@ -305,11 +305,11 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                     </div>
                     
                     {/* Fixed Footer with Action Buttons */}
-                    <div className="flex-shrink-0 p-6 border-t border-gray-200 bg-white rounded-b-xl">
+                    <div className="flex-shrink-0 p-6 border-t border-border bg-card rounded-b-xl">
                         <div className="flex space-x-3">
                             <button
                                 onClick={onClose}
-                                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                                className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted/30 transition-colors font-medium text-muted-foreground"
                             >
                                 Close
                             </button>
@@ -322,7 +322,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                             onClose();
                                             onRegister();
                                         }}
-                                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                        className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                                     >
                                         Register Now
                                     </button>
@@ -343,10 +343,9 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                             navigator.clipboard.writeText(
                                                 `Check out this past event: ${event.title} - ${event.description}`
                                             );
-                                            alert('Event details copied to clipboard!');
                                         }
                                     }}
-                                    className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                                    className="flex-1 px-6 py-3 bg-secondary text-primary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium"
                                 >
                                     Share Event
                                 </button>

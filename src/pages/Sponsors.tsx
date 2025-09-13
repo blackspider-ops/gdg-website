@@ -243,7 +243,7 @@ const Sponsors = () => {
               {sponsorshipTiers.map((tier, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6 text-center">
                   <div className={`w-16 h-16 ${tier.color} rounded-lg mx-auto mb-4 flex items-center justify-center`}>
-                    <Award className="text-white" size={24} />
+                    <Award className="text-foreground" size={24} />
                   </div>
                   
                   <h3 className="text-xl font-semibold mb-2">{tier.tier}</h3>

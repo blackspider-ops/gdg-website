@@ -24,7 +24,6 @@ export class SponsorsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching sponsors:', error);
       return [];
     }
   }
@@ -39,7 +38,6 @@ export class SponsorsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching all sponsors:', error);
       return [];
     }
   }
@@ -56,7 +54,6 @@ export class SponsorsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching sponsors by tier:', error);
       return [];
     }
   }
@@ -76,7 +73,6 @@ export class SponsorsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating sponsor:', error);
       return null;
     }
   }
@@ -96,7 +92,6 @@ export class SponsorsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating sponsor:', error);
       return null;
     }
   }
@@ -111,7 +106,6 @@ export class SponsorsService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting sponsor:', error);
       return false;
     }
   }
@@ -140,7 +134,6 @@ export class SponsorsService {
         tierDistribution: tierStats
       };
     } catch (error) {
-      console.error('Error fetching sponsor stats:', error);
       return {
         total: 0,
         active: 0,

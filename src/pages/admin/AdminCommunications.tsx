@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import {
@@ -38,7 +37,6 @@ import { AuditService } from '@/services/auditService';
 
 const AdminCommunications: React.FC = () => {
     const { isAuthenticated, currentAdmin } = useAdmin();
-    const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
     
     // State management
     const [activeTab, setActiveTab] = useState('announcements');
@@ -86,7 +84,7 @@ const AdminCommunications: React.FC = () => {
     // Lock body scroll when modal is open
     useBodyScrollLock(showCreateModal || showEditModal || showDeleteModal);
 
-    const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+    
 
     // Load data on component mount
     useEffect(() => {
@@ -113,7 +111,7 @@ const AdminCommunications: React.FC = () => {
         setTimeout(scrollToTop, 150);
     }, []);
 
-    if (!canAccess) {
+    if (!isAuthenticated) {
         return <Navigate to="/" replace />;
     }
 
@@ -160,7 +158,6 @@ const AdminCommunications: React.FC = () => {
                 );
             }
         } catch (error) {
-            console.error('Error loading communications data:', error);
         } finally {
             setIsLoading(false);
         }
@@ -210,7 +207,6 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error creating item:', error);
         } finally {
             setIsSaving(false);
         }
@@ -284,7 +280,6 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error updating item:', error);
         } finally {
             setIsSaving(false);
         }
@@ -311,7 +306,6 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error deleting item:', error);
         } finally {
             setIsSaving(false);
         }
@@ -362,7 +356,7 @@ const AdminCommunications: React.FC = () => {
             case 'high': return 'bg-red-900/20 text-red-400 border-red-500/30';
             case 'medium': return 'bg-yellow-900/20 text-yellow-400 border-yellow-500/30';
             case 'low': return 'bg-green-900/20 text-green-400 border-green-500/30';
-            default: return 'bg-gray-900/20 text-gray-400 border-gray-500/30';
+            default: return 'bg-muted/20 text-muted-foreground border-gray-500/30';
         }
     };
 
@@ -372,7 +366,7 @@ const AdminCommunications: React.FC = () => {
             case 'in-progress': return 'bg-blue-900/20 text-blue-400';
             case 'pending': return 'bg-yellow-900/20 text-yellow-400';
             case 'overdue': return 'bg-red-900/20 text-red-400';
-            default: return 'bg-gray-900/20 text-gray-400';
+            default: return 'bg-muted/20 text-muted-foreground';
         }
     };
 
@@ -429,7 +423,7 @@ const AdminCommunications: React.FC = () => {
                     <button
                         onClick={refreshData}
                         disabled={isLoading}
-                        className="flex items-center space-x-2 px-3 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                        className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                     >
                         <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                         <span>Refresh</span>
@@ -439,7 +433,7 @@ const AdminCommunications: React.FC = () => {
                             resetCreateForm();
                             setShowCreateModal(true);
                         }}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                     >
                         <Plus size={16} />
                         <span>Create {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}</span>
@@ -452,19 +446,19 @@ const AdminCommunications: React.FC = () => {
                 {commStats.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
-                        <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+                        <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
                             <div className="flex items-center justify-between mb-4">
                                 <Icon size={24} className={stat.color} />
                             </div>
-                            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                            <div className="text-sm text-gray-400">{stat.label}</div>
+                            <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                            <div className="text-sm text-muted-foreground">{stat.label}</div>
                         </div>
                     );
                 })}
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-800 mb-8">
+            <div className="border-b border-border mb-8">
                 <nav className="flex space-x-8">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
@@ -473,8 +467,8 @@ const AdminCommunications: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                                    ? 'border-blue-600 text-primary'
+                                    : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
                                     }`}
                             >
                                 <Icon size={16} />
@@ -486,27 +480,27 @@ const AdminCommunications: React.FC = () => {
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+            <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
                         <div className="relative">
-                            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                             <input
                                 type="text"
                                 placeholder={`Search ${activeTab}...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                             />
                         </div>
                     </div>
 
                     <div className="flex items-center space-x-3">
-                        <Filter size={16} className="text-gray-400" />
+                        <Filter size={16} className="text-muted-foreground" />
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                            className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                         >
                             <option value="all">All Status</option>
                             <option value="high">High Priority</option>
@@ -517,37 +511,37 @@ const AdminCommunications: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+            <div className="bg-card rounded-xl shadow-sm border border-border">
                 {activeTab === 'announcements' && (
                     <>
-                        <div className="p-6 border-b border-gray-800">
-                            <h2 className="text-xl font-semibold text-white">Team Announcements</h2>
+                        <div className="p-6 border-b border-border">
+                            <h2 className="text-xl font-semibold text-foreground">Team Announcements</h2>
                         </div>
                         {isLoading ? (
                             <div className="p-8 text-center">
-                                <RefreshCw size={24} className="animate-spin mx-auto text-gray-400 mb-2" />
-                                <p className="text-gray-400">Loading announcements...</p>
+                                <RefreshCw size={24} className="animate-spin mx-auto text-muted-foreground mb-2" />
+                                <p className="text-muted-foreground">Loading announcements...</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-800">
                                 {announcements.map((announcement) => (
-                                    <div key={announcement.id} className="p-6 hover:bg-gray-900 transition-colors">
+                                    <div key={announcement.id} className="p-6 hover:bg-muted transition-colors">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-3 mb-2">
-                                                    {announcement.is_pinned && <Pin size={16} className="text-blue-600" />}
-                                                    <h3 className="text-lg font-semibold text-white">{announcement.title}</h3>
+                                                    {announcement.is_pinned && <Pin size={16} className="text-primary" />}
+                                                    <h3 className="text-lg font-semibold text-foreground">{announcement.title}</h3>
                                                     <span className={`px-2 py-1 text-xs rounded-full font-medium border ${getPriorityColor(announcement.priority)}`}>
                                                         {announcement.priority}
                                                     </span>
                                                     {!announcement.is_read_by_current_user && (
-                                                        <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                                        <span className="w-2 h-2 bg-primary rounded-full"></span>
                                                     )}
                                                 </div>
 
-                                                <p className="text-gray-400 mb-4">{announcement.message}</p>
+                                                <p className="text-muted-foreground mb-4">{announcement.message}</p>
 
-                                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center space-x-1">
                                                         <User size={14} />
                                                         <span>{announcement.author?.email || 'Unknown'}</span>
@@ -575,7 +569,7 @@ const AdminCommunications: React.FC = () => {
                                                 )}
                                                 <button 
                                                     onClick={() => handleEdit(announcement)}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Edit announcement"
                                                 >
                                                     <Edit3 size={16} />
@@ -594,9 +588,9 @@ const AdminCommunications: React.FC = () => {
                                 
                                 {announcements.length === 0 && (
                                     <div className="p-8 text-center">
-                                        <Bell size={48} className="mx-auto text-gray-400 mb-4" />
-                                        <h3 className="text-lg font-medium text-white mb-2">No announcements yet</h3>
-                                        <p className="text-gray-400">Create your first announcement to get started.</p>
+                                        <Bell size={48} className="mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium text-foreground mb-2">No announcements yet</h3>
+                                        <p className="text-muted-foreground">Create your first announcement to get started.</p>
                                     </div>
                                 )}
                             </div>
@@ -606,22 +600,22 @@ const AdminCommunications: React.FC = () => {
 
                 {activeTab === 'tasks' && (
                     <>
-                        <div className="p-6 border-b border-gray-800">
-                            <h2 className="text-xl font-semibold text-white">Task Management</h2>
+                        <div className="p-6 border-b border-border">
+                            <h2 className="text-xl font-semibold text-foreground">Task Management</h2>
                         </div>
                         {isLoading ? (
                             <div className="p-8 text-center">
-                                <RefreshCw size={24} className="animate-spin mx-auto text-gray-400 mb-2" />
-                                <p className="text-gray-400">Loading tasks...</p>
+                                <RefreshCw size={24} className="animate-spin mx-auto text-muted-foreground mb-2" />
+                                <p className="text-muted-foreground">Loading tasks...</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-800">
                                 {tasks.map((task) => (
-                                    <div key={task.id} className="p-6 hover:bg-gray-900 transition-colors">
+                                    <div key={task.id} className="p-6 hover:bg-muted transition-colors">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-3 mb-2">
-                                                    <h3 className="text-lg font-semibold text-white">{task.title}</h3>
+                                                    <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
                                                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(task.status)}`}>
                                                         {task.status.replace('-', ' ')}
                                                     </span>
@@ -630,9 +624,9 @@ const AdminCommunications: React.FC = () => {
                                                     </span>
                                                 </div>
 
-                                                <p className="text-gray-400 mb-4">{task.description}</p>
+                                                <p className="text-muted-foreground mb-4">{task.description}</p>
 
-                                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center space-x-1">
                                                         <User size={14} />
                                                         <span>Assigned to: {task.assigned_to?.email || 'Unassigned'}</span>
@@ -663,7 +657,7 @@ const AdminCommunications: React.FC = () => {
                                             <div className="flex items-center space-x-2 ml-4">
                                                 <button 
                                                     onClick={() => handleEdit(task)}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Edit task"
                                                 >
                                                     <Edit3 size={16} />
@@ -682,9 +676,9 @@ const AdminCommunications: React.FC = () => {
                                 
                                 {tasks.length === 0 && (
                                     <div className="p-8 text-center">
-                                        <CheckSquare size={48} className="mx-auto text-gray-400 mb-4" />
-                                        <h3 className="text-lg font-medium text-white mb-2">No tasks yet</h3>
-                                        <p className="text-gray-400">Create your first task to get started.</p>
+                                        <CheckSquare size={48} className="mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium text-foreground mb-2">No tasks yet</h3>
+                                        <p className="text-muted-foreground">Create your first task to get started.</p>
                                     </div>
                                 )}
                             </div>
@@ -694,30 +688,30 @@ const AdminCommunications: React.FC = () => {
 
                 {activeTab === 'messages' && (
                     <>
-                        <div className="p-6 border-b border-gray-800">
-                            <h2 className="text-xl font-semibold text-white">Internal Messages</h2>
+                        <div className="p-6 border-b border-border">
+                            <h2 className="text-xl font-semibold text-foreground">Internal Messages</h2>
                         </div>
                         {isLoading ? (
                             <div className="p-8 text-center">
-                                <RefreshCw size={24} className="animate-spin mx-auto text-gray-400 mb-2" />
-                                <p className="text-gray-400">Loading messages...</p>
+                                <RefreshCw size={24} className="animate-spin mx-auto text-muted-foreground mb-2" />
+                                <p className="text-muted-foreground">Loading messages...</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-800">
                                 {messages.map((message) => (
-                                    <div key={message.id} className={`p-6 hover:bg-gray-900 transition-colors ${!message.is_read ? 'bg-gray-900/50' : ''}`}>
+                                    <div key={message.id} className={`p-6 hover:bg-muted transition-colors ${!message.is_read ? 'bg-muted/50' : ''}`}>
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-3 mb-2">
-                                                    <h3 className="text-lg font-semibold text-white">{message.subject}</h3>
+                                                    <h3 className="text-lg font-semibold text-foreground">{message.subject}</h3>
                                                     {!message.is_read && (
-                                                        <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                                        <span className="w-2 h-2 bg-primary rounded-full"></span>
                                                     )}
                                                 </div>
 
-                                                <p className="text-gray-400 mb-4">{message.message}</p>
+                                                <p className="text-muted-foreground mb-4">{message.message}</p>
 
-                                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                                     <div className="flex items-center space-x-1">
                                                         <User size={14} />
                                                         <span>From: {message.from_user?.email || 'Unknown'}</span>
@@ -759,7 +753,7 @@ const AdminCommunications: React.FC = () => {
                                                         });
                                                         setShowCreateModal(true);
                                                     }}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Reply"
                                                 >
                                                     <Send size={16} />
@@ -771,9 +765,9 @@ const AdminCommunications: React.FC = () => {
                                 
                                 {messages.length === 0 && (
                                     <div className="p-8 text-center">
-                                        <MessageSquare size={48} className="mx-auto text-gray-400 mb-4" />
-                                        <h3 className="text-lg font-medium text-white mb-2">No messages yet</h3>
-                                        <p className="text-gray-400">Send your first message to get started.</p>
+                                        <MessageSquare size={48} className="mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
+                                        <p className="text-muted-foreground">Send your first message to get started.</p>
                                     </div>
                                 )}
                             </div>
@@ -784,10 +778,10 @@ const AdminCommunications: React.FC = () => {
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
-                            <h2 className="text-xl font-semibold text-white">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
+                            <h2 className="text-xl font-semibold text-foreground">
                                 Create New {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}
                             </h2>
                         </div>
@@ -805,7 +799,7 @@ const AdminCommunications: React.FC = () => {
                                         ...prev,
                                         [activeTab === 'messages' ? 'subject' : 'title']: e.target.value
                                     }))}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     placeholder={`Enter ${activeTab === 'messages' ? 'subject' : 'title'}`}
                                 />
                             </div>
@@ -822,7 +816,7 @@ const AdminCommunications: React.FC = () => {
                                         ...prev,
                                         [activeTab === 'tasks' ? 'description' : 'message']: e.target.value
                                     }))}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     placeholder={`Enter ${activeTab === 'tasks' ? 'description' : 'message'}`}
                                 />
                             </div>
@@ -837,7 +831,7 @@ const AdminCommunications: React.FC = () => {
                                             ...prev,
                                             priority: e.target.value as 'low' | 'medium' | 'high'
                                         }))}
-                                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     >
                                         <option value="low">Low Priority</option>
                                         <option value="medium">Medium Priority</option>
@@ -857,9 +851,9 @@ const AdminCommunications: React.FC = () => {
                                             ...prev,
                                             is_pinned: e.target.checked
                                         }))}
-                                        className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                                        className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                     />
-                                    <label htmlFor="is_pinned" className="ml-2 block text-sm text-white">
+                                    <label htmlFor="is_pinned" className="ml-2 block text-sm text-foreground">
                                         Pin this announcement
                                     </label>
                                 </div>
@@ -876,7 +870,7 @@ const AdminCommunications: React.FC = () => {
                                                 ...prev,
                                                 assigned_to_id: e.target.value
                                             }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         >
                                             <option value="">Unassigned</option>
                                             {adminUsers.map(user => (
@@ -896,7 +890,7 @@ const AdminCommunications: React.FC = () => {
                                                 ...prev,
                                                 due_date: e.target.value
                                             }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                 </>
@@ -912,7 +906,7 @@ const AdminCommunications: React.FC = () => {
                                             ...prev,
                                             to_user_id: e.target.value
                                         }))}
-                                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     >
                                         <option value="">Select recipient</option>
                                         {adminUsers.filter(user => user.id !== currentAdmin?.id).map(user => (
@@ -925,20 +919,20 @@ const AdminCommunications: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => {
                                     setShowCreateModal(false);
                                     resetCreateForm();
                                 }}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleCreate}
                                 disabled={isSaving || (activeTab === 'messages' && !createForm.to_user_id)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                             >
                                 {isSaving ? 'Creating...' : (activeTab === 'messages' ? 'Send Message' : `Create ${activeTab === 'announcements' ? 'Announcement' : 'Task'}`)}
                             </button>
@@ -949,10 +943,10 @@ const AdminCommunications: React.FC = () => {
 
             {/* Edit Modal */}
             {showEditModal && selectedItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
-                            <h2 className="text-xl font-semibold text-white">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
+                            <h2 className="text-xl font-semibold text-foreground">
                                 Edit {getItemTitle(selectedItem)}
                             </h2>
                         </div>
@@ -970,7 +964,7 @@ const AdminCommunications: React.FC = () => {
                                         ...prev,
                                         ['subject' in selectedItem ? 'subject' : 'title']: e.target.value
                                     }))}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 />
                             </div>
 
@@ -985,7 +979,7 @@ const AdminCommunications: React.FC = () => {
                                         ...prev,
                                         ['description' in selectedItem ? 'description' : 'message']: e.target.value
                                     }))}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 />
                             </div>
 
@@ -999,7 +993,7 @@ const AdminCommunications: React.FC = () => {
                                             ...prev,
                                             priority: e.target.value as 'low' | 'medium' | 'high'
                                         }))}
-                                        className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     >
                                         <option value="low">Low Priority</option>
                                         <option value="medium">Medium Priority</option>
@@ -1019,9 +1013,9 @@ const AdminCommunications: React.FC = () => {
                                             ...prev,
                                             is_pinned: e.target.checked
                                         }))}
-                                        className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                                        className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                     />
-                                    <label htmlFor="edit_is_pinned" className="ml-2 block text-sm text-white">
+                                    <label htmlFor="edit_is_pinned" className="ml-2 block text-sm text-foreground">
                                         Pin this announcement
                                     </label>
                                 </div>
@@ -1038,7 +1032,7 @@ const AdminCommunications: React.FC = () => {
                                                 ...prev,
                                                 assigned_to_id: e.target.value
                                             }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         >
                                             <option value="">Unassigned</option>
                                             {adminUsers.map(user => (
@@ -1058,28 +1052,28 @@ const AdminCommunications: React.FC = () => {
                                                 ...prev,
                                                 due_date: e.target.value
                                             }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                 </>
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => {
                                     setShowEditModal(false);
                                     setSelectedItem(null);
                                     resetCreateForm();
                                 }}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleUpdate}
                                 disabled={isSaving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                             >
                                 {isSaving ? 'Updating...' : 'Update'}
                             </button>
@@ -1090,36 +1084,36 @@ const AdminCommunications: React.FC = () => {
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && selectedItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-md mx-4 shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-md mx-4 shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
                             <div className="flex items-center space-x-3">
                                 <AlertCircle size={24} className="text-red-600" />
-                                <h2 className="text-xl font-semibold text-white">Confirm Delete</h2>
+                                <h2 className="text-xl font-semibold text-foreground">Confirm Delete</h2>
                             </div>
                         </div>
 
                         <div className="p-6">
-                            <p className="text-gray-400">
+                            <p className="text-muted-foreground">
                                 Are you sure you want to delete "{getItemTitle(selectedItem)}"? 
                                 This action cannot be undone.
                             </p>
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => {
                                     setShowDeleteModal(false);
                                     setSelectedItem(null);
                                 }}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleDelete}
                                 disabled={isSaving}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-red-600 text-foreground rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
                             >
                                 {isSaving ? 'Deleting...' : 'Delete'}
                             </button>

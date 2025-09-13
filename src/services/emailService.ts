@@ -14,9 +14,7 @@ export class EmailService {
   static async initialize() {
     try {
       emailjs.init(EMAIL_CONFIG.emailjs.publicKey);
-      console.log('EmailJS initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize EmailJS:', error);
     }
   }
 
@@ -39,10 +37,8 @@ export class EmailService {
         templateParams
       );
 
-      console.log('Email sent successfully:', response);
       return response.status === 200;
     } catch (error) {
-      console.error('Failed to send email:', error);
       return false;
     }
   }
@@ -70,7 +66,6 @@ export class EmailService {
             await new Promise(resolve => setTimeout(resolve, limits.delayBetweenEmails));
           }
         } catch (error) {
-          console.error(`Failed to send email to ${email.to}:`, error);
           failed++;
         }
       }
@@ -130,15 +125,12 @@ export class ResendEmailService {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Email sent successfully via Resend:', result.id);
         return true;
       } else {
         const error = await response.json();
-        console.error('Resend API error:', error);
         return false;
       }
     } catch (error) {
-      console.error('Failed to send email via Resend:', error);
       return false;
     }
   }
@@ -158,7 +150,6 @@ export class ResendEmailService {
           const success = await this.sendEmail(email);
           return success ? 'sent' : 'failed';
         } catch (error) {
-          console.error(`Failed to send to ${email.to}:`, error);
           return 'failed';
         }
       });
@@ -168,7 +159,6 @@ export class ResendEmailService {
       failed += results.filter(r => r === 'failed').length;
 
       // Progress logging
-      console.log(`Batch ${Math.floor(i / limits.batchSize) + 1}: ${results.filter(r => r === 'sent').length}/${batch.length} sent`);
 
       // Delay between batches to respect rate limits
       if (i + limits.batchSize < emails.length) {
@@ -246,7 +236,6 @@ export class GmailService {
 
       return response.ok;
     } catch (error) {
-      console.error('Gmail API error:', error);
       return false;
     }
   }

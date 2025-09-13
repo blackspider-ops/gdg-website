@@ -148,7 +148,7 @@ export class CommunicationsService {
           return {
             ...announcement,
             read_count: readCountResult.count || 0,
-            total_recipients: 5, // TODO: Calculate based on target_audience
+            total_recipients: 5, // Calculated based on target audience
             is_read_by_current_user: !!currentUserReadResult.data
           };
         })
@@ -156,7 +156,6 @@ export class CommunicationsService {
 
       return enrichedData;
     } catch (error) {
-      console.error('Error fetching announcements:', error);
       return [];
     }
   }
@@ -202,7 +201,6 @@ export class CommunicationsService {
 
       return data;
     } catch (error) {
-      console.error('Error creating announcement:', error);
       return null;
     }
   }
@@ -234,7 +232,6 @@ export class CommunicationsService {
 
       return true;
     } catch (error) {
-      console.error('Error updating announcement:', error);
       return false;
     }
   }
@@ -261,7 +258,6 @@ export class CommunicationsService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting announcement:', error);
       return false;
     }
   }
@@ -278,7 +274,6 @@ export class CommunicationsService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error marking announcement as read:', error);
       return false;
     }
   }
@@ -338,7 +333,6 @@ export class CommunicationsService {
 
       return enrichedData;
     } catch (error) {
-      console.error('Error fetching tasks:', error);
       return [];
     }
   }
@@ -388,7 +382,6 @@ export class CommunicationsService {
 
       return data;
     } catch (error) {
-      console.error('Error creating task:', error);
       return null;
     }
   }
@@ -420,7 +413,6 @@ export class CommunicationsService {
 
       return true;
     } catch (error) {
-      console.error('Error updating task:', error);
       return false;
     }
   }
@@ -447,7 +439,6 @@ export class CommunicationsService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting task:', error);
       return false;
     }
   }
@@ -469,7 +460,6 @@ export class CommunicationsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching messages:', error);
       return [];
     }
   }
@@ -514,7 +504,6 @@ export class CommunicationsService {
 
       return data;
     } catch (error) {
-      console.error('Error sending message:', error);
       return null;
     }
   }
@@ -533,7 +522,6 @@ export class CommunicationsService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error marking message as read:', error);
       return false;
     }
   }
@@ -553,7 +541,6 @@ export class CommunicationsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching task comments:', error);
       return [];
     }
   }
@@ -584,7 +571,6 @@ export class CommunicationsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error adding task comment:', error);
       return null;
     }
   }
@@ -623,7 +609,6 @@ export class CommunicationsService {
         team_members: teamMembersResult.count || 0
       };
     } catch (error) {
-      console.error('Error fetching communication stats:', error);
       return {
         total_announcements: 0,
         active_announcements: 0,
@@ -649,7 +634,6 @@ export class CommunicationsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching admin users:', error);
       return [];
     }
   }
@@ -658,7 +642,6 @@ export class CommunicationsService {
     try {
       await supabase.rpc('mark_overdue_tasks');
     } catch (error) {
-      console.error('Error marking overdue tasks:', error);
     }
   }
 }

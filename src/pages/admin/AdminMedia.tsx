@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import {
@@ -47,7 +46,6 @@ import { AuditService } from '@/services/auditService';
 
 const AdminMedia: React.FC = () => {
     const { isAuthenticated, currentAdmin } = useAdmin();
-    const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
     
     // State management
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -93,7 +91,7 @@ const AdminMedia: React.FC = () => {
     // Lock body scroll when modal is open
     useBodyScrollLock(showUploadModal || showCreateFolderModal || showEditModal || showDeleteModal);
 
-    const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+    
 
     // Load data on component mount
     useEffect(() => {
@@ -120,7 +118,7 @@ const AdminMedia: React.FC = () => {
         setTimeout(scrollToTop, 150);
     }, []);
 
-    if (!canAccess) {
+    if (!isAuthenticated) {
         return <Navigate to="/" replace />;
     }
 
@@ -159,7 +157,6 @@ const AdminMedia: React.FC = () => {
                 );
             }
         } catch (error) {
-            console.error('Error loading media data:', error);
         } finally {
             setIsLoading(false);
         }
@@ -207,7 +204,6 @@ const AdminMedia: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error creating folder:', error);
         } finally {
             setIsSaving(false);
         }
@@ -234,7 +230,6 @@ const AdminMedia: React.FC = () => {
             setShowUploadModal(false);
             await loadAllData();
         } catch (error) {
-            console.error('Error uploading files:', error);
         } finally {
             setIsSaving(false);
         }
@@ -295,7 +290,6 @@ const AdminMedia: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error updating item:', error);
         } finally {
             setIsSaving(false);
         }
@@ -322,7 +316,6 @@ const AdminMedia: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error deleting item:', error);
         } finally {
             setIsSaving(false);
         }
@@ -340,7 +333,6 @@ const AdminMedia: React.FC = () => {
             await MediaService.copyFileUrl(filePath);
             // You could add a toast notification here
         } catch (error) {
-            console.error('Error copying URL:', error);
         }
     };
 
@@ -374,7 +366,7 @@ const AdminMedia: React.FC = () => {
     // Utility functions
     const getFileIcon = (fileType: string) => {
         switch (fileType) {
-            case 'image': return <Image size={20} className="text-blue-600" />;
+            case 'image': return <Image size={20} className="text-primary" />;
             case 'video': return <Video size={20} className="text-purple-600" />;
             case 'audio': return <Music size={20} className="text-green-600" />;
             case 'document': return <FileText size={20} className="text-red-600" />;
@@ -432,14 +424,14 @@ const AdminMedia: React.FC = () => {
                     <button
                         onClick={refreshData}
                         disabled={isLoading}
-                        className="flex items-center space-x-2 px-3 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                        className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                     >
                         <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                         <span>Refresh</span>
                     </button>
                     <button
                         onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                        className="flex items-center space-x-2 px-3 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                        className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                     >
                         {viewMode === 'grid' ? <List size={16} /> : <Grid3X3 size={16} />}
                         <span>{viewMode === 'grid' ? 'List' : 'Grid'}</span>
@@ -449,14 +441,14 @@ const AdminMedia: React.FC = () => {
                             setFolderForm({ name: '', description: '' });
                             setShowCreateFolderModal(true);
                         }}
-                        className="flex items-center space-x-2 px-3 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                        className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                     >
                         <FolderPlus size={16} />
                         <span>New Folder</span>
                     </button>
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                     >
                         <Upload size={16} />
                         <span>Upload Files</span>
@@ -477,19 +469,19 @@ const AdminMedia: React.FC = () => {
                 {mediaStatsData.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
-                        <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+                        <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
                             <div className="flex items-center justify-between mb-4">
                                 <Icon size={24} className={stat.color} />
                             </div>
-                            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                            <div className="text-sm text-gray-400">{stat.label}</div>
+                            <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                            <div className="text-sm text-muted-foreground">{stat.label}</div>
                         </div>
                     );
                 })}
             </div>
 
             {/* Breadcrumbs */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-4 mb-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-4 mb-6">
                 <nav className="flex items-center space-x-2 text-sm">
                     {breadcrumbs.map((crumb, index) => (
                         <React.Fragment key={crumb.id}>
@@ -498,7 +490,7 @@ const AdminMedia: React.FC = () => {
                                 className={`flex items-center space-x-1 px-2 py-1 rounded transition-colors ${
                                     index === breadcrumbs.length - 1
                                         ? 'text-blue-400 bg-blue-900/20'
-                                        : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
+                                        : 'text-muted-foreground hover:text-gray-300 hover:bg-gray-800'
                                 }`}
                             >
                                 {index === 0 ? <Home size={14} /> : <Folder size={14} />}
@@ -513,11 +505,11 @@ const AdminMedia: React.FC = () => {
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6 mb-8">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-8">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                     <div className="flex items-center space-x-4">
                         <div className="relative">
-                            <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                             <input
                                 type="text"
                                 placeholder="Search media files..."
@@ -527,7 +519,7 @@ const AdminMedia: React.FC = () => {
                                     // Debounce search
                                     setTimeout(() => loadAllData(), 300);
                                 }}
-                                className="pl-10 pr-4 py-2 w-64 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                className="pl-10 pr-4 py-2 w-64 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                             />
                         </div>
                         
@@ -537,7 +529,7 @@ const AdminMedia: React.FC = () => {
                                 setFilterType(e.target.value);
                                 loadAllData();
                             }}
-                            className="px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                            className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                         >
                             <option value="all">All Types</option>
                             <option value="image">Images</option>
@@ -554,8 +546,8 @@ const AdminMedia: React.FC = () => {
                             }}
                             className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
                                 showStarredOnly
-                                    ? 'bg-yellow-600 text-white'
-                                    : 'border border-gray-700 text-gray-300 hover:bg-gray-900'
+                                    ? 'bg-yellow-600 text-foreground'
+                                    : 'border border-border text-gray-300 hover:bg-muted'
                             }`}
                         >
                             <Star size={16} className={showStarredOnly ? 'fill-current' : ''} />
@@ -565,12 +557,12 @@ const AdminMedia: React.FC = () => {
                     
                     {selectedFiles.length > 0 && (
                         <div className="flex items-center space-x-3">
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-muted-foreground">
                                 {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected
                             </span>
                             <button 
                                 onClick={selectAllFiles}
-                                className="px-3 py-1 text-sm border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                                className="px-3 py-1 text-sm border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                             >
                                 Select All
                             </button>
@@ -583,13 +575,13 @@ const AdminMedia: React.FC = () => {
                                         loadAllData();
                                     }
                                 }}
-                                className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                className="px-3 py-1 text-sm bg-red-600 text-foreground rounded-lg hover:bg-red-700 transition-colors"
                             >
                                 Delete Selected
                             </button>
                             <button 
                                 onClick={clearSelection}
-                                className="px-3 py-1 text-sm border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                                className="px-3 py-1 text-sm border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                             >
                                 Clear Selection
                             </button>
@@ -599,11 +591,11 @@ const AdminMedia: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+            <div className="bg-card rounded-xl shadow-sm border border-border">
                 {isLoading ? (
                     <div className="p-8 text-center">
-                        <RefreshCw size={24} className="animate-spin mx-auto text-gray-400 mb-2" />
-                        <p className="text-gray-400">Loading media library...</p>
+                        <RefreshCw size={24} className="animate-spin mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground">Loading media library...</p>
                     </div>
                 ) : viewMode === 'grid' ? (
                     <div className="p-6">
@@ -612,13 +604,13 @@ const AdminMedia: React.FC = () => {
                             {folders.map((folder) => (
                                 <div key={folder.id} className="group cursor-pointer">
                                     <div 
-                                        className="relative bg-gray-900 rounded-lg p-4 hover:bg-gray-800 transition-colors border border-gray-800"
+                                        className="relative bg-muted rounded-lg p-4 hover:bg-gray-800 transition-colors border border-border"
                                         onClick={() => navigateToFolder(folder.id, folder.name)}
                                     >
                                         <div className="flex flex-col items-center text-center">
-                                            <Folder size={48} className="text-blue-600 mb-3" />
-                                            <h3 className="font-medium text-white text-sm mb-1 truncate w-full">{folder.name}</h3>
-                                            <p className="text-xs text-gray-400">{folder.item_count || 0} items</p>
+                                            <Folder size={48} className="text-primary mb-3" />
+                                            <h3 className="font-medium text-foreground text-sm mb-1 truncate w-full">{folder.name}</h3>
+                                            <p className="text-xs text-muted-foreground">{folder.item_count || 0} items</p>
                                         </div>
                                         
                                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -631,7 +623,7 @@ const AdminMedia: React.FC = () => {
                                                     className="p-1 hover:bg-gray-700 rounded transition-colors"
                                                     title="Edit folder"
                                                 >
-                                                    <Edit3 size={14} className="text-gray-400" />
+                                                    <Edit3 size={14} className="text-muted-foreground" />
                                                 </button>
                                                 <button 
                                                     onClick={(e) => {
@@ -652,7 +644,7 @@ const AdminMedia: React.FC = () => {
                             {/* Files */}
                             {files.map((file) => (
                                 <div key={file.id} className="group cursor-pointer">
-                                    <div className="relative bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors border border-gray-800">
+                                    <div className="relative bg-muted rounded-lg overflow-hidden hover:bg-gray-800 transition-colors border border-border">
                                         {file.file_type === 'image' ? (
                                             <div className="aspect-square">
                                                 <img 
@@ -672,10 +664,10 @@ const AdminMedia: React.FC = () => {
                                         )}
                                         
                                         <div className="p-3">
-                                            <h3 className="font-medium text-white text-sm mb-1 truncate" title={file.original_name}>
+                                            <h3 className="font-medium text-foreground text-sm mb-1 truncate" title={file.original_name}>
                                                 {file.original_name}
                                             </h3>
-                                            <p className="text-xs text-gray-400">{MediaService.formatFileSize(file.file_size)}</p>
+                                            <p className="text-xs text-muted-foreground">{MediaService.formatFileSize(file.file_size)}</p>
                                         </div>
                                         
                                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -699,7 +691,7 @@ const AdminMedia: React.FC = () => {
                                                     className="p-1 hover:bg-gray-700 rounded transition-colors"
                                                     title="Edit file"
                                                 >
-                                                    <Edit3 size={14} className="text-gray-400" />
+                                                    <Edit3 size={14} className="text-muted-foreground" />
                                                 </button>
                                                 <button 
                                                     onClick={(e) => {
@@ -719,7 +711,7 @@ const AdminMedia: React.FC = () => {
                                                 type="checkbox"
                                                 checked={selectedFiles.includes(file.id)}
                                                 onChange={() => toggleFileSelection(file.id)}
-                                                className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                                                className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                                 onClick={(e) => e.stopPropagation()}
                                             />
                                         </div>
@@ -730,20 +722,20 @@ const AdminMedia: React.FC = () => {
                         
                         {folders.length === 0 && files.length === 0 && (
                             <div className="text-center py-12">
-                                <Folder size={48} className="mx-auto text-gray-400 mb-4" />
-                                <h3 className="text-lg font-medium text-white mb-2">No files or folders</h3>
-                                <p className="text-gray-400 mb-4">This folder is empty. Upload some files or create a new folder to get started.</p>
+                                <Folder size={48} className="mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium text-foreground mb-2">No files or folders</h3>
+                                <p className="text-muted-foreground mb-4">This folder is empty. Upload some files or create a new folder to get started.</p>
                                 <div className="flex items-center justify-center space-x-3">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
                                     >
                                         <Upload size={16} />
                                         <span>Upload Files</span>
                                     </button>
                                     <button
                                         onClick={() => setShowCreateFolderModal(true)}
-                                        className="flex items-center space-x-2 px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors"
+                                        className="flex items-center space-x-2 px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
                                     >
                                         <FolderPlus size={16} />
                                         <span>Create Folder</span>
@@ -756,20 +748,20 @@ const AdminMedia: React.FC = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-gray-800">
-                                    <th className="text-left py-3 px-6 font-medium text-white">
+                                <tr className="border-b border-border">
+                                    <th className="text-left py-3 px-6 font-medium text-foreground">
                                         <input
                                             type="checkbox"
                                             checked={selectedFiles.length === files.length && files.length > 0}
                                             onChange={selectedFiles.length === files.length ? clearSelection : selectAllFiles}
-                                            className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                                            className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                         />
                                     </th>
-                                    <th className="text-left py-3 px-6 font-medium text-white">Name</th>
-                                    <th className="text-left py-3 px-6 font-medium text-white">Type</th>
-                                    <th className="text-left py-3 px-6 font-medium text-white">Size</th>
-                                    <th className="text-left py-3 px-6 font-medium text-white">Modified</th>
-                                    <th className="text-right py-3 px-6 font-medium text-white">Actions</th>
+                                    <th className="text-left py-3 px-6 font-medium text-foreground">Name</th>
+                                    <th className="text-left py-3 px-6 font-medium text-foreground">Type</th>
+                                    <th className="text-left py-3 px-6 font-medium text-foreground">Size</th>
+                                    <th className="text-left py-3 px-6 font-medium text-foreground">Modified</th>
+                                    <th className="text-right py-3 px-6 font-medium text-foreground">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -777,7 +769,7 @@ const AdminMedia: React.FC = () => {
                                 {folders.map((folder) => (
                                     <tr 
                                         key={folder.id} 
-                                        className="border-b border-gray-800 hover:bg-gray-900 cursor-pointer"
+                                        className="border-b border-border hover:bg-muted cursor-pointer"
                                         onClick={() => navigateToFolder(folder.id, folder.name)}
                                     >
                                         <td className="py-4 px-6">
@@ -785,18 +777,18 @@ const AdminMedia: React.FC = () => {
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center space-x-3">
-                                                <Folder size={20} className="text-blue-600" />
-                                                <span className="font-medium text-white">{folder.name}</span>
+                                                <Folder size={20} className="text-primary" />
+                                                <span className="font-medium text-foreground">{folder.name}</span>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className="text-sm text-gray-400">Folder</span>
+                                            <span className="text-sm text-muted-foreground">Folder</span>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className="text-sm text-gray-400">{folder.item_count || 0} items</span>
+                                            <span className="text-sm text-muted-foreground">{folder.item_count || 0} items</span>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className="text-sm text-gray-400">{formatDate(folder.created_at)}</span>
+                                            <span className="text-sm text-muted-foreground">{formatDate(folder.created_at)}</span>
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center justify-end space-x-2">
@@ -805,7 +797,7 @@ const AdminMedia: React.FC = () => {
                                                         e.stopPropagation();
                                                         handleEdit(folder);
                                                     }}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Edit folder"
                                                 >
                                                     <Edit3 size={16} />
@@ -827,13 +819,13 @@ const AdminMedia: React.FC = () => {
                                 
                                 {/* Files */}
                                 {files.map((file) => (
-                                    <tr key={file.id} className="border-b border-gray-800 hover:bg-gray-900">
+                                    <tr key={file.id} className="border-b border-border hover:bg-muted">
                                         <td className="py-4 px-6">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedFiles.includes(file.id)}
                                                 onChange={() => toggleFileSelection(file.id)}
-                                                className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                                                className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                             />
                                         </td>
                                         <td className="py-4 px-6">
@@ -852,23 +844,23 @@ const AdminMedia: React.FC = () => {
                                                 )}
                                                 <div>
                                                     <div className="flex items-center space-x-2">
-                                                        <span className="font-medium text-white">{file.original_name}</span>
+                                                        <span className="font-medium text-foreground">{file.original_name}</span>
                                                         {file.is_starred && <Star size={12} className="text-yellow-500 fill-current" />}
                                                     </div>
                                                     {file.description && (
-                                                        <div className="text-xs text-gray-500">{file.description}</div>
+                                                        <div className="text-xs text-muted-foreground">{file.description}</div>
                                                     )}
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className="text-sm text-gray-400 capitalize">{file.file_type}</span>
+                                            <span className="text-sm text-muted-foreground capitalize">{file.file_type}</span>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className="text-sm text-gray-400">{MediaService.formatFileSize(file.file_size)}</span>
+                                            <span className="text-sm text-muted-foreground">{MediaService.formatFileSize(file.file_size)}</span>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className="text-sm text-gray-400">{formatDate(file.created_at)}</span>
+                                            <span className="text-sm text-muted-foreground">{formatDate(file.created_at)}</span>
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center justify-end space-x-2">
@@ -881,14 +873,14 @@ const AdminMedia: React.FC = () => {
                                                 </button>
                                                 <button 
                                                     onClick={() => window.open(MediaService.getFileUrl(file.file_path), '_blank')}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="View file"
                                                 >
                                                     <Eye size={16} />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleCopyUrl(file.file_path)}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Copy URL"
                                                 >
                                                     <Copy size={16} />
@@ -900,14 +892,14 @@ const AdminMedia: React.FC = () => {
                                                         link.download = file.original_name;
                                                         link.click();
                                                     }}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Download file"
                                                 >
                                                     <Download size={16} />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleEdit(file)}
-                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Edit file"
                                                 >
                                                     <Edit3 size={16} />
@@ -931,23 +923,23 @@ const AdminMedia: React.FC = () => {
 
             {/* Upload Modal */}
             {showUploadModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-white">Upload Files</h2>
+                                <h2 className="text-xl font-semibold text-foreground">Upload Files</h2>
                                 <button
                                     onClick={() => setShowUploadModal(false)}
                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
                                 >
-                                    <X size={20} className="text-gray-400" />
+                                    <X size={20} className="text-muted-foreground" />
                                 </button>
                             </div>
                         </div>
 
                         <div className="p-6">
                             <div 
-                                className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
+                                className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
                                 onDrop={(e) => {
                                     e.preventDefault();
                                     const files = e.dataTransfer.files;
@@ -957,9 +949,9 @@ const AdminMedia: React.FC = () => {
                                 }}
                                 onDragOver={(e) => e.preventDefault()}
                             >
-                                <Upload size={48} className="mx-auto text-gray-400 mb-4" />
-                                <h3 className="text-lg font-medium text-white mb-2">Drop files here or click to browse</h3>
-                                <p className="text-gray-400 mb-4">Support for images, videos, documents, and more</p>
+                                <Upload size={48} className="mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium text-foreground mb-2">Drop files here or click to browse</h3>
+                                <p className="text-muted-foreground mb-4">Support for images, videos, documents, and more</p>
                                 <input 
                                     type="file" 
                                     multiple 
@@ -974,7 +966,7 @@ const AdminMedia: React.FC = () => {
                                 />
                                 <label
                                     htmlFor="modal-file-upload"
-                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                                    className="inline-flex items-center px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
                                 >
                                     Choose Files
                                 </label>
@@ -985,7 +977,7 @@ const AdminMedia: React.FC = () => {
                                 <select 
                                     value={currentFolderId}
                                     onChange={(e) => setCurrentFolderId(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 >
                                     <option value="root">Root Directory</option>
                                     {folders.map((folder) => (
@@ -1004,11 +996,11 @@ const AdminMedia: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => setShowUploadModal(false)}
                                 disabled={isSaving}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -1019,16 +1011,16 @@ const AdminMedia: React.FC = () => {
 
             {/* Create Folder Modal */}
             {showCreateFolderModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-md mx-4 shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-md mx-4 shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-white">Create New Folder</h2>
+                                <h2 className="text-xl font-semibold text-foreground">Create New Folder</h2>
                                 <button
                                     onClick={() => setShowCreateFolderModal(false)}
                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
                                 >
-                                    <X size={20} className="text-gray-400" />
+                                    <X size={20} className="text-muted-foreground" />
                                 </button>
                             </div>
                         </div>
@@ -1041,7 +1033,7 @@ const AdminMedia: React.FC = () => {
                                     placeholder="Enter folder name"
                                     value={folderForm.name}
                                     onChange={(e) => setFolderForm(prev => ({ ...prev, name: e.target.value }))}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 />
                             </div>
 
@@ -1052,7 +1044,7 @@ const AdminMedia: React.FC = () => {
                                     value={folderForm.description}
                                     onChange={(e) => setFolderForm(prev => ({ ...prev, description: e.target.value }))}
                                     rows={3}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 />
                             </div>
 
@@ -1061,7 +1053,7 @@ const AdminMedia: React.FC = () => {
                                 <select 
                                     value={currentFolderId}
                                     onChange={(e) => setCurrentFolderId(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 >
                                     <option value="root">Root Directory</option>
                                     {folders.map((folder) => (
@@ -1080,18 +1072,18 @@ const AdminMedia: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => setShowCreateFolderModal(false)}
                                 disabled={isSaving}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleCreateFolder}
                                 disabled={isSaving || !folderForm.name.trim()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                             >
                                 {isSaving ? 'Creating...' : 'Create Folder'}
                             </button>
@@ -1101,18 +1093,18 @@ const AdminMedia: React.FC = () => {
             )}
             {/* Edit Modal */}
             {showEditModal && selectedItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-md mx-4 shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-md mx-4 shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-white">
+                                <h2 className="text-xl font-semibold text-foreground">
                                     Edit {'file_type' in selectedItem ? 'File' : 'Folder'}
                                 </h2>
                                 <button
                                     onClick={() => setShowEditModal(false)}
                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
                                 >
-                                    <X size={20} className="text-gray-400" />
+                                    <X size={20} className="text-muted-foreground" />
                                 </button>
                             </div>
                         </div>
@@ -1127,7 +1119,7 @@ const AdminMedia: React.FC = () => {
                                             type="text"
                                             value={editForm.name || ''}
                                             onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                     <div>
@@ -1136,7 +1128,7 @@ const AdminMedia: React.FC = () => {
                                             type="text"
                                             value={editForm.alt_text || ''}
                                             onChange={(e) => setEditForm(prev => ({ ...prev, alt_text: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                     <div>
@@ -1145,7 +1137,7 @@ const AdminMedia: React.FC = () => {
                                             value={editForm.description || ''}
                                             onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                                             rows={3}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                     <div className="flex items-center space-x-2">
@@ -1154,7 +1146,7 @@ const AdminMedia: React.FC = () => {
                                             id="is_public"
                                             checked={editForm.is_public || false}
                                             onChange={(e) => setEditForm(prev => ({ ...prev, is_public: e.target.checked }))}
-                                            className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                                            className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                         />
                                         <label htmlFor="is_public" className="text-sm font-medium text-gray-300">
                                             Make file public
@@ -1170,7 +1162,7 @@ const AdminMedia: React.FC = () => {
                                             type="text"
                                             value={folderForm.name}
                                             onChange={(e) => setFolderForm(prev => ({ ...prev, name: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                     <div>
@@ -1179,7 +1171,7 @@ const AdminMedia: React.FC = () => {
                                             value={folderForm.description}
                                             onChange={(e) => setFolderForm(prev => ({ ...prev, description: e.target.value }))}
                                             rows={3}
-                                            className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
                                 </>
@@ -1195,18 +1187,18 @@ const AdminMedia: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => setShowEditModal(false)}
                                 disabled={isSaving}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleUpdate}
                                 disabled={isSaving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                             >
                                 {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
@@ -1217,18 +1209,18 @@ const AdminMedia: React.FC = () => {
 
             {/* Delete Modal */}
             {showDeleteModal && selectedItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-black rounded-xl w-full max-w-md mx-4 shadow-xl border border-gray-800">
-                        <div className="p-6 border-b border-gray-800">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+                    <div className="bg-card rounded-xl w-full max-w-md mx-4 shadow-xl border border-border">
+                        <div className="p-6 border-b border-border">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-white">
+                                <h2 className="text-xl font-semibold text-foreground">
                                     Delete {'file_type' in selectedItem ? 'File' : 'Folder'}
                                 </h2>
                                 <button
                                     onClick={() => setShowDeleteModal(false)}
                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
                                 >
-                                    <X size={20} className="text-gray-400" />
+                                    <X size={20} className="text-muted-foreground" />
                                 </button>
                             </div>
                         </div>
@@ -1237,8 +1229,8 @@ const AdminMedia: React.FC = () => {
                             <div className="flex items-center space-x-3 mb-4">
                                 <AlertCircle size={24} className="text-red-500" />
                                 <div>
-                                    <h3 className="text-lg font-medium text-white">Are you sure?</h3>
-                                    <p className="text-gray-400">This action cannot be undone.</p>
+                                    <h3 className="text-lg font-medium text-foreground">Are you sure?</h3>
+                                    <p className="text-muted-foreground">This action cannot be undone.</p>
                                 </div>
                             </div>
                             
@@ -1260,18 +1252,18 @@ const AdminMedia: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+                        <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => setShowDeleteModal(false)}
                                 disabled={isSaving}
-                                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleDelete}
                                 disabled={isSaving}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-red-600 text-foreground rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
                             >
                                 {isSaving ? 'Deleting...' : 'Delete'}
                             </button>

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Calendar, Users, BookOpen, Code, Briefcase, Phone } from 'lucide-react';
+import { Menu, X, Calendar, Users, BookOpen, Code, Briefcase, Phone, Loader2 } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
-  const { navigationItems, getSiteSetting } = useContent();
+  const { navigationItems, getSiteSetting, isLoading } = useContent();
 
   // Icon mapping
   const iconMap: Record<string, any> = {
@@ -32,6 +32,13 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-border">
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="absolute top-0 left-0 w-full h-1 bg-primary/20">
+          <div className="h-full bg-primary animate-pulse"></div>
+        </div>
+      )}
+      
       <div className="editorial-grid">
         <div className="col-span-12 flex items-center justify-between py-3 px-2 gap-4">
           {/* Logo */}

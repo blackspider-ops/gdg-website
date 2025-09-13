@@ -31,7 +31,6 @@ export class AttendanceService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching event attendees:', error);
       return [];
     }
   }
@@ -62,22 +61,18 @@ export class AttendanceService {
       });
 
       if (updateError) {
-        console.warn('Could not increment attendees count:', updateError);
         // Don't fail the registration if count update fails
       }
 
       // Send confirmation email
       try {
         await this.sendConfirmationEmail(eventId, attendeeData);
-        console.log('Confirmation email sent successfully to:', attendeeData.attendee_email);
       } catch (emailError) {
-        console.warn('Could not send confirmation email:', emailError);
         // Don't fail the registration if email fails
       }
 
       return attendee;
     } catch (error: any) {
-      console.error('Error adding attendee:', error);
       
       // Re-throw the error so the UI can handle it properly
       throw error;
@@ -98,7 +93,6 @@ export class AttendanceService {
         .single();
 
       if (error) {
-        console.error('Error fetching event details:', error);
         throw error;
       }
 
@@ -122,7 +116,6 @@ export class AttendanceService {
         notes: attendeeData.notes || ''
       };
 
-      console.log('Sending email with payload:', emailPayload);
 
       // Use the new Edge Function with a different name
       const { data, error: functionError } = await supabase.functions.invoke('email-confirmation', {
@@ -130,14 +123,11 @@ export class AttendanceService {
       });
 
       if (functionError) {
-        console.error('Edge function error:', functionError);
         throw functionError;
       }
 
-      console.log('Confirmation email sent successfully:', data);
 
     } catch (error) {
-      console.error('Error sending confirmation email:', error);
       throw error;
     }
   }
@@ -163,7 +153,6 @@ export class AttendanceService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error marking attendance:', error);
       return false;
     }
   }
@@ -181,7 +170,6 @@ export class AttendanceService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error updating attendee:', error);
       return false;
     }
   }
@@ -211,12 +199,10 @@ export class AttendanceService {
       });
 
       if (updateError) {
-        console.warn('Could not decrement attendees count:', updateError);
       }
 
       return true;
     } catch (error) {
-      console.error('Error removing attendee:', error);
       return false;
     }
   }
@@ -240,7 +226,6 @@ export class AttendanceService {
         attendanceRate: Math.round(attendanceRate * 100) / 100
       };
     } catch (error) {
-      console.error('Error fetching attendance stats:', error);
       return {
         totalRegistrations: 0,
         totalAttended: 0,
@@ -259,7 +244,6 @@ export class AttendanceService {
       if (error) throw error;
       return data?.length || 0;
     } catch (error) {
-      console.error('Error fetching total attendance:', error);
       return 0;
     }
   }

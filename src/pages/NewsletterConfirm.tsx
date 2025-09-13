@@ -19,7 +19,6 @@ const NewsletterConfirm = () => {
         const success = await NewsletterService.confirmSubscription(token);
         setStatus(success ? 'success' : 'error');
       } catch (error) {
-        console.error('Error confirming subscription:', error);
         setStatus('error');
       }
     };
@@ -40,7 +39,7 @@ const NewsletterConfirm = () => {
 
         {status === 'success' && (
           <div>
-            <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
+            <CheckCircle size={48} className="text-gdg-green mx-auto mb-4" />
             <h1 className="text-2xl font-semibold mb-2">Subscription Confirmed! 🎉</h1>
             <p className="text-muted-foreground mb-6">
               Thank you for subscribing to our newsletter. You'll now receive updates about upcoming events, workshops, and community highlights.
@@ -64,7 +63,7 @@ const NewsletterConfirm = () => {
 
         {status === 'error' && (
           <div>
-            <XCircle size={48} className="text-red-500 mx-auto mb-4" />
+            <XCircle size={48} className="text-destructive mx-auto mb-4" />
             <h1 className="text-2xl font-semibold mb-2">Confirmation Failed</h1>
             <p className="text-muted-foreground mb-6">
               We couldn't confirm your newsletter subscription. The confirmation link may be invalid or expired.

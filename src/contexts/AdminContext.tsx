@@ -87,7 +87,6 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         return false;
       }
     } catch (err) {
-      console.error('Login error:', err);
       setError('Authentication failed. Please try again.');
       return false;
     } finally {

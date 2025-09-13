@@ -38,7 +38,6 @@ export class ResourcesService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching resources:', error);
       return [];
     }
   }
@@ -55,7 +54,6 @@ export class ResourcesService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching resources by type:', error);
       return [];
     }
   }
@@ -75,7 +73,6 @@ export class ResourcesService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating resource:', error);
       return null;
     }
   }
@@ -95,7 +92,6 @@ export class ResourcesService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating resource:', error);
       return null;
     }
   }
@@ -110,7 +106,6 @@ export class ResourcesService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting resource:', error);
       return false;
     }
   }
@@ -141,7 +136,6 @@ export class ResourcesService {
 
       return true;
     } catch (error) {
-      console.error('Error incrementing views:', error);
       return false;
     }
   }
@@ -164,7 +158,6 @@ export class ResourcesService {
 
       return true;
     } catch (error) {
-      console.error('Error bulk updating resource order:', error);
       return false;
     }
   }
@@ -192,7 +185,6 @@ export class ResourcesService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error toggling resource active status:', error);
       return null;
     }
   }
@@ -221,7 +213,6 @@ export class ResourcesService {
         typeDistribution: typeStats
       };
     } catch (error) {
-      console.error('Error fetching resource stats:', error);
       return {
         total: 0,
         active: 0,

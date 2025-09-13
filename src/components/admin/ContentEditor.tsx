@@ -77,7 +77,7 @@ const ContentEditor: React.FC<ContentEditorProps> = ({ title, content, onSave, s
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-primary-foreground rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 <Save size={16} />
                 <span>{isSaving ? 'Saving...' : 'Save'}</span>

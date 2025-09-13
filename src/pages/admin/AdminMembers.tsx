@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { Users, Search, Filter, Mail, Calendar, MoreHorizontal, UserPlus, Building2, Plus, Edit3, Trash2, ExternalLink, Star, Crown, Shield, User, Award, Heart, X, Save, Eye, EyeOff } from 'lucide-react';
@@ -9,7 +8,6 @@ import { MembersService, type Member } from '@/services/membersService';
 
 const AdminMembers = () => {
   const { isAuthenticated } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
   const [members, setMembers] = useState<Member[]>([]);
   const [memberStats, setMemberStats] = useState({
     total: 0,
@@ -33,19 +31,19 @@ const AdminMembers = () => {
   // Lock body scroll when modal is open
   useBodyScrollLock(showAddMemberModal || !!editingMember);
 
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+  
 
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
   // Member categories with icons and descriptions
   const memberCategories = [
     { id: 'founder', label: 'Founder', icon: Crown, color: 'text-yellow-600', bgColor: 'bg-yellow-100', description: 'Chapter founders and co-founders' },
-    { id: 'organizer', label: 'Organizer', icon: Shield, color: 'text-blue-600', bgColor: 'bg-blue-100', description: 'Core team organizers' },
+    { id: 'organizer', label: 'Organizer', icon: Shield, color: 'text-primary', bgColor: 'bg-blue-100', description: 'Core team organizers' },
     { id: 'lead', label: 'Team Lead', icon: Award, color: 'text-purple-600', bgColor: 'bg-purple-100', description: 'Team and project leads' },
     { id: 'active', label: 'Active Member', icon: Star, color: 'text-green-600', bgColor: 'bg-green-100', description: 'Regular active participants' },
-    { id: 'member', label: 'Member', icon: User, color: 'text-gray-400', bgColor: 'bg-gray-100', description: 'General community members' },
+    { id: 'member', label: 'Member', icon: User, color: 'text-muted-foreground', bgColor: 'bg-gray-100', description: 'General community members' },
     { id: 'alumni', label: 'Alumni', icon: Heart, color: 'text-red-600', bgColor: 'bg-red-100', description: 'Former members and graduates' }
   ];
 
@@ -61,7 +59,6 @@ const AdminMembers = () => {
       const membersData = await MembersService.getAllMembers();
       setMembers(membersData);
     } catch (error) {
-      console.error('Error loading members:', error);
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +69,6 @@ const AdminMembers = () => {
       const stats = await MembersService.getMemberStats();
       setMemberStats(stats);
     } catch (error) {
-      console.error('Error loading member stats:', error);
     }
   };
 
@@ -167,7 +163,6 @@ const AdminMembers = () => {
         setError('Failed to add member. Please try again.');
       }
     } catch (error) {
-      console.error('Error creating member:', error);
       setError('An error occurred while adding the member.');
     } finally {
       setIsSaving(false);
@@ -226,7 +221,6 @@ const AdminMembers = () => {
         setError('Failed to update member. Please try again.');
       }
     } catch (error) {
-      console.error('Error updating member:', error);
       setError('An error occurred while updating the member.');
     } finally {
       setIsSaving(false);
@@ -261,7 +255,6 @@ const AdminMembers = () => {
         setError('Failed to update member status.');
       }
     } catch (error) {
-      console.error('Error toggling member status:', error);
       setMembers(members);
       setError('Failed to update member status.');
     } finally {
@@ -301,7 +294,6 @@ const AdminMembers = () => {
         setError('Failed to update member category.');
       }
     } catch (error) {
-      console.error('Error changing member category:', error);
       setMembers(members);
       setError('Failed to update member category.');
     } finally {
@@ -348,7 +340,6 @@ const AdminMembers = () => {
         setError('Failed to update core team status.');
       }
     } catch (error) {
-      console.error('Error toggling core team status:', error);
       setMembers(members);
       setError('Failed to update core team status.');
     } finally {
@@ -369,7 +360,6 @@ const AdminMembers = () => {
         setError(null);
       }, 5000);
     } catch (error) {
-      console.error('Error syncing member to team:', error);
       setError('An error occurred while syncing to Team Management.');
       setTimeout(() => setError(null), 5000);
     }
@@ -400,7 +390,6 @@ const AdminMembers = () => {
           setError('Failed to delete member. Please try again.');
         }
       } catch (error) {
-        console.error('Error deleting member:', error);
         setError('An error occurred while deleting the member.');
       }
     }
@@ -425,7 +414,7 @@ const AdminMembers = () => {
       actions={
         <button 
           onClick={() => setShowAddMemberModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <UserPlus size={16} />
           <span>Add Member</span>
@@ -436,12 +425,12 @@ const AdminMembers = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {memberStatsDisplay.map((stat, index) => (
-          <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+          <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
             <div className="flex items-center justify-between mb-4">
               <Users size={24} className={stat.color} />
             </div>
-            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-400">{stat.label}</div>
+            <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+            <div className="text-sm text-muted-foreground">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -459,24 +448,24 @@ const AdminMembers = () => {
       )}
 
       {/* Member Categories */}
-      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
-        <h3 className="text-lg font-semibold text-white mb-4">Member Categories</h3>
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Member Categories</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {memberCategories.map((category) => {
             const Icon = category.icon;
             const count = memberStats.categoryDistribution[category.id] || 0;
             return (
-              <div key={category.id} className="border border-gray-800 rounded-lg p-4 hover:bg-gray-900 transition-colors">
+              <div key={category.id} className="border border-border rounded-lg p-4 hover:bg-muted transition-colors">
                 <div className="flex items-center space-x-3 mb-2">
                   <div className={`w-10 h-10 ${category.bgColor} rounded-lg flex items-center justify-center`}>
                     <Icon size={20} className={category.color} />
                   </div>
                   <div>
-                    <h4 className="font-medium text-white">{category.label}</h4>
-                    <p className="text-sm text-gray-400">{count} members</p>
+                    <h4 className="font-medium text-foreground">{category.label}</h4>
+                    <p className="text-sm text-muted-foreground">{count} members</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">{category.description}</p>
+                <p className="text-xs text-muted-foreground">{category.description}</p>
               </div>
             );
           })}
@@ -484,27 +473,27 @@ const AdminMembers = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search members..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-black border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white placeholder:text-gray-400"
+                className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <Filter size={16} className="text-gray-400" />
+            <Filter size={16} className="text-muted-foreground" />
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-4 py-3 bg-black border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+              className="px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
             >
               <option value="all">All Categories</option>
               {memberCategories.map(cat => (
@@ -514,7 +503,7 @@ const AdminMembers = () => {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="px-4 py-3 bg-black border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+              className="px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
             >
               <option value="all">All Years</option>
               <option value="freshman">Freshman</option>
@@ -525,7 +514,7 @@ const AdminMembers = () => {
             <select
               value={filterCoreTeam}
               onChange={(e) => setFilterCoreTeam(e.target.value)}
-              className="px-4 py-3 bg-black border border-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+              className="px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
             >
               <option value="all">All Members</option>
               <option value="core">Core Team</option>
@@ -536,40 +525,40 @@ const AdminMembers = () => {
       </div>
 
       {/* Members List */}
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-          <div className="p-6 border-b border-gray-800">
-            <h2 className="text-xl font-semibold text-white">Members ({filteredMembers.length})</h2>
+        <div className="bg-card rounded-xl shadow-sm border border-border">
+          <div className="p-6 border-b border-border">
+            <h2 className="text-xl font-semibold text-foreground">Members ({filteredMembers.length})</h2>
           </div>
           
           <div className="divide-y divide-border">
             {isLoading ? (
               <div className="p-6 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading members...</p>
+                <p className="text-muted-foreground">Loading members...</p>
               </div>
             ) : filteredMembers.length === 0 ? (
               <div className="p-6 text-center">
-                <Users size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">No members found</h3>
-                <p className="text-gray-400">Try adjusting your search or filters</p>
+                <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No members found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filters</p>
               </div>
             ) : (
               filteredMembers.map((member) => {
                 const categoryInfo = getCategoryInfo(member.category);
                 const CategoryIcon = categoryInfo.icon;
                 return (
-                  <div key={member.id} className="p-6 hover:bg-gray-900/50 transition-colors">
+                  <div key={member.id} className="p-6 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold">
+                        <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                          <span className="text-primary font-semibold">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
                         
                         <div>
                           <div className="flex items-center space-x-3 mb-1">
-                            <h3 className="text-lg font-semibold text-white">{member.name}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">{member.name}</h3>
                             <div className="relative">
                               {changingCategoryId === member.id ? (
                                 <div className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
@@ -594,7 +583,7 @@ const AdminMembers = () => {
                                   }}
                                 >
                                   {memberCategories.map(cat => (
-                                    <option key={cat.id} value={cat.id} className="bg-black text-white">
+                                    <option key={cat.id} value={cat.id} className="bg-card text-foreground">
                                       {cat.label}
                                     </option>
                                   ))}
@@ -613,7 +602,7 @@ const AdminMembers = () => {
                             )}
                           </div>
                           
-                          <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                             <div className="flex items-center space-x-1">
                               <Mail size={14} />
                               <span>{member.email}</span>
@@ -629,7 +618,7 @@ const AdminMembers = () => {
                           
                           <div className="flex items-center space-x-2 mt-3">
                             {member.interests.map((interest, index) => (
-                              <span key={index} className="px-3 py-1 text-xs bg-gray-900 text-gray-400 rounded-full">
+                              <span key={index} className="px-3 py-1 text-xs bg-muted text-muted-foreground rounded-full">
                                 {interest}
                               </span>
                             ))}
@@ -639,8 +628,8 @@ const AdminMembers = () => {
                       
                       <div className="flex items-center space-x-4">
                         <div className="text-right text-sm">
-                          <div className="text-gray-400">Last active</div>
-                          <div className="font-medium text-white">{new Date(member.last_active).toLocaleDateString()}</div>
+                          <div className="text-muted-foreground">Last active</div>
+                          <div className="font-medium text-foreground">{new Date(member.last_active).toLocaleDateString()}</div>
                         </div>
                         
                         <div className="flex items-center space-x-2">
@@ -648,7 +637,7 @@ const AdminMembers = () => {
                             onClick={() => handleToggleActive(member)}
                             disabled={togglingMemberId === member.id}
                             className={`p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                              member.is_active ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-400'
+                              member.is_active ? 'text-green-400 hover:text-green-300' : 'text-muted-foreground hover:text-muted-foreground'
                             }`}
                             title={member.is_active ? 'Deactivate member' : 'Activate member'}
                           >
@@ -664,7 +653,7 @@ const AdminMembers = () => {
                             onClick={() => handleToggleCoreTeam(member)}
                             disabled={togglingCoreTeamId === member.id}
                             className={`p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                              member.is_core_team ? 'text-purple-400 hover:text-purple-300' : 'text-gray-500 hover:text-purple-400'
+                              member.is_core_team ? 'text-purple-400 hover:text-purple-300' : 'text-muted-foreground hover:text-purple-400'
                             }`}
                             title={member.is_core_team ? 'Remove from core team' : 'Add to core team'}
                           >
@@ -676,7 +665,7 @@ const AdminMembers = () => {
                           </button>
                           <button 
                             onClick={() => handleEditMember(member)}
-                            className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                            className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-blue-400"
                             title="Edit member"
                           >
                             <Edit3 size={16} />
@@ -684,7 +673,7 @@ const AdminMembers = () => {
                           {member.is_core_team && (
                             <button 
                               onClick={() => handleSyncToTeam(member)}
-                              className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                              className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-blue-400"
                               title="Sync to Team Management"
                             >
                               <ExternalLink size={16} />
@@ -692,7 +681,7 @@ const AdminMembers = () => {
                           )}
                           <button 
                             onClick={() => handleDeleteMember(member.id)}
-                            className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                            className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-muted-foreground hover:text-red-400"
                             title="Delete member"
                           >
                             <Trash2 size={16} />
@@ -709,7 +698,7 @@ const AdminMembers = () => {
       {/* Add/Edit Member Modal */}
       {(showAddMemberModal || editingMember) && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-card/50"
           style={{ 
             overflow: 'hidden',
             position: 'fixed',
@@ -723,14 +712,14 @@ const AdminMembers = () => {
           onScroll={(e) => e.preventDefault()}
         >
           <div 
-            className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800"
+            className="bg-card rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border"
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-800">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-xl font-semibold text-foreground">
                   {editingMember ? 'Edit Member' : 'Add New Member'}
                 </h2>
                 <button
@@ -739,7 +728,7 @@ const AdminMembers = () => {
                     setEditingMember(null);
                     resetForm();
                   }}
-                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
                   <X size={20} />
                 </button>
@@ -749,7 +738,7 @@ const AdminMembers = () => {
             <form onSubmit={editingMember ? handleUpdateMember : handleCreateMember} className="p-6 space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Basic Information</h3>
+                <h3 className="text-lg font-medium text-foreground">Basic Information</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -759,7 +748,7 @@ const AdminMembers = () => {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="John Doe"
                     />
                   </div>
@@ -771,7 +760,7 @@ const AdminMembers = () => {
                       required
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="john.doe@psu.edu"
                     />
                   </div>
@@ -784,7 +773,7 @@ const AdminMembers = () => {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
@@ -793,14 +782,14 @@ const AdminMembers = () => {
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Member Category
                       {formData.is_core_team && (
-                        <span className="text-xs text-gray-500 ml-2">(Role managed in Team Management)</span>
+                        <span className="text-xs text-muted-foreground ml-2">(Role managed in Team Management)</span>
                       )}
                     </label>
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as Member['category'] }))}
                       disabled={formData.is_core_team}
-                      className={`w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black ${
+                      className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card ${
                         formData.is_core_team ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
@@ -809,7 +798,7 @@ const AdminMembers = () => {
                       ))}
                     </select>
                     {formData.is_core_team && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Core team member roles are managed in Team Management for consistency
                       </p>
                     )}
@@ -819,7 +808,7 @@ const AdminMembers = () => {
 
               {/* Academic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Academic Information</h3>
+                <h3 className="text-lg font-medium text-foreground">Academic Information</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -827,7 +816,7 @@ const AdminMembers = () => {
                     <select
                       value={formData.year}
                       onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     >
                       <option value="">Select Year</option>
                       <option value="Freshman">Freshman</option>
@@ -844,7 +833,7 @@ const AdminMembers = () => {
                       type="text"
                       value={formData.major}
                       onChange={(e) => setFormData(prev => ({ ...prev, major: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="Computer Science"
                     />
                   </div>
@@ -853,7 +842,7 @@ const AdminMembers = () => {
 
               {/* Interests */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Interests</h3>
+                <h3 className="text-lg font-medium text-foreground">Interests</h3>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Add Interest</label>
@@ -863,13 +852,13 @@ const AdminMembers = () => {
                       value={interestInput}
                       onChange={(e) => setInterestInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addInterest())}
-                      className="flex-1 px-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                      className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                       placeholder="e.g., Machine Learning, Web Development"
                     />
                     <button
                       type="button"
                       onClick={addInterest}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
                     >
                       Add
                     </button>
@@ -881,7 +870,7 @@ const AdminMembers = () => {
                         <button
                           type="button"
                           onClick={() => removeInterest(index)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-muted-foreground hover:text-red-400"
                         >
                           <X size={14} />
                         </button>
@@ -893,7 +882,7 @@ const AdminMembers = () => {
 
               {/* Status */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-white">Member Status</h3>
+                <h3 className="text-lg font-medium text-foreground">Member Status</h3>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <input
@@ -901,7 +890,7 @@ const AdminMembers = () => {
                       id="is_active"
                       checked={formData.is_active}
                       onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 bg-black border-gray-700 rounded focus:ring-blue-500 focus:ring-2"
+                      className="w-4 h-4 text-primary bg-card border-border rounded focus:ring-blue-500 focus:ring-2"
                     />
                     <label htmlFor="is_active" className="text-sm font-medium text-gray-300">
                       Active Member
@@ -914,12 +903,12 @@ const AdminMembers = () => {
                       id="is_core_team"
                       checked={formData.is_core_team}
                       onChange={(e) => setFormData(prev => ({ ...prev, is_core_team: e.target.checked }))}
-                      className="w-4 h-4 text-purple-600 bg-black border-gray-700 rounded focus:ring-purple-500 focus:ring-2"
+                      className="w-4 h-4 text-purple-600 bg-card border-border rounded focus:ring-purple-500 focus:ring-2"
                     />
                     <label htmlFor="is_core_team" className="text-sm font-medium text-gray-300">
                       Core Team Member
                     </label>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       (Will also create entry in Team Management)
                     </span>
                   </div>
@@ -932,7 +921,7 @@ const AdminMembers = () => {
                 </div>
               )}
               
-              <div className="flex space-x-3 pt-6 border-t border-gray-800">
+              <div className="flex space-x-3 pt-6 border-t border-border">
                 <button
                   type="button"
                   onClick={() => {
@@ -940,7 +929,7 @@ const AdminMembers = () => {
                     setEditingMember(null);
                     resetForm();
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
                   disabled={isSaving}
                 >
                   Cancel
@@ -948,7 +937,7 @@ const AdminMembers = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSaving ? (
                     <>

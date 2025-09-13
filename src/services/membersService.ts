@@ -30,7 +30,6 @@ export class MembersService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching members:', error);
       return [];
     }
   }
@@ -45,7 +44,6 @@ export class MembersService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching all members:', error);
       return [];
     }
   }
@@ -62,7 +60,6 @@ export class MembersService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching members by category:', error);
       return [];
     }
   }
@@ -85,7 +82,6 @@ export class MembersService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating member:', error);
       return null;
     }
   }
@@ -122,7 +118,6 @@ export class MembersService {
       }
       
       if (!teamMember) {
-        console.log('No corresponding team member found for:', member.name);
         return false;
       }
 
@@ -150,7 +145,6 @@ export class MembersService {
       const updated = await TeamService.updateTeamMember(teamMember.id, updates, true); // Skip sync to prevent loop
       return !!updated;
     } catch (error) {
-      console.error('Error syncing member to team member:', error);
       return false;
     }
   }
@@ -176,7 +170,6 @@ export class MembersService {
       
       return data;
     } catch (error) {
-      console.error('Error updating member:', error);
       return null;
     }
   }
@@ -199,7 +192,6 @@ export class MembersService {
       
       return true; // No team member found, consider it successful
     } catch (error) {
-      console.error('Error deleting team member by name:', error);
       return false;
     }
   }
@@ -230,7 +222,6 @@ export class MembersService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting member:', error);
       return false;
     }
   }
@@ -248,7 +239,6 @@ export class MembersService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error updating last active:', error);
       return false;
     }
   }
@@ -282,7 +272,6 @@ export class MembersService {
       const created = await TeamService.createTeamMember(teamMemberData);
       return !!created;
     } catch (error) {
-      console.error('Error creating team member from member:', error);
       return false;
     }
   }
@@ -313,7 +302,6 @@ export class MembersService {
         categoryDistribution: categoryStats
       };
     } catch (error) {
-      console.error('Error fetching member stats:', error);
       return {
         total: 0,
         active: 0,

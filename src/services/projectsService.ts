@@ -24,7 +24,6 @@ export class ProjectsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching projects:', error);
       return [];
     }
   }
@@ -40,7 +39,6 @@ export class ProjectsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching featured projects:', error);
       return [];
     }
   }
@@ -60,7 +58,6 @@ export class ProjectsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating project:', error);
       return null;
     }
   }
@@ -80,7 +77,6 @@ export class ProjectsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating project:', error);
       return null;
     }
   }
@@ -95,7 +91,6 @@ export class ProjectsService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting project:', error);
       return false;
     }
   }
@@ -125,7 +120,6 @@ export class ProjectsService {
         techDistribution: techStats
       };
     } catch (error) {
-      console.error('Error fetching project stats:', error);
       return {
         total: 0,
         featured: 0,

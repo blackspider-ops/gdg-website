@@ -18,7 +18,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   actions 
 }) => {
   return (
-    <div className="min-h-screen bg-gray-900 pt-20">
+    <div className="min-h-screen bg-background pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -26,7 +26,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
           <div className="mb-4">
             <Link
               to="/admin"
-              className="inline-flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              className="inline-flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={16} />
               <span className="text-sm font-medium">Back to Admin Dashboard</span>
@@ -36,13 +36,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                <Icon size={24} className="text-white" />
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+                <Icon size={24} className="text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">{title}</h1>
+                <h1 className="text-3xl font-bold text-foreground">{title}</h1>
                 {subtitle && (
-                  <p className="text-gray-400 mt-1">{subtitle}</p>
+                  <p className="text-muted-foreground mt-1">{subtitle}</p>
                 )}
               </div>
             </div>

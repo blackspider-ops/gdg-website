@@ -130,7 +130,6 @@ const AdminUsers = () => {
       setActiveSessions(sessions);
       setTeamMembers(allTeamMembers);
     } catch (error) {
-      console.error('Error loading admin data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +162,6 @@ const AdminUsers = () => {
         await loadData();
       }
     } catch (error) {
-      console.error('Error creating admin:', error);
     } finally {
       setIsSaving(false);
     }
@@ -204,7 +202,6 @@ const AdminUsers = () => {
         await loadData();
       }
     } catch (error) {
-      console.error('Error updating admin:', error);
     } finally {
       setIsSaving(false);
     }
@@ -233,7 +230,6 @@ const AdminUsers = () => {
         await loadData();
       }
     } catch (error) {
-      console.error('Error deleting admin:', error);
     } finally {
       setIsSaving(false);
     }
@@ -269,7 +265,6 @@ const AdminUsers = () => {
         await loadData();
       }
     } catch (error) {
-      console.error('Error resetting password:', error);
     } finally {
       setIsSaving(false);
     }
@@ -327,7 +322,6 @@ const AdminUsers = () => {
         await loadData();
       }
     } catch (error) {
-      console.error('Error promoting team member:', error);
     } finally {
       setIsSaving(false);
     }
@@ -398,22 +392,22 @@ const AdminUsers = () => {
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'login': return <Shield size={16} className="text-green-600" />;
-      case 'create_admin': return <Plus size={16} className="text-blue-600" />;
+      case 'create_admin': return <Plus size={16} className="text-primary" />;
       case 'update_admin': return <Edit3 size={16} className="text-yellow-600" />;
       case 'delete_admin': return <Trash2 size={16} className="text-red-600" />;
       case 'reset_password': return <Key size={16} className="text-purple-600" />;
-      default: return <Clock size={16} className="text-gray-400" />;
+      default: return <Clock size={16} className="text-muted-foreground" />;
     }
   };
 
   const getActionColor = (action: string) => {
     switch (action) {
       case 'login': return 'bg-green-50 text-green-700 border-green-200';
-      case 'create_admin': return 'bg-gray-900 text-blue-700 border-blue-200';
+      case 'create_admin': return 'bg-muted text-blue-700 border-blue-200';
       case 'update_admin': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       case 'delete_admin': return 'bg-red-50 text-red-700 border-red-200';
       case 'reset_password': return 'bg-purple-50 text-purple-700 border-purple-200';
-      default: return 'bg-gray-900 text-gray-300 border-gray-800';
+      default: return 'bg-muted text-gray-300 border-border';
     }
   };
 
@@ -425,7 +419,7 @@ const AdminUsers = () => {
       actions={
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <Plus size={16} />
           <span>Add Admin</span>
@@ -433,14 +427,14 @@ const AdminUsers = () => {
       }
     >
       {/* Tabs */}
-      <div className="border-b border-gray-800 mb-8">
+      <div className="border-b border-border mb-8">
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('users')}
             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'users'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                ? 'border-blue-600 text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
             }`}
           >
             <Users size={16} />
@@ -450,8 +444,8 @@ const AdminUsers = () => {
             onClick={() => setActiveTab('team')}
             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'team'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                ? 'border-blue-600 text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
             }`}
           >
             <Shield size={16} />
@@ -461,8 +455,8 @@ const AdminUsers = () => {
             onClick={() => setActiveTab('audit')}
             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'audit'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                ? 'border-blue-600 text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
             }`}
           >
             <Clock size={16} />
@@ -472,8 +466,8 @@ const AdminUsers = () => {
             onClick={() => setActiveTab('security')}
             className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'security'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                ? 'border-blue-600 text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
             }`}
           >
             <Key size={16} />
@@ -484,33 +478,33 @@ const AdminUsers = () => {
 
       {/* Admin Users Tab */}
       {activeTab === 'users' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
           <div className="p-6">
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-400 mt-2">Loading admin users...</p>
+                <p className="text-muted-foreground mt-2">Loading admin users...</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="text-left py-3 px-4 font-medium text-white">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Role</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Last Login</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Created</th>
-                      <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Role</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Last Login</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Created</th>
+                      <th className="text-right py-3 px-4 font-medium text-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {admins.map((admin) => (
-                      <tr key={admin.id} className="border-b border-gray-100 hover:bg-gray-900">
+                      <tr key={admin.id} className="border-b border-gray-100 hover:bg-muted">
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-3">
-                            <Mail size={16} className="text-gray-400" />
-                            <span className="font-medium text-white">{admin.email}</span>
+                            <Mail size={16} className="text-muted-foreground" />
+                            <span className="font-medium text-foreground">{admin.email}</span>
                             {admin.id === currentAdmin?.id && (
                               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">You</span>
                             )}
@@ -521,7 +515,7 @@ const AdminUsers = () => {
                             {admin.role === 'super_admin' ? (
                               <ShieldCheck size={16} className="text-red-600" />
                             ) : (
-                              <Shield size={16} className="text-blue-600" />
+                              <Shield size={16} className="text-primary" />
                             )}
                             <span className={`text-sm font-medium ${
                               admin.role === 'super_admin' ? 'text-red-700' : 'text-blue-700'
@@ -539,17 +533,17 @@ const AdminUsers = () => {
                             {admin.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-sm text-gray-400">
+                        <td className="py-4 px-4 text-sm text-muted-foreground">
                           {admin.last_login ? formatDate(admin.last_login) : 'Never'}
                         </td>
-                        <td className="py-4 px-4 text-sm text-gray-400">
+                        <td className="py-4 px-4 text-sm text-muted-foreground">
                           {formatDate(admin.created_at)}
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center justify-end space-x-2">
                             <button
                               onClick={() => openEditModal(admin)}
-                              className="p-2 text-blue-600 hover:bg-gray-900 rounded-lg transition-colors"
+                              className="p-2 text-primary hover:bg-muted rounded-lg transition-colors"
                               title="Edit admin"
                             >
                               <Edit3 size={16} />
@@ -579,9 +573,9 @@ const AdminUsers = () => {
 
                 {admins.length === 0 && (
                   <div className="text-center py-8">
-                    <Users size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-white mb-2">No admin users found</h3>
-                    <p className="text-gray-400">Create your first admin user to get started.</p>
+                    <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No admin users found</h3>
+                    <p className="text-muted-foreground">Create your first admin user to get started.</p>
                   </div>
                 )}
               </div>
@@ -592,14 +586,14 @@ const AdminUsers = () => {
 
       {/* Team Members Tab */}
       {activeTab === 'team' && (
-        <div className="bg-black rounded-xl shadow-sm border border-gray-800">
+        <div className="bg-card rounded-xl shadow-sm border border-border">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-white">Team Members</h3>
-                <p className="text-gray-400 mt-1">Promote team members to admin status</p>
+                <h3 className="text-lg font-semibold text-foreground">Team Members</h3>
+                <p className="text-muted-foreground mt-1">Promote team members to admin status</p>
               </div>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-muted-foreground">
                 {teamMembers.length} total members • {teamMembers.filter(m => m.is_active).length} active
               </div>
             </div>
@@ -607,26 +601,26 @@ const AdminUsers = () => {
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-400 mt-2">Loading team members...</p>
+                <p className="text-muted-foreground mt-2">Loading team members...</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="text-left py-3 px-4 font-medium text-white">Name</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Role</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-white">Admin Status</th>
-                      <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Role</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-foreground">Admin Status</th>
+                      <th className="text-right py-3 px-4 font-medium text-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {teamMembers.map((member) => {
                       const isAdmin = isTeamMemberAdmin(member);
                       return (
-                        <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-900">
+                        <tr key={member.id} className="border-b border-gray-100 hover:bg-muted">
                           <td className="py-4 px-4">
                             <div className="flex items-center space-x-3">
                               {member.image_url ? (
@@ -637,12 +631,12 @@ const AdminUsers = () => {
                                 />
                               ) : (
                                 <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                                  <span className="text-xs font-medium text-white">
+                                  <span className="text-xs font-medium text-foreground">
                                     {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                                   </span>
                                 </div>
                               )}
-                              <span className="font-medium text-white">{member.name}</span>
+                              <span className="font-medium text-foreground">{member.name}</span>
                             </div>
                           </td>
                           <td className="py-4 px-4">
@@ -679,7 +673,7 @@ const AdminUsers = () => {
                               {!isAdmin && member.is_active && (
                                 <button
                                   onClick={() => openPromoteModal(member)}
-                                  className="flex items-center space-x-1 px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                  className="flex items-center space-x-1 px-3 py-1 text-xs bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                                   title="Promote to admin"
                                 >
                                   <ShieldCheck size={12} />
@@ -687,10 +681,10 @@ const AdminUsers = () => {
                                 </button>
                               )}
                               {isAdmin && (
-                                <span className="text-xs text-gray-400">Already admin</span>
+                                <span className="text-xs text-muted-foreground">Already admin</span>
                               )}
                               {!member.is_active && (
-                                <span className="text-xs text-gray-500">Inactive</span>
+                                <span className="text-xs text-muted-foreground">Inactive</span>
                               )}
                             </div>
                           </td>
@@ -702,9 +696,9 @@ const AdminUsers = () => {
 
                 {teamMembers.length === 0 && (
                   <div className="text-center py-8">
-                    <Users size={48} className="mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-white mb-2">No team members found</h3>
-                    <p className="text-gray-400">Team members will appear here once they are added to the system.</p>
+                    <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No team members found</h3>
+                    <p className="text-muted-foreground">Team members will appear here once they are added to the system.</p>
                   </div>
                 )}
               </div>
@@ -725,10 +719,10 @@ const AdminUsers = () => {
 
       {/* Create Admin Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="text-lg font-semibold text-white">Create New Admin</h3>
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Create New Admin</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -737,7 +731,7 @@ const AdminUsers = () => {
                   type="email"
                   value={createForm.email}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                   placeholder="admin@example.com"
                 />
               </div>
@@ -748,13 +742,13 @@ const AdminUsers = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={createForm.password}
                     onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     placeholder="Enter secure password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -765,24 +759,24 @@ const AdminUsers = () => {
                 <select
                   value={createForm.role}
                   onChange={(e) => setCreateForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
                 </select>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateAdmin}
                 disabled={isSaving || !createForm.email || !createForm.password}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
               >
                 <Save size={16} />
                 <span>{isSaving ? 'Creating...' : 'Create Admin'}</span>
@@ -794,10 +788,10 @@ const AdminUsers = () => {
 
       {/* Edit Admin Modal */}
       {showEditModal && selectedAdmin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="text-lg font-semibold text-white">Edit Admin User</h3>
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Edit Admin User</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -806,7 +800,7 @@ const AdminUsers = () => {
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 />
               </div>
               <div>
@@ -814,7 +808,7 @@ const AdminUsers = () => {
                 <select
                   value={editForm.role}
                   onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
@@ -826,24 +820,24 @@ const AdminUsers = () => {
                   id="is_active"
                   checked={editForm.is_active}
                   onChange={(e) => setEditForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-400 border-gray-700 rounded"
+                  className="h-4 w-4 text-primary focus:ring-blue-400 border-border rounded"
                 />
-                <label htmlFor="is_active" className="ml-2 block text-sm text-white">
+                <label htmlFor="is_active" className="ml-2 block text-sm text-foreground">
                   Active user
                 </label>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEditAdmin}
                 disabled={isSaving}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
               >
                 <Save size={16} />
                 <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
@@ -855,11 +849,11 @@ const AdminUsers = () => {
 
       {/* Reset Password Modal */}
       {showPasswordModal && selectedAdmin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="text-lg font-semibold text-white">Reset Password</h3>
-              <p className="text-sm text-gray-400 mt-1">
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Reset Password</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 Reset password for {selectedAdmin.email}
               </p>
             </div>
@@ -871,13 +865,13 @@ const AdminUsers = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     placeholder="Enter new password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -890,13 +884,13 @@ const AdminUsers = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                    className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     placeholder="Confirm new password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                   >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -906,17 +900,17 @@ const AdminUsers = () => {
                 <p className="text-sm text-red-600">Passwords do not match</p>
               )}
             </div>
-            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleResetPassword}
                 disabled={isSaving || !passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-foreground rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
               >
                 <Key size={16} />
                 <span>{isSaving ? 'Resetting...' : 'Reset Password'}</span>
@@ -928,31 +922,31 @@ const AdminUsers = () => {
 
       {/* Delete Admin Modal */}
       {showDeleteModal && selectedAdmin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-800">
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center space-x-3">
                 <AlertTriangle size={24} className="text-red-600" />
-                <h3 className="text-lg font-semibold text-white">Delete Admin User</h3>
+                <h3 className="text-lg font-semibold text-foreground">Delete Admin User</h3>
               </div>
             </div>
             <div className="p-6">
-              <p className="text-gray-400">
+              <p className="text-muted-foreground">
                 Are you sure you want to delete the admin user <strong>{selectedAdmin.email}</strong>? 
                 This action cannot be undone.
               </p>
             </div>
-            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAdmin}
                 disabled={isSaving}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-foreground rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
               >
                 <Trash2 size={16} />
                 <span>{isSaving ? 'Deleting...' : 'Delete Admin'}</span>
@@ -964,11 +958,11 @@ const AdminUsers = () => {
 
       {/* Promote Team Member Modal */}
       {showPromoteModal && selectedTeamMember && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="text-lg font-semibold text-white">Promote Team Member to Admin</h3>
-              <p className="text-sm text-gray-400 mt-1">
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Promote Team Member to Admin</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 Promote {selectedTeamMember.name} ({selectedTeamMember.role}) to admin status
               </p>
             </div>
@@ -991,10 +985,10 @@ const AdminUsers = () => {
                   type="email"
                   value={promoteForm.email}
                   onChange={(e) => setPromoteForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                   placeholder="Enter admin email address"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   This will be the email used to log into the admin panel
                 </p>
               </div>
@@ -1015,7 +1009,7 @@ const AdminUsers = () => {
                           password: useTemp ? prev.temporaryPassword : ''
                         }));
                       }}
-                      className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                      className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                     />
                     <label htmlFor="useTemporaryPassword" className="text-sm text-gray-300">
                       Use temporary password
@@ -1039,7 +1033,7 @@ const AdminUsers = () => {
                         type={showPassword ? 'text' : 'password'}
                         value={promoteForm.temporaryPassword}
                         readOnly
-                        className="w-full px-4 py-3 pr-24 border border-gray-700 rounded-lg bg-gray-900 text-white font-mono text-sm"
+                        className="w-full px-4 py-3 pr-24 border border-border rounded-lg bg-muted text-foreground font-mono text-sm"
                       />
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
                         <button
@@ -1060,13 +1054,13 @@ const AdminUsers = () => {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="text-gray-400 hover:text-gray-300"
+                          className="text-muted-foreground hover:text-gray-300"
                         >
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       Copy this password and share it securely with {selectedTeamMember.name}. They must change it on first login.
                     </p>
                   </div>
@@ -1076,13 +1070,13 @@ const AdminUsers = () => {
                       type={showPassword ? 'text' : 'password'}
                       value={promoteForm.password}
                       onChange={(e) => setPromoteForm(prev => ({ ...prev, password: e.target.value }))}
-                      className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                      className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                       placeholder="Enter permanent password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -1095,27 +1089,27 @@ const AdminUsers = () => {
                 <select
                   value={promoteForm.role}
                   onChange={(e) => setPromoteForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-black text-white"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
                 </select>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Super admins have full access to all admin functions
                 </p>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
               <button
                 onClick={() => setShowPromoteModal(false)}
-                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePromoteTeamMember}
                 disabled={isSaving || !promoteForm.email || !promoteForm.password}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
               >
                 <ShieldCheck size={16} />
                 <span>{isSaving ? 'Promoting...' : 'Promote to Admin'}</span>
@@ -1127,16 +1121,16 @@ const AdminUsers = () => {
 
       {/* Promotion Success Modal */}
       {showPromoteSuccessModal && promotedAdminInfo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black rounded-xl shadow-xl max-w-lg w-full mx-4">
-            <div className="p-6 border-b border-gray-800">
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-lg w-full mx-4">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                  <ShieldCheck size={20} className="text-white" />
+                  <ShieldCheck size={20} className="text-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Team Member Promoted Successfully!</h3>
-                  <p className="text-sm text-gray-400">
+                  <h3 className="text-lg font-semibold text-foreground">Team Member Promoted Successfully!</h3>
+                  <p className="text-sm text-muted-foreground">
                     {promotedAdminInfo.name} has been promoted to {promotedAdminInfo.role}
                   </p>
                 </div>
@@ -1148,16 +1142,16 @@ const AdminUsers = () => {
                 <h4 className="font-medium text-green-300 mb-3">Admin Account Created</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Name:</span>
-                    <span className="text-white font-medium">{promotedAdminInfo.name}</span>
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="text-foreground font-medium">{promotedAdminInfo.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Email:</span>
-                    <span className="text-white font-medium">{promotedAdminInfo.email}</span>
+                    <span className="text-muted-foreground">Email:</span>
+                    <span className="text-foreground font-medium">{promotedAdminInfo.email}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Role:</span>
-                    <span className="text-white font-medium">
+                    <span className="text-muted-foreground">Role:</span>
+                    <span className="text-foreground font-medium">
                       {promotedAdminInfo.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                     </span>
                   </div>
@@ -1210,13 +1204,13 @@ const AdminUsers = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-800 flex items-center justify-end space-x-3">
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
               <button
                 onClick={() => {
                   setShowPromoteSuccessModal(false);
                   setPromotedAdminInfo(null);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 Done
               </button>

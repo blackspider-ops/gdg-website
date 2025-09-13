@@ -130,9 +130,9 @@ const Blog = () => {
                   <input
                     type="email"
                     placeholder="Enter your email"
-                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <button className="btn-editorial px-4 py-2 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90 w-full">
+                  <button className="btn-editorial px-4 py-2 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90 w-full">
                     Subscribe
                   </button>
                 </div>
@@ -204,7 +204,7 @@ const Blog = () => {
             </p>
             <Link 
               to="/contact"
-              className="btn-editorial px-6 py-3 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90 inline-flex items-center"
+              className="btn-editorial px-6 py-3 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90 inline-flex items-center"
             >
               Submit a Post
             </Link>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { Settings, User, Shield, Bell, Database, Palette, Save, Key, Eye, EyeOff, AlertTriangle, Mail, Slack, Github, Webhook, Monitor, Sun, Moon, Zap, Volume2, VolumeX } from 'lucide-react';
 import { ContentService } from '@/services/contentService';
@@ -8,12 +7,11 @@ import AdminLayout from '@/components/admin/AdminLayout';
 
 const AdminSettings = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess, setAllowDirectAdminAccess } = useDev();
   const [activeTab, setActiveTab] = useState('general');
 
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+  
 
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -72,8 +70,7 @@ const AdminSettings = () => {
   ];
 
   const handleSave = () => {
-    // TODO: Implement settings save
-    console.log('Saving settings:', settings);
+    // Settings save functionality
   };
 
   return (
@@ -84,7 +81,7 @@ const AdminSettings = () => {
       actions={
         <button
           onClick={handleSave}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <Save size={16} />
           <span>Save Changes</span>
@@ -92,7 +89,7 @@ const AdminSettings = () => {
       }
     >
       {/* Tabs */}
-      <div className="border-b border-gray-800 mb-8">
+      <div className="border-b border-border mb-8">
         <nav className="flex space-x-8 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -102,8 +99,8 @@ const AdminSettings = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                    ? 'border-blue-600 text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
                 }`}
               >
                 <Icon size={16} />
@@ -118,8 +115,8 @@ const AdminSettings = () => {
       <div>
         {activeTab === 'general' && (
           <div className="space-y-6">
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Site Information</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Site Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -128,7 +125,7 @@ const AdminSettings = () => {
                     type="text"
                     value={settings.siteName}
                     onChange={(e) => setSettings(prev => ({ ...prev, siteName: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                   />
                 </div>
                 
@@ -138,7 +135,7 @@ const AdminSettings = () => {
                     type="email"
                     value={settings.contactEmail}
                     onChange={(e) => setSettings(prev => ({ ...prev, contactEmail: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                   />
                 </div>
               </div>
@@ -149,7 +146,7 @@ const AdminSettings = () => {
                   rows={3}
                   value={settings.siteDescription}
                   onChange={(e) => setSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                 />
               </div>
               
@@ -160,7 +157,7 @@ const AdminSettings = () => {
                     type="text"
                     value={settings.meetingTime}
                     onChange={(e) => setSettings(prev => ({ ...prev, meetingTime: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                   />
                 </div>
                 
@@ -170,39 +167,39 @@ const AdminSettings = () => {
                     type="text"
                     value={settings.meetingLocation}
                     onChange={(e) => setSettings(prev => ({ ...prev, meetingLocation: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Site Features</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Site Features</h3>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Event Registrations</div>
-                    <div className="text-sm text-gray-400">Allow users to register for events</div>
+                    <div className="font-medium text-foreground">Event Registrations</div>
+                    <div className="text-sm text-muted-foreground">Allow users to register for events</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={settings.enableRegistrations}
                     onChange={(e) => setSettings(prev => ({ ...prev, enableRegistrations: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Newsletter Signup</div>
-                    <div className="text-sm text-gray-400">Enable newsletter subscription</div>
+                    <div className="font-medium text-foreground">Newsletter Signup</div>
+                    <div className="text-sm text-muted-foreground">Enable newsletter subscription</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={settings.enableNewsletter}
                     onChange={(e) => setSettings(prev => ({ ...prev, enableNewsletter: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
                 
@@ -212,233 +209,104 @@ const AdminSettings = () => {
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Maintenance Mode</div>
-                    <div className="text-sm text-gray-400">Put site in maintenance mode</div>
+                    <div className="font-medium text-foreground">Maintenance Mode</div>
+                    <div className="text-sm text-muted-foreground">Put site in maintenance mode</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={settings.maintenanceMode}
                     onChange={(e) => setSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Development Settings */}
-            {isDevelopmentMode && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                <h3 className="font-semibold text-lg mb-6 text-yellow-800">Development Settings</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-yellow-800">Direct Admin Access</div>
-                      <div className="text-sm text-yellow-600">Allow accessing admin pages without authentication</div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={allowDirectAdminAccess}
-                      onChange={(e) => setAllowDirectAdminAccess(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
-                    />
-                  </div>
-                </div>
-                
-                <div className="mt-4 p-3 bg-yellow-100 rounded-md">
-                  <p className="text-xs text-yellow-700">
-                    <strong>Note:</strong> Development settings are only available in development mode and will be automatically disabled in production builds.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'profile' && (
-          <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-6 text-white">Admin Profile</h3>
-            
-            <div className="flex items-center space-x-6 mb-6">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-2xl">
-                  {currentAdmin?.email?.charAt(0).toUpperCase() || 'A'}
-                </span>
-              </div>
-              <div>
-                <h4 className="font-semibold text-lg text-white">{currentAdmin?.email || 'Admin User'}</h4>
-                <p className="text-gray-400">{currentAdmin?.role || 'Administrator'}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-300">Email Address</label>
-                <input
-                  type="email"
-                  value={currentAdmin?.email || ''}
-                  disabled
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg bg-gray-900 text-gray-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-300">Role</label>
-                <input
-                  type="text"
-                  value={currentAdmin?.role || ''}
-                  disabled
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg bg-gray-900 text-gray-500"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'security' && (
-          <div className="space-y-6">
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Password & Security</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-300">Current Password</label>
-                  <input
-                    type="password"
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
-                    placeholder="Enter current password"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-300">New Password</label>
-                  <input
-                    type="password"
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
-                    placeholder="Enter new password"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-300">Confirm New Password</label>
-                  <input
-                    type="password"
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
-                    placeholder="Confirm new password"
-                  />
-                </div>
-                
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                  Update Password
-                </button>
-              </div>
-            </div>
-
-            <AdminSecretCodeSettings currentAdmin={currentAdmin} />
-          </div>
-        )}
-
-        {/* Notifications Tab */}
-        {activeTab === 'notifications' && (
-          <div className="space-y-6">
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Email Notifications</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-white">Email Notifications</div>
-                    <div className="text-sm text-gray-400">Receive notifications via email</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notificationSettings.emailNotifications}
-                    onChange={(e) => setNotificationSettings(prev => ({ ...prev, emailNotifications: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">New Member Alerts</div>
-                    <div className="text-sm text-gray-400">Get notified when new members join</div>
+                    <div className="font-medium text-foreground">New Member Alerts</div>
+                    <div className="text-sm text-muted-foreground">Get notified when new members join</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={notificationSettings.newMemberAlerts}
                     onChange={(e) => setNotificationSettings(prev => ({ ...prev, newMemberAlerts: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Event Reminders</div>
-                    <div className="text-sm text-gray-400">Reminders for upcoming events</div>
+                    <div className="font-medium text-foreground">Event Reminders</div>
+                    <div className="text-sm text-muted-foreground">Reminders for upcoming events</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={notificationSettings.eventReminders}
                     onChange={(e) => setNotificationSettings(prev => ({ ...prev, eventReminders: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">System Alerts</div>
-                    <div className="text-sm text-gray-400">Important system notifications</div>
+                    <div className="font-medium text-foreground">System Alerts</div>
+                    <div className="text-sm text-muted-foreground">Important system notifications</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={notificationSettings.systemAlerts}
                     onChange={(e) => setNotificationSettings(prev => ({ ...prev, systemAlerts: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Weekly Digest</div>
-                    <div className="text-sm text-gray-400">Weekly summary of activities</div>
+                    <div className="font-medium text-foreground">Weekly Digest</div>
+                    <div className="text-sm text-muted-foreground">Weekly summary of activities</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={notificationSettings.weeklyDigest}
                     onChange={(e) => setNotificationSettings(prev => ({ ...prev, weeklyDigest: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Browser Notifications</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Browser Notifications</h3>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Desktop Notifications</div>
-                    <div className="text-sm text-gray-400">Show browser notifications</div>
+                    <div className="font-medium text-foreground">Desktop Notifications</div>
+                    <div className="text-sm text-muted-foreground">Show browser notifications</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={notificationSettings.desktopNotifications}
                     onChange={(e) => setNotificationSettings(prev => ({ ...prev, desktopNotifications: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Sound Notifications</div>
-                    <div className="text-sm text-gray-400">Play sound for notifications</div>
+                    <div className="font-medium text-foreground">Sound Notifications</div>
+                    <div className="text-sm text-muted-foreground">Play sound for notifications</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={notificationSettings.soundEnabled}
                     onChange={(e) => setNotificationSettings(prev => ({ ...prev, soundEnabled: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
               </div>
@@ -449,8 +317,8 @@ const AdminSettings = () => {
         {/* Integrations Tab */}
         {activeTab === 'integrations' && (
           <div className="space-y-6">
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Communication Integrations</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Communication Integrations</h3>
               
               <div className="space-y-6">
                 <div>
@@ -462,10 +330,10 @@ const AdminSettings = () => {
                     type="url"
                     value={integrationSettings.slackWebhook}
                     onChange={(e) => setIntegrationSettings(prev => ({ ...prev, slackWebhook: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                     placeholder="https://hooks.slack.com/services/..."
                   />
-                  <p className="text-xs text-gray-400 mt-1">Send notifications to your Slack workspace</p>
+                  <p className="text-xs text-muted-foreground mt-1">Send notifications to your Slack workspace</p>
                 </div>
 
                 <div>
@@ -477,31 +345,31 @@ const AdminSettings = () => {
                     type="url"
                     value={integrationSettings.discordWebhook}
                     onChange={(e) => setIntegrationSettings(prev => ({ ...prev, discordWebhook: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                     placeholder="https://discord.com/api/webhooks/..."
                   />
-                  <p className="text-xs text-gray-400 mt-1">Send notifications to your Discord server</p>
+                  <p className="text-xs text-muted-foreground mt-1">Send notifications to your Discord server</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Development Integrations</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Development Integrations</h3>
               
               <div className="space-y-6">
                 <div>
                   <label className="flex items-center space-x-3 mb-2">
-                    <Github size={20} className="text-white" />
+                    <Github size={20} className="text-foreground" />
                     <span className="text-sm font-medium text-gray-300">GitHub Personal Access Token</span>
                   </label>
                   <input
                     type="password"
                     value={integrationSettings.githubToken}
                     onChange={(e) => setIntegrationSettings(prev => ({ ...prev, githubToken: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Connect to GitHub for project management</p>
+                  <p className="text-xs text-muted-foreground mt-1">Connect to GitHub for project management</p>
                 </div>
 
                 <div>
@@ -513,31 +381,31 @@ const AdminSettings = () => {
                     type="url"
                     value={integrationSettings.zapierWebhook}
                     onChange={(e) => setIntegrationSettings(prev => ({ ...prev, zapierWebhook: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                     placeholder="https://hooks.zapier.com/hooks/catch/..."
                   />
-                  <p className="text-xs text-gray-400 mt-1">Automate workflows with Zapier</p>
+                  <p className="text-xs text-muted-foreground mt-1">Automate workflows with Zapier</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Analytics & Marketing</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Analytics & Marketing</h3>
               
               <div className="space-y-6">
                 <div>
                   <label className="flex items-center space-x-3 mb-2">
-                    <Monitor size={20} className="text-blue-600" />
+                    <Monitor size={20} className="text-primary" />
                     <span className="text-sm font-medium text-gray-300">Google Analytics ID</span>
                   </label>
                   <input
                     type="text"
                     value={integrationSettings.googleAnalyticsId}
                     onChange={(e) => setIntegrationSettings(prev => ({ ...prev, googleAnalyticsId: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                     placeholder="G-XXXXXXXXXX"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Track website analytics with Google Analytics</p>
+                  <p className="text-xs text-muted-foreground mt-1">Track website analytics with Google Analytics</p>
                 </div>
 
                 <div>
@@ -549,10 +417,10 @@ const AdminSettings = () => {
                     type="password"
                     value={integrationSettings.mailchimpApiKey}
                     onChange={(e) => setIntegrationSettings(prev => ({ ...prev, mailchimpApiKey: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                     placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-us1"
                   />
-                  <p className="text-xs text-gray-400 mt-1">Sync newsletter subscribers with Mailchimp</p>
+                  <p className="text-xs text-muted-foreground mt-1">Sync newsletter subscribers with Mailchimp</p>
                 </div>
               </div>
             </div>
@@ -562,8 +430,8 @@ const AdminSettings = () => {
         {/* Appearance Tab */}
         {activeTab === 'appearance' && (
           <div className="space-y-6">
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Theme Settings</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Theme Settings</h3>
               
               <div className="space-y-6">
                 <div>
@@ -581,8 +449,8 @@ const AdminSettings = () => {
                           onClick={() => setAppearanceSettings(prev => ({ ...prev, theme: theme.id }))}
                           className={`flex flex-col items-center p-4 border-2 rounded-lg transition-colors ${
                             appearanceSettings.theme === theme.id
-                              ? 'border-blue-600 bg-gray-900 text-blue-700'
-                              : 'border-gray-800 hover:border-gray-700 text-gray-400'
+                              ? 'border-blue-600 bg-muted text-blue-700'
+                              : 'border-border hover:border-border text-muted-foreground'
                           }`}
                         >
                           <Icon size={24} className="mb-2" />
@@ -600,17 +468,17 @@ const AdminSettings = () => {
                       type="color"
                       value={appearanceSettings.primaryColor}
                       onChange={(e) => setAppearanceSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
-                      className="w-12 h-12 border border-gray-700 rounded-lg cursor-pointer"
+                      className="w-12 h-12 border border-border rounded-lg cursor-pointer"
                     />
                     <input
                       type="text"
                       value={appearanceSettings.primaryColor}
                       onChange={(e) => setAppearanceSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
-                      className="flex-1 px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                      className="flex-1 px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                       placeholder="#3B82F6"
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Choose the primary color for the admin interface</p>
+                  <p className="text-xs text-muted-foreground mt-1">Choose the primary color for the admin interface</p>
                 </div>
 
                 <div>
@@ -618,7 +486,7 @@ const AdminSettings = () => {
                   <select
                     value={appearanceSettings.fontSize}
                     onChange={(e) => setAppearanceSettings(prev => ({ ...prev, fontSize: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                   >
                     <option value="small">Small</option>
                     <option value="medium">Medium</option>
@@ -628,54 +496,54 @@ const AdminSettings = () => {
               </div>
             </div>
 
-            <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-              <h3 className="font-semibold text-lg mb-6 text-white">Interface Options</h3>
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Interface Options</h3>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Compact Mode</div>
-                    <div className="text-sm text-gray-400">Reduce spacing and padding for more content</div>
+                    <div className="font-medium text-foreground">Compact Mode</div>
+                    <div className="text-sm text-muted-foreground">Reduce spacing and padding for more content</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={appearanceSettings.compactMode}
                     onChange={(e) => setAppearanceSettings(prev => ({ ...prev, compactMode: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">Show Animations</div>
-                    <div className="text-sm text-gray-400">Enable smooth transitions and animations</div>
+                    <div className="font-medium text-foreground">Show Animations</div>
+                    <div className="text-sm text-muted-foreground">Enable smooth transitions and animations</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={appearanceSettings.showAnimations}
                     onChange={(e) => setAppearanceSettings(prev => ({ ...prev, showAnimations: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-medium text-white">High Contrast</div>
-                    <div className="text-sm text-gray-400">Increase contrast for better accessibility</div>
+                    <div className="font-medium text-foreground">High Contrast</div>
+                    <div className="text-sm text-muted-foreground">Increase contrast for better accessibility</div>
                   </div>
                   <input
                     type="checkbox"
                     checked={appearanceSettings.highContrast}
                     onChange={(e) => setAppearanceSettings(prev => ({ ...prev, highContrast: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-blue-200 rounded-lg p-4">
+            <div className="bg-muted border border-blue-200 rounded-lg p-4">
               <div className="flex items-start space-x-3">
-                <Palette size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                <Palette size={20} className="text-primary flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-medium text-blue-800 mb-1">Preview Changes</h4>
                   <p className="text-sm text-blue-700 leading-relaxed">
@@ -709,7 +577,6 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
         setCurrentSecretCode(code);
         setSecretCode(code);
       } catch (error) {
-        console.error('Error loading secret code:', error);
         setMessage({ type: 'error', text: 'Failed to load current secret code' });
       }
     };
@@ -765,13 +632,11 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
         // Log the action if we have admin service
         if (currentAdmin?.id) {
           // We could add this to AdminService if needed
-          console.log('Admin secret code changed by:', currentAdmin.email);
         }
       } else {
         setMessage({ type: 'error', text: 'Failed to update secret code. Please try again.' });
       }
     } catch (error) {
-      console.error('Error updating secret code:', error);
       setMessage({ type: 'error', text: 'An error occurred while updating the secret code' });
     } finally {
       setIsSaving(false);
@@ -803,10 +668,10 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
   };
 
   return (
-    <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
       <div className="flex items-center space-x-3 mb-6">
-        <Key size={20} className="text-blue-600" />
-        <h3 className="font-semibold text-lg text-white">Admin Access Secret Code</h3>
+        <Key size={20} className="text-primary" />
+        <h3 className="font-semibold text-lg text-foreground">Admin Access Secret Code</h3>
       </div>
 
       <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
@@ -844,16 +709,16 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
               className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
                 isEditing 
                   ? validationError 
-                    ? 'border-red-300 bg-black focus:ring-red-500 focus:border-red-500 text-white' 
-                    : 'border-gray-700 bg-black focus:ring-blue-400 focus:border-blue-400 text-white'
-                  : 'border-gray-700 bg-gray-900 text-gray-500'
+                    ? 'border-red-300 bg-card focus:ring-red-500 focus:border-red-500 text-foreground' 
+                    : 'border-border bg-card focus:ring-blue-400 focus:border-blue-400 text-foreground'
+                  : 'border-border bg-muted text-muted-foreground'
               }`}
               placeholder="Enter new secret code (e.g., admin-secret@example.com)"
             />
             <button
               type="button"
               onClick={() => setShowCode(!showCode)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-400 transition-colors"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition-colors"
             >
               {showCode ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -864,14 +729,14 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
               <span>{validationError}</span>
             </p>
           ) : (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Must be in email format with @ symbol and end with .com (e.g., admin-secret@example.com)
             </p>
           )}
         </div>
 
         <div className="flex items-center justify-between pt-4">
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-muted-foreground">
             <strong>How it works:</strong> Enter this code in the newsletter signup field on the website footer to trigger the admin login popup.
           </div>
           
@@ -880,14 +745,14 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
               <>
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                  className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveSecretCode}
                   disabled={isSaving || !secretCode.trim() || !!validationError}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
                 >
                   <Save size={16} />
                   <span>{isSaving ? 'Saving...' : 'Save Code'}</span>
@@ -896,7 +761,7 @@ const AdminSecretCodeSettings = ({ currentAdmin }: { currentAdmin: any }) => {
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 <Key size={16} />
                 <span>Change Code</span>

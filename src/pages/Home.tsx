@@ -1,11 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar, Code, Users, BookOpen, Smartphone, Cloud, Brain } from 'lucide-react';
 import EventCard from '@/components/EventCard';
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import { useContent } from '@/contexts/ContentContext';
 
 const Home = () => {
-  const { getPageSection, events, projects } = useContent();
+  const { 
+    getPageSection, 
+    events, 
+    projects, 
+    isLoadingEvents, 
+    isLoadingProjects,
+    loadEvents, 
+    loadProjects 
+  } = useContent();
+
+  // Lazy load events and projects when component mounts
+  useEffect(() => {
+    loadEvents();
+    loadProjects();
+  }, [loadEvents, loadProjects]);
   
   // Get dynamic content from admin panel
   const heroContent = getPageSection('home', 'hero') || {};
@@ -229,7 +244,11 @@ const Home = () => {
               )}
             </div>
 
-            {upcomingEvents.length > 0 ? (
+            {isLoadingEvents ? (
+              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <LoadingSkeleton variant="event" count={3} />
+              </div>
+            ) : upcomingEvents.length > 0 ? (
               <>
                 <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {upcomingEvents.map((event, index) => (
@@ -290,7 +309,11 @@ const Home = () => {
               </div>
             )}
               
-            {recentProjects.length > 0 ? (
+            {isLoadingProjects ? (
+              <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
+                <LoadingSkeleton variant="card" count={2} />
+              </div>
+            ) : recentProjects.length > 0 ? (
               <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
                 {recentProjects.map((project, index) => (
                   <div key={project.id || index} className="panel-hover group">

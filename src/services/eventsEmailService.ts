@@ -36,14 +36,11 @@ export class EventsEmailService {
       );
 
       if (success) {
-        console.log(`✅ Registration confirmation sent to ${attendee.email} for event: ${event.title}`);
       } else {
-        console.error(`❌ Failed to send registration confirmation to ${attendee.email}`);
       }
 
       return success;
     } catch (error) {
-      console.error('Error sending registration confirmation:', error);
       return false;
     }
   }
@@ -57,7 +54,6 @@ export class EventsEmailService {
     let sent = 0;
     let failed = 0;
 
-    console.log(`📧 Sending event reminders for "${event.title}" to ${attendees.length} attendees...`);
 
     for (const attendee of attendees) {
       try {
@@ -79,12 +75,10 @@ export class EventsEmailService {
         // Small delay between emails
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error(`Failed to send reminder to ${attendee.email}:`, error);
         failed++;
       }
     }
 
-    console.log(`📊 Event reminders completed: ${sent} sent, ${failed} failed`);
     return { sent, failed };
   }
 
@@ -96,7 +90,6 @@ export class EventsEmailService {
     let sent = 0;
     let failed = 0;
 
-    console.log(`📢 Sending event announcement for "${event.title}" to ${subscribers.length} subscribers...`);
 
     // Prepare announcement emails
     const emails = subscribers.map(subscriber => ({
@@ -174,14 +167,11 @@ The GDG@PSU Team`,
       const success = await ResendService.sendWelcomeEmail(email, name);
       
       if (success) {
-        console.log(`✅ Welcome email sent to new member: ${email}`);
       } else {
-        console.error(`❌ Failed to send welcome email to: ${email}`);
       }
 
       return success;
     } catch (error) {
-      console.error('Error sending welcome email:', error);
       return false;
     }
   }
@@ -195,7 +185,6 @@ The GDG@PSU Team`,
     let sent = 0;
     let failed = 0;
 
-    console.log(`📧 Sending cancellation notices for "${event.title}" to ${attendees.length} attendees...`);
 
     const emails = attendees.map(attendee => ({
       to: attendee.email,

@@ -61,7 +61,6 @@ export class SecurityService {
         failedLoginAttempts
       };
     } catch (error) {
-      console.error('Error fetching security metrics:', error);
       return {
         activeSessionsCount: 0,
         recentLoginsCount: 0,
@@ -93,7 +92,6 @@ export class SecurityService {
         is_current: session.id === currentAdminId
       })) || [];
     } catch (error) {
-      console.error('Error fetching active sessions:', error);
       return [];
     }
   }
@@ -122,7 +120,6 @@ export class SecurityService {
 
       return !error;
     } catch (error) {
-      console.error('Error logging security event:', error);
       return false;
     }
   }
@@ -149,7 +146,6 @@ export class SecurityService {
 
       return events || [];
     } catch (error) {
-      console.error('Error fetching security events:', error);
       return [];
     }
   }
@@ -198,7 +194,6 @@ export class SecurityService {
 
       return { isSuspicious, reasons };
     } catch (error) {
-      console.error('Error detecting suspicious activity:', error);
       return { isSuspicious: false, reasons: [] };
     }
   }
@@ -299,7 +294,6 @@ export class SecurityService {
 
       return recommendations;
     } catch (error) {
-      console.error('Error generating security recommendations:', error);
       return [
         'Regularly update admin passwords',
         'Monitor admin access logs',

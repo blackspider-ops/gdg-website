@@ -128,8 +128,8 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                 onClick={() => setActiveSection(section.id as any)}
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeSection === section.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700'
+                    ? 'border-blue-600 text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-gray-700'
                 }`}
               >
                 <Icon size={16} />
@@ -155,7 +155,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
       {activeSection === 'password' && (
         <div className="space-y-6">
           <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-6 text-white">Change Password</h3>
+            <h3 className="font-semibold text-lg mb-6 text-primary-foreground">Change Password</h3>
             
             <div className="space-y-4">
               <div>
@@ -165,13 +165,13 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                     type={showPasswords.current ? 'text' : 'password'}
                     value={passwordForm.currentPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 pr-12 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-primary-foreground bg-black"
                     placeholder="Enter current password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                   >
                     {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -185,7 +185,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                     type={showPasswords.new ? 'text' : 'password'}
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 text-white bg-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 text-primary-foreground bg-black ${
                       passwordForm.newPassword && !passwordValidation.isValid
                         ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-700 focus:ring-blue-400 focus:border-blue-400'
@@ -195,7 +195,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                   <button
                     type="button"
                     onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                   >
                     {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -219,7 +219,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                     type={showPasswords.confirm ? 'text' : 'password'}
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 text-white bg-black ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 text-primary-foreground bg-black ${
                       passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword
                         ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-700 focus:ring-blue-400 focus:border-blue-400'
@@ -229,7 +229,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                   <button
                     type="button"
                     onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
                   >
                     {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -245,7 +245,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
               <button
                 onClick={handlePasswordChange}
                 disabled={isSaving || !passwordValidation.isValid || passwordForm.newPassword !== passwordForm.confirmPassword}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
               >
                 <Save size={16} />
                 <span>{isSaving ? 'Updating...' : 'Update Password'}</span>
@@ -255,7 +255,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
 
           {/* Password Policy Display */}
           <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-6 text-white">Password Requirements</h3>
+            <h3 className="font-semibold text-lg mb-6 text-primary-foreground">Password Requirements</h3>
             
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
@@ -283,18 +283,18 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
       {activeSection === 'sessions' && (
         <div className="space-y-6">
           <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-6 text-white">Session Settings</h3>
+            <h3 className="font-semibold text-lg mb-6 text-primary-foreground">Session Settings</h3>
             
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">Session Timeout</div>
-                  <div className="text-sm text-gray-400">Automatically log out after inactivity</div>
+                  <div className="font-medium text-primary-foreground">Session Timeout</div>
+                  <div className="text-sm text-muted-foreground">Automatically log out after inactivity</div>
                 </div>
                 <select
                   value={securitySettings.sessionTimeout}
                   onChange={(e) => handleSettingsUpdate('sessionTimeout', parseInt(e.target.value))}
-                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-primary-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value={1}>1 hour</option>
                   <option value={8}>8 hours</option>
@@ -305,26 +305,26 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">Auto-logout on Inactivity</div>
-                  <div className="text-sm text-gray-400">Log out when browser is inactive</div>
+                  <div className="font-medium text-primary-foreground">Auto-logout on Inactivity</div>
+                  <div className="text-sm text-muted-foreground">Log out when browser is inactive</div>
                 </div>
                 <input
                   type="checkbox"
                   checked={securitySettings.autoLogout}
                   onChange={(e) => handleSettingsUpdate('autoLogout', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                  className="w-4 h-4 text-primary bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">Remember Login Duration</div>
-                  <div className="text-sm text-gray-400">How long to remember login credentials</div>
+                  <div className="font-medium text-primary-foreground">Remember Login Duration</div>
+                  <div className="text-sm text-muted-foreground">How long to remember login credentials</div>
                 </div>
                 <select
                   value={securitySettings.rememberLogin}
                   onChange={(e) => handleSettingsUpdate('rememberLogin', parseInt(e.target.value))}
-                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-primary-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value={1}>1 day</option>
                   <option value={7}>7 days</option>
@@ -341,18 +341,18 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
       {activeSection === 'access' && (
         <div className="space-y-6">
           <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-6 text-white">Access Control Settings</h3>
+            <h3 className="font-semibold text-lg mb-6 text-primary-foreground">Access Control Settings</h3>
             
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">Failed Login Attempts Limit</div>
-                  <div className="text-sm text-gray-400">Lock account after this many failed attempts</div>
+                  <div className="font-medium text-primary-foreground">Failed Login Attempts Limit</div>
+                  <div className="text-sm text-muted-foreground">Lock account after this many failed attempts</div>
                 </div>
                 <select
                   value={securitySettings.maxFailedAttempts}
                   onChange={(e) => handleSettingsUpdate('maxFailedAttempts', parseInt(e.target.value))}
-                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-primary-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value={3}>3 attempts</option>
                   <option value={5}>5 attempts</option>
@@ -362,13 +362,13 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">Account Lockout Duration</div>
-                  <div className="text-sm text-gray-400">How long to lock account after failed attempts</div>
+                  <div className="font-medium text-primary-foreground">Account Lockout Duration</div>
+                  <div className="text-sm text-muted-foreground">How long to lock account after failed attempts</div>
                 </div>
                 <select
                   value={securitySettings.lockoutDuration}
                   onChange={(e) => handleSettingsUpdate('lockoutDuration', parseInt(e.target.value))}
-                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-primary-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value={5}>5 minutes</option>
                   <option value={15}>15 minutes</option>
@@ -379,14 +379,14 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">IP-based Restrictions</div>
-                  <div className="text-sm text-gray-400">Restrict access to specific IP addresses</div>
+                  <div className="font-medium text-primary-foreground">IP-based Restrictions</div>
+                  <div className="text-sm text-muted-foreground">Restrict access to specific IP addresses</div>
                 </div>
                 <input
                   type="checkbox"
                   checked={securitySettings.ipRestrictions}
                   onChange={(e) => handleSettingsUpdate('ipRestrictions', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                  className="w-4 h-4 text-primary bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
                 />
               </div>
             </div>
@@ -398,24 +398,24 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
       {activeSection === 'advanced' && (
         <div className="space-y-6">
           <div className="bg-black rounded-xl shadow-sm border border-gray-800 p-6">
-            <h3 className="font-semibold text-lg mb-6 text-white">Advanced Security Features</h3>
+            <h3 className="font-semibold text-lg mb-6 text-primary-foreground">Advanced Security Features</h3>
             
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 border border-gray-700 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <Smartphone size={20} className="text-blue-600" />
+                  <Smartphone size={20} className="text-primary" />
                   <div>
-                    <div className="font-medium text-white">Two-Factor Authentication</div>
-                    <div className="text-sm text-gray-400">Add an extra layer of security to your account</div>
+                    <div className="font-medium text-primary-foreground">Two-Factor Authentication</div>
+                    <div className="text-sm text-muted-foreground">Add an extra layer of security to your account</div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-400">Coming Soon</span>
+                  <span className="text-sm text-muted-foreground">Coming Soon</span>
                   <input
                     type="checkbox"
                     checked={securitySettings.twoFactorAuth}
                     disabled
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2 opacity-50"
+                    className="w-4 h-4 text-primary bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2 opacity-50"
                   />
                 </div>
               </div>
@@ -424,16 +424,16 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                 <div className="flex items-center space-x-3">
                   <Globe size={20} className="text-green-600" />
                   <div>
-                    <div className="font-medium text-white">IP Whitelisting</div>
-                    <div className="text-sm text-gray-400">Only allow access from specific IP addresses</div>
+                    <div className="font-medium text-primary-foreground">IP Whitelisting</div>
+                    <div className="text-sm text-muted-foreground">Only allow access from specific IP addresses</div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-400">Coming Soon</span>
+                  <span className="text-sm text-muted-foreground">Coming Soon</span>
                   <input
                     type="checkbox"
                     disabled
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2 opacity-50"
+                    className="w-4 h-4 text-primary bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2 opacity-50"
                   />
                 </div>
               </div>
@@ -442,8 +442,8 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
                 <div className="flex items-center space-x-3">
                   <AlertTriangle size={20} className="text-yellow-600" />
                   <div>
-                    <div className="font-medium text-white">Security Monitoring</div>
-                    <div className="text-sm text-gray-400">Real-time monitoring of suspicious activities</div>
+                    <div className="font-medium text-primary-foreground">Security Monitoring</div>
+                    <div className="text-sm text-muted-foreground">Real-time monitoring of suspicious activities</div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -454,13 +454,13 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentAdmin }) => 
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-white">Password Expiration</div>
-                  <div className="text-sm text-gray-400">Force password changes after this period</div>
+                  <div className="font-medium text-primary-foreground">Password Expiration</div>
+                  <div className="text-sm text-muted-foreground">Force password changes after this period</div>
                 </div>
                 <select
                   value={securitySettings.passwordExpiration}
                   onChange={(e) => handleSettingsUpdate('passwordExpiration', parseInt(e.target.value))}
-                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="px-3 py-2 border border-gray-700 rounded-lg bg-black text-primary-foreground focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value={30}>30 days</option>
                   <option value={60}>60 days</option>

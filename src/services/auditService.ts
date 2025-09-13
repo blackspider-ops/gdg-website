@@ -93,7 +93,6 @@ export class AuditService {
 
       return !error;
     } catch (error) {
-      console.error('Error logging admin action:', error);
       return false;
     }
   }
@@ -153,7 +152,6 @@ export class AuditService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error with join query, trying simple query:', error);
         
         // Fallback to simple query without join
         const { data: simpleData, error: simpleError } = await supabase
@@ -185,7 +183,6 @@ export class AuditService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching audit log:', error);
       return [];
     }
   }
@@ -247,7 +244,6 @@ export class AuditService {
         topAdmins
       };
     } catch (error) {
-      console.error('Error fetching audit stats:', error);
       return {
         totalActions: 0,
         todayActions: 0,
@@ -289,7 +285,6 @@ export class AuditService {
 
       return csvRows.join('\n');
     } catch (error) {
-      console.error('Error exporting audit log:', error);
       return '';
     }
   }
@@ -368,7 +363,6 @@ export class AuditService {
 
       return true;
     } catch (error) {
-      console.error('Error adding sample audit data:', error);
       return false;
     }
   }

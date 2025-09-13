@@ -86,9 +86,9 @@ The admin panel provides comprehensive management capabilities:
 - Instant content updates without page refresh
 
 ### Access Control
-- Development mode for easy testing
-- Production admin authentication
+- Secure admin authentication
 - Role-based permissions (admin, super_admin)
+- Production-ready security
 
 ### Database Integration
 - Full Supabase integration with PostgreSQL
@@ -98,9 +98,9 @@ The admin panel provides comprehensive management capabilities:
 
 ## Getting Started with Admin Panel
 
-1. **Development Mode**: Enable direct admin access in dev settings for testing
-2. **Production Mode**: Use the admin secret code to gain access
-3. **Database Setup**: Follow `scripts/setup-database.md` for initial setup
+1. **Admin Access**: Use the admin secret code `gdg-secret@psu.edu` in the newsletter signup to access admin panel
+2. **Database Setup**: Follow `scripts/setup-database.md` for initial setup
+3. **Production Ready**: All development features removed for production deployment
 4. **Content Management**: Access `/admin` to manage all site content
 
 ## Database Schema

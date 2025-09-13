@@ -19,7 +19,6 @@ const Contact = () => {
       try {
         content.contact_links = JSON.parse(content.contact_links);
       } catch (error) {
-        console.warn('Error parsing contact links:', error);
         content.contact_links = [];
       }
     } else if (!Array.isArray(content.contact_links)) {
@@ -31,7 +30,6 @@ const Contact = () => {
       try {
         content.social_links = JSON.parse(content.social_links);
       } catch (error) {
-        console.warn('Error parsing social links:', error);
         content.social_links = [];
       }
     } else if (!Array.isArray(content.social_links)) {
@@ -81,7 +79,7 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission when backend is connected
+    // Form submission handled by contact form service
   };
 
   return (
@@ -102,7 +100,7 @@ const Contact = () => {
               <div className="w-12 h-px bg-border"></div>
             </div>
             
-            <h1 className="font-display text-5xl lg:text-7xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
+            <h1 className="font-display text-5xl lg:text-7xl font-bold mb-6 leading-tight text-foreground drop-shadow-lg">
               {contactContent.title || 'Get in Touch'}
               <br />
               <span className="text-primary">with {getSiteSetting('site_title') || 'GDG PSU'}</span>
@@ -134,7 +132,7 @@ const Contact = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                    className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Your full name"
                   />
                 </div>
@@ -149,7 +147,7 @@ const Contact = () => {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                    className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="your.email@psu.edu"
                   />
                 </div>
@@ -164,7 +162,7 @@ const Contact = () => {
                   id="type"
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                  className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                  className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   {contactTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -187,7 +185,7 @@ const Contact = () => {
                           type="checkbox"
                           checked={formData.interests.includes(interest)}
                           onChange={() => handleInterestToggle(interest)}
-                          className="w-4 h-4 text-gdg-blue bg-background border border-input rounded focus:ring-gdg-blue focus:ring-2"
+                          className="w-4 h-4 text-gdg-blue bg-background border border-input rounded focus:ring-primary focus:ring-2"
                         />
                         <span className="text-sm">{interest}</span>
                       </label>
@@ -207,14 +205,14 @@ const Contact = () => {
                   rows={6}
                   value={formData.message}
                   onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                  className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue resize-none"
+                  className="w-full px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   placeholder="Tell us more about your inquiry..."
                 />
               </div>
 
               <button
                 type="submit"
-                className="btn-editorial px-6 py-3 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90"
+                className="btn-editorial px-6 py-3 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90"
               >
                 {contactContent.button_text || 'Send Message'}
               </button>

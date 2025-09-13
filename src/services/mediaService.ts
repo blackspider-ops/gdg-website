@@ -118,7 +118,6 @@ export class MediaService {
 
       return enrichedData;
     } catch (error) {
-      console.error('Error fetching folders:', error);
       return [];
     }
   }
@@ -162,7 +161,6 @@ export class MediaService {
 
       return data;
     } catch (error) {
-      console.error('Error creating folder:', error);
       return null;
     }
   }
@@ -194,7 +192,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error updating folder:', error);
       return false;
     }
   }
@@ -221,7 +218,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting folder:', error);
       return false;
     }
   }
@@ -284,7 +280,6 @@ export class MediaService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching files:', error);
       return [];
     }
   }
@@ -361,7 +356,6 @@ export class MediaService {
 
       return data;
     } catch (error) {
-      console.error('Error uploading file:', error);
       return null;
     }
   }
@@ -393,7 +387,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error updating file:', error);
       return false;
     }
   }
@@ -435,7 +428,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting file:', error);
       return false;
     }
   }
@@ -474,7 +466,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error toggling star:', error);
       return false;
     }
   }
@@ -517,7 +508,6 @@ export class MediaService {
         recent_uploads: recentResult.count || 0
       };
     } catch (error) {
-      console.error('Error fetching media stats:', error);
       return {
         total_files: 0,
         total_folders: 0,
@@ -587,7 +577,6 @@ export class MediaService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error searching files:', error);
       return [];
     }
   }
@@ -631,7 +620,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error bulk deleting files:', error);
       return false;
     }
   }
@@ -659,7 +647,6 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error bulk updating tags:', error);
       return false;
     }
   }

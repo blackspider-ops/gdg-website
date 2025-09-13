@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
 import { Navigate } from 'react-router-dom';
 import { Users, Search, Filter, Mail, Calendar, UserPlus, Plus, Edit3, Trash2, ExternalLink, Github, Linkedin, Star, Crown, Shield, User, Award, Heart } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -9,7 +8,6 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const AdminTeam = () => {
   const { isAuthenticated } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamStats, setTeamStats] = useState({
     total: 0,
@@ -28,9 +26,9 @@ const AdminTeam = () => {
   // Lock body scroll when modal is open
   useBodyScrollLock(showAddMemberModal || !!editingMember);
 
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
+  
 
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -48,7 +46,6 @@ const AdminTeam = () => {
       const teamData = await TeamService.getAllTeamMembers();
       setTeamMembers(teamData);
     } catch (error) {
-      console.error('Error loading team members:', error);
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +56,6 @@ const AdminTeam = () => {
       const stats = await TeamService.getTeamStats();
       setTeamStats(stats);
     } catch (error) {
-      console.error('Error loading team stats:', error);
     }
   };
 
@@ -156,7 +152,6 @@ const AdminTeam = () => {
         setError('Failed to add team member. Please try again.');
       }
     } catch (error) {
-      console.error('Error creating team member:', error);
       setError('An error occurred while adding the team member.');
     } finally {
       setIsSaving(false);
@@ -171,10 +166,8 @@ const AdminTeam = () => {
     setError(null);
     
     try {
-      console.log('Updating team member:', editingMember.id, 'with data:', memberForm);
       const updated = await TeamService.updateTeamMember(editingMember.id, memberForm, false); // Enable sync
       if (updated) {
-        console.log('Team member updated successfully:', updated);
         await loadTeamMembers();
         await loadTeamStats();
         setEditingMember(null);
@@ -182,11 +175,9 @@ const AdminTeam = () => {
         setSuccess('Team member updated successfully and synced to Member Management!');
         setTimeout(() => setSuccess(null), 5000);
       } else {
-        console.error('Update returned null/false');
         setError('Failed to update team member. Please check the console for details.');
       }
     } catch (error) {
-      console.error('Error updating team member:', error);
       setError(`An error occurred while updating the team member: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
@@ -206,7 +197,6 @@ const AdminTeam = () => {
           setError('Failed to delete team member. Please try again.');
         }
       } catch (error) {
-        console.error('Error deleting team member:', error);
         setError('An error occurred while deleting the team member.');
       }
     }
@@ -262,7 +252,7 @@ const AdminTeam = () => {
             resetForm();
             setShowAddMemberModal(true);
           }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <UserPlus size={16} />
           <span>Add Team Member</span>
@@ -272,12 +262,12 @@ const AdminTeam = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {teamStatsDisplay.map((stat, index) => (
-          <div key={index} className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+          <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
             <div className="flex items-center justify-between mb-4">
               <Users size={24} className={stat.color} />
             </div>
-            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-400">{stat.label}</div>
+            <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+            <div className="text-sm text-muted-foreground">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -295,14 +285,14 @@ const AdminTeam = () => {
       )}
 
       {/* Role Distribution */}
-      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
-        <h3 className="text-lg font-semibold text-white mb-4">Role Distribution</h3>
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Role Distribution</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(teamStats.roleDistribution).map(([role, count]) => (
-            <div key={role} className="border border-gray-800 rounded-lg p-4 hover:bg-gray-900 transition-colors">
+            <div key={role} className="border border-border rounded-lg p-4 hover:bg-muted transition-colors">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-white">{role}</h4>
-                <span className="text-sm font-medium text-blue-600">{count} member{count !== 1 ? 's' : ''}</span>
+                <h4 className="font-medium text-foreground">{role}</h4>
+                <span className="text-sm font-medium text-primary">{count} member{count !== 1 ? 's' : ''}</span>
               </div>
             </div>
           ))}
@@ -310,27 +300,27 @@ const AdminTeam = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search team members..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
               />
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <Filter size={16} className="text-gray-400" />
+            <Filter size={16} className="text-muted-foreground" />
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+              className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
             >
               <option value="all">All Roles</option>
               {allRoles.map(role => (
@@ -342,26 +332,26 @@ const AdminTeam = () => {
       </div>
 
       {/* Team Members List */}
-      <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-semibold text-white">Team Members ({filteredMembers.length})</h2>
+      <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Team Members ({filteredMembers.length})</h2>
         </div>
         
         <div className="divide-y divide-gray-200">
           {isLoading ? (
             <div className="p-6 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading team members...</p>
+              <p className="text-muted-foreground">Loading team members...</p>
             </div>
           ) : filteredMembers.length === 0 ? (
             <div className="p-6 text-center">
-              <Users size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No team members found</h3>
-              <p className="text-gray-400">Try adjusting your search or add your first team member</p>
+              <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No team members found</h3>
+              <p className="text-muted-foreground">Try adjusting your search or add your first team member</p>
             </div>
           ) : (
             filteredMembers.map((member) => (
-              <div key={member.id} className="p-6 hover:bg-gray-900 transition-colors">
+              <div key={member.id} className="p-6 hover:bg-muted transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
@@ -369,7 +359,7 @@ const AdminTeam = () => {
                         <img src={member.image_url} alt={member.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-blue-100">
-                          <span className="text-blue-600 font-semibold text-lg">
+                          <span className="text-primary font-semibold text-lg">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
@@ -378,33 +368,33 @@ const AdminTeam = () => {
                     
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-1">
-                        <h3 className="text-lg font-semibold text-white">{member.name}</h3>
-                        <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full font-medium">
+                        <h3 className="text-lg font-semibold text-foreground">{member.name}</h3>
+                        <span className="px-3 py-1 bg-primary text-foreground text-sm rounded-full font-medium">
                           {member.role}
                         </span>
                         {!member.is_active && (
-                          <span className="px-2 py-1 text-xs bg-red-600 text-white rounded-full font-medium">
+                          <span className="px-2 py-1 text-xs bg-red-600 text-foreground rounded-full font-medium">
                             Inactive
                           </span>
                         )}
                       </div>
                       
                       {member.bio && (
-                        <p className="text-gray-400 mb-2 line-clamp-2">{member.bio}</p>
+                        <p className="text-muted-foreground mb-2 line-clamp-2">{member.bio}</p>
                       )}
                       
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <span>Order: {member.order_index}</span>
                         <span>Created: {new Date(member.created_at).toLocaleDateString()}</span>
                         {(member.linkedin_url || member.github_url) && (
                           <div className="flex items-center space-x-2">
                             {member.linkedin_url && (
-                              <a href={member.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                              <a href={member.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-800">
                                 <Linkedin size={16} />
                               </a>
                             )}
                             {member.github_url && (
-                              <a href={member.github_url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-800">
+                              <a href={member.github_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-gray-800">
                                 <Github size={16} />
                               </a>
                             )}
@@ -418,13 +408,13 @@ const AdminTeam = () => {
                   <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => handleEditMember(member)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-white"
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                     >
                       <Edit3 size={16} />
                     </button>
                     <button 
                       onClick={() => handleDeleteMember(member.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors text-muted-foreground hover:text-red-600"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -439,7 +429,7 @@ const AdminTeam = () => {
       {/* Add/Edit Team Member Modal */}
       {(showAddMemberModal || editingMember) && (
         <div 
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
           style={{ 
             overflow: 'hidden',
             position: 'fixed',
@@ -459,14 +449,14 @@ const AdminTeam = () => {
           onScroll={(e) => e.preventDefault()}
         >
           <div 
-            className="bg-black rounded-xl shadow-xl border border-gray-800 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
           >
             {/* Fixed Header */}
-            <div className="flex-shrink-0 p-6 border-b border-gray-800">
-              <h2 className="text-xl font-semibold text-white">
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-foreground">
                 {editingMember ? 'Edit Team Member' : 'Add New Team Member'}
               </h2>
             </div>
@@ -482,7 +472,7 @@ const AdminTeam = () => {
                     required
                     value={memberForm.name}
                     onChange={(e) => setMemberForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="John Doe"
                   />
                 </div>
@@ -490,7 +480,7 @@ const AdminTeam = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Role *
-                    <span className="text-xs text-gray-500 ml-2">(Controls member category)</span>
+                    <span className="text-xs text-muted-foreground ml-2">(Controls member category)</span>
                   </label>
                   <input
                     type="text"
@@ -498,7 +488,7 @@ const AdminTeam = () => {
                     list="roles"
                     value={memberForm.role}
                     onChange={(e) => setMemberForm(prev => ({ ...prev, role: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="Enter role (e.g., Chapter Lead, Technical Lead...)"
                   />
                   <datalist id="roles">
@@ -506,7 +496,7 @@ const AdminTeam = () => {
                       <option key={role} value={role} />
                     ))}
                   </datalist>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Team role automatically maps to member category in Member Management
                   </p>
                 </div>
@@ -518,10 +508,10 @@ const AdminTeam = () => {
                   type="email"
                   value={memberForm.email}
                   onChange={(e) => setMemberForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                   placeholder="john.doe@psu.edu (for Member Management sync)"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Providing an email will create a corresponding entry in Member Management
                 </p>
               </div>
@@ -532,7 +522,7 @@ const AdminTeam = () => {
                   rows={3}
                   value={memberForm.bio}
                   onChange={(e) => setMemberForm(prev => ({ ...prev, bio: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                   placeholder="Brief description of the team member..."
                 />
               </div>
@@ -543,7 +533,7 @@ const AdminTeam = () => {
                   type="url"
                   value={memberForm.image_url}
                   onChange={(e) => setMemberForm(prev => ({ ...prev, image_url: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                   placeholder="https://example.com/profile.jpg"
                 />
               </div>
@@ -555,7 +545,7 @@ const AdminTeam = () => {
                     type="url"
                     value={memberForm.linkedin_url}
                     onChange={(e) => setMemberForm(prev => ({ ...prev, linkedin_url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="https://linkedin.com/in/username"
                   />
                 </div>
@@ -566,7 +556,7 @@ const AdminTeam = () => {
                     type="url"
                     value={memberForm.github_url}
                     onChange={(e) => setMemberForm(prev => ({ ...prev, github_url: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="https://github.com/username"
                   />
                 </div>
@@ -580,7 +570,7 @@ const AdminTeam = () => {
                     min="0"
                     value={memberForm.order_index}
                     onChange={(e) => setMemberForm(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="0"
                   />
                 </div>
@@ -591,7 +581,7 @@ const AdminTeam = () => {
                     id="is_active"
                     checked={memberForm.is_active}
                     onChange={(e) => setMemberForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-black border border-gray-700 rounded focus:ring-blue-400 focus:ring-2"
+                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                   />
                   <label htmlFor="is_active" className="text-sm font-medium text-gray-300">Active Team Member</label>
                 </div>
@@ -607,7 +597,7 @@ const AdminTeam = () => {
                       setError(null);
                       setSuccess(null);
                     }}
-                    className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
                     disabled={isSaving}
                   >
                     Cancel
@@ -615,7 +605,7 @@ const AdminTeam = () => {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
                     {isSaving ? (
                       <>

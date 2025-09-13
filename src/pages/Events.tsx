@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Filter, Search, Calendar, MapPin } from 'lucide-react';
 import EventCard from '@/components/EventCard';
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import { useContent } from '@/contexts/ContentContext';
 
 const Events = () => {
-  const { events, isLoading } = useContent();
+  const { events, isLoadingEvents, loadEvents } = useContent();
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
+
+  // Load events when component mounts
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   // Transform events data to match component structure
   const allEvents = events.map(event => {
@@ -94,7 +100,7 @@ const Events = () => {
                   placeholder="Search events..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -107,7 +113,7 @@ const Events = () => {
                     onClick={() => setSelectedFilter(filter)}
                     className={`px-3 py-1 text-sm rounded-full border transition-colors ${
                       selectedFilter === filter
-                        ? 'bg-gdg-blue text-white border-gdg-blue'
+                        ? 'bg-gdg-blue text-foreground border-gdg-blue'
                         : 'bg-background border-border hover:border-gdg-blue hover:text-gdg-blue'
                     }`}
                   >
@@ -121,7 +127,25 @@ const Events = () => {
       </section>
 
       {/* Upcoming Events */}
-      {upcomingEvents.length > 0 && (
+      {isLoadingEvents ? (
+        <section className="py-16">
+          <div className="editorial-grid">
+            <div className="col-span-12">
+              <div className="flex items-center space-x-4 mb-8">
+                <div className="flex items-center space-x-2">
+                  <Calendar size={20} className="text-gdg-blue" />
+                  <h2 className="text-display text-2xl font-semibold">Loading Events...</h2>
+                </div>
+                <div className="h-px flex-1 bg-border"></div>
+              </div>
+            </div>
+
+            <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <LoadingSkeleton variant="event" count={6} />
+            </div>
+          </div>
+        </section>
+      ) : upcomingEvents.length > 0 && (
         <section className="py-16">
           <div className="editorial-grid">
             <div className="col-span-12">
@@ -173,7 +197,7 @@ const Events = () => {
       )}
 
       {/* No Results */}
-      {filteredEvents.length === 0 && (
+      {!isLoadingEvents && filteredEvents.length === 0 && (
         <section className="py-16">
           <div className="editorial-grid">
             <div className="col-span-12 text-center">
@@ -204,9 +228,9 @@ const Events = () => {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                className="flex-1 px-4 py-3 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <button className="btn-editorial px-6 py-3 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90 whitespace-nowrap">
+              <button className="btn-editorial px-6 py-3 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90 whitespace-nowrap">
                 Subscribe
               </button>
             </div>

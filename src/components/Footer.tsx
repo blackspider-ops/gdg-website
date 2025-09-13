@@ -28,7 +28,6 @@ const Footer = () => {
         const code = await ContentService.getAdminSecretCode();
         setAdminSecretCode(code);
       } catch (error) {
-        console.error('Error loading admin secret code:', error);
       }
     };
     loadSecretCode();
@@ -60,7 +59,6 @@ const Footer = () => {
       }
       return contactData || {};
     } catch (error) {
-      console.warn('Error parsing contact info:', error);
       return {};
     }
   }, [getFooterSection]);
@@ -73,7 +71,6 @@ const Footer = () => {
       }
       return newsletterData || {};
     } catch (error) {
-      console.warn('Error parsing newsletter content:', error);
       return {};
     }
   }, [getFooterSection]);
@@ -104,7 +101,6 @@ const Footer = () => {
         };
       });
     } catch (error) {
-      console.error('Error getting social links:', error);
       return [];
     }
   }, [getAllLinks]);
@@ -124,7 +120,6 @@ const Footer = () => {
       }
       return [];
     } catch (error) {
-      console.warn('Error parsing quick links:', error);
       return [];
     }
   }, [quickLinksContent]);
@@ -141,7 +136,6 @@ const Footer = () => {
       }
       return [];
     } catch (error) {
-      console.warn('Error parsing resources:', error);
       return [];
     }
   }, [resourcesContent]);
@@ -167,7 +161,6 @@ const Footer = () => {
       setSubscriptionMessage('✅ Please check your email to confirm your subscription!');
       setEmail('');
     } catch (error: any) {
-      console.error('Newsletter subscription error:', error);
       setSubscriptionMessage(`❌ ${error.message || 'Subscription failed. Please try again.'}`);
     } finally {
       setIsSubscribing(false);
@@ -247,6 +240,7 @@ const Footer = () => {
                 </Link>
               </li>
             ))}
+
           </ul>
           </div>
         )}

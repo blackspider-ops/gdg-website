@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { useDev } from '@/contexts/DevContext';
+
 import { useContent } from '@/contexts/ContentContext';
 import { Navigate } from 'react-router-dom';
 import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff } from 'lucide-react';
@@ -11,7 +11,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const AdminEvents = () => {
   const { isAuthenticated } = useAdmin();
-  const { isDevelopmentMode, allowDirectAdminAccess } = useDev();
+
   const { refreshContent } = useContent();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventStats, setEventStats] = useState({
@@ -33,9 +33,7 @@ const AdminEvents = () => {
   // Lock body scroll when any modal is open
   useBodyScrollLock(showCreateForm || !!editingEvent);
 
-  const canAccess = isAuthenticated || (isDevelopmentMode && allowDirectAdminAccess);
-
-  if (!canAccess) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -84,7 +82,6 @@ const AdminEvents = () => {
       const eventsData = await EventsService.getEvents();
       setEvents(eventsData);
     } catch (error) {
-      console.error('Error loading events:', error);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +92,6 @@ const AdminEvents = () => {
       const stats = await EventsService.getEventStats();
       setEventStats(stats);
     } catch (error) {
-      console.error('Error loading event stats:', error);
     }
   };
 
@@ -150,7 +146,6 @@ const AdminEvents = () => {
         setError('Failed to create event. Please try again.');
       }
     } catch (error) {
-      console.error('Error creating event:', error);
       setError('An error occurred while creating the event.');
     } finally {
       setIsSaving(false);
@@ -213,7 +208,6 @@ const AdminEvents = () => {
         setError('Failed to update event. Please try again.');
       }
     } catch (error) {
-      console.error('Error updating event:', error);
       setError('An error occurred while updating the event.');
     } finally {
       setIsSaving(false);
@@ -234,7 +228,6 @@ const AdminEvents = () => {
           setError('Failed to delete event. Please try again.');
         }
       } catch (error) {
-        console.error('Error deleting event:', error);
         setError('An error occurred while deleting the event.');
       }
     }
@@ -253,7 +246,6 @@ const AdminEvents = () => {
         setTimeout(() => setSuccess(null), 3000);
       }
     } catch (error) {
-      console.error('Error toggling featured status:', error);
       setError('Failed to update event status.');
     }
   };
@@ -271,7 +263,6 @@ const AdminEvents = () => {
         setTimeout(() => setSuccess(null), 3000);
       }
     } catch (error) {
-      console.error('Error toggling registration:', error);
       setError('Failed to update registration status.');
     }
   };
@@ -284,7 +275,7 @@ const AdminEvents = () => {
       actions={
         <button
           onClick={() => setShowCreateForm(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <Plus size={16} />
           <span>Create Event</span>
@@ -293,36 +284,36 @@ const AdminEvents = () => {
     >
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+        <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between mb-4">
             <Calendar size={24} className="text-blue-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{eventStats.total}</div>
-          <div className="text-sm text-gray-400">Total Events</div>
+          <div className="text-3xl font-bold text-foreground mb-1">{eventStats.total}</div>
+          <div className="text-sm text-muted-foreground">Total Events</div>
         </div>
         
-        <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+        <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between mb-4">
             <Users size={24} className="text-green-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{eventStats.totalAttendees}</div>
-          <div className="text-sm text-gray-400">Total Attendees</div>
+          <div className="text-3xl font-bold text-foreground mb-1">{eventStats.totalAttendees}</div>
+          <div className="text-sm text-muted-foreground">Total Attendees</div>
         </div>
         
-        <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+        <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between mb-4">
             <Calendar size={24} className="text-purple-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{eventStats.upcoming}</div>
-          <div className="text-sm text-gray-400">Upcoming Events</div>
+          <div className="text-3xl font-bold text-foreground mb-1">{eventStats.upcoming}</div>
+          <div className="text-sm text-muted-foreground">Upcoming Events</div>
         </div>
         
-        <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800">
+        <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between mb-4">
             <Calendar size={24} className="text-orange-500" />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{eventStats.past}</div>
-          <div className="text-sm text-gray-400">Past Events</div>
+          <div className="text-3xl font-bold text-foreground mb-1">{eventStats.past}</div>
+          <div className="text-sm text-muted-foreground">Past Events</div>
         </div>
       </div>
 
@@ -339,27 +330,27 @@ const AdminEvents = () => {
       )}
 
       {/* Filters */}
-      <div className="bg-black rounded-xl p-6 shadow-sm border border-gray-800 mb-8">
+      <div className="bg-card rounded-xl p-6 shadow-sm border border-border mb-8">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search events by title, description, or location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
               />
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <Filter size={16} className="text-gray-400" />
+            <Filter size={16} className="text-muted-foreground" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+              className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
             >
               <option value="all">All Types</option>
               <option value="Workshop">Workshops</option>
@@ -372,7 +363,7 @@ const AdminEvents = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-black"
+              className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
             >
               <option value="all">All Events</option>
               <option value="upcoming">Upcoming</option>
@@ -384,40 +375,40 @@ const AdminEvents = () => {
       </div>
 
       {/* Events List */}
-      <div className="bg-black rounded-xl shadow-sm border border-gray-800">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-semibold text-white">Events ({filteredEvents.length})</h2>
+      <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Events ({filteredEvents.length})</h2>
         </div>
             
         <div className="p-6">
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading events...</p>
+              <p className="text-muted-foreground">Loading events...</p>
             </div>
           ) : filteredEvents.length === 0 ? (
             <div className="text-center py-12">
-              <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No events found</h3>
-              <p className="text-gray-400 mb-6">Try adjusting your search or filters</p>
+              <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No events found</h3>
+              <p className="text-muted-foreground mb-6">Try adjusting your search or filters</p>
             </div>
           ) : (
             <div className="space-y-4">
               {filteredEvents.map((event) => (
-                <div key={event.id} className="border border-gray-800 rounded-lg p-6 hover:bg-gray-900 transition-colors">
+                <div key={event.id} className="border border-border rounded-lg p-6 hover:bg-muted transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-semibold text-white">{event.title}</h3>
+                        <h3 className="text-xl font-semibold text-foreground">{event.title}</h3>
                         {event.is_featured && (
                           <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">
                             Featured
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-400 mb-4">{event.description}</p>
+                      <p className="text-muted-foreground mb-4">{event.description}</p>
                       
-                      <div className="flex items-center space-x-6 text-sm text-gray-400">
+                      <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                         <div className="flex items-center space-x-2">
                           <Calendar size={16} />
                           <span>{new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -433,7 +424,7 @@ const AdminEvents = () => {
                       <button 
                         onClick={() => handleToggleRegistration(event)}
                         className={`p-2 hover:bg-gray-800 rounded-lg transition-colors ${
-                          event.registration_enabled ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-400'
+                          event.registration_enabled ? 'text-green-400 hover:text-green-300' : 'text-muted-foreground hover:text-muted-foreground'
                         }`}
                         title={event.registration_enabled ? 'Disable registration' : 'Enable registration'}
                       >
@@ -442,7 +433,7 @@ const AdminEvents = () => {
                       <button 
                         onClick={() => handleToggleFeatured(event)}
                         className={`p-2 hover:bg-gray-800 rounded-lg transition-colors ${
-                          event.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-500 hover:text-gray-400'
+                          event.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-muted-foreground hover:text-muted-foreground'
                         }`}
                         title={event.is_featured ? 'Remove from featured' : 'Mark as featured'}
                       >
@@ -450,14 +441,14 @@ const AdminEvents = () => {
                       </button>
                       <button 
                         onClick={() => handleEditEvent(event)}
-                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-blue-400"
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-blue-400"
                         title="Edit Event"
                       >
                         <Edit size={18} />
                       </button>
                       <button 
                         onClick={() => handleDeleteEvent(event.id)}
-                        className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                        className="p-2 hover:bg-red-900/50 rounded-lg transition-colors text-muted-foreground hover:text-red-400"
                         title="Delete Event"
                       >
                         <Trash2 size={18} />
@@ -473,17 +464,17 @@ const AdminEvents = () => {
 
       {/* Create Event Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
-            <div className="p-6 border-b border-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+          <div className="bg-card rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">Create New Event</h2>
+                <h2 className="text-xl font-semibold text-foreground">Create New Event</h2>
                 <button
                   onClick={() => {
                     setShowCreateForm(false);
                     resetForm();
                   }}
-                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
                   <X size={20} />
                 </button>
@@ -498,7 +489,7 @@ const AdminEvents = () => {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                   placeholder="Enter event title"
                 />
               </div>
@@ -510,7 +501,7 @@ const AdminEvents = () => {
                   rows={4}
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                   placeholder="Enter event description"
                 />
               </div>
@@ -523,7 +514,7 @@ const AdminEvents = () => {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                   />
                 </div>
                 
@@ -534,7 +525,7 @@ const AdminEvents = () => {
                     required
                     value={formData.location}
                     onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                     placeholder="Event location"
                   />
                 </div>
@@ -546,14 +537,14 @@ const AdminEvents = () => {
                 </div>
               )}
               
-              <div className="flex space-x-3 pt-6 border-t border-gray-800">
+              <div className="flex space-x-3 pt-6 border-t border-border">
                 <button
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
                     resetForm();
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
                   disabled={isSaving}
                 >
                   Cancel
@@ -561,7 +552,7 @@ const AdminEvents = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSaving ? (
                     <>
@@ -583,17 +574,17 @@ const AdminEvents = () => {
 
       {/* Edit Event Modal */}
       {editingEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-black rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-gray-800">
-            <div className="p-6 border-b border-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
+          <div className="bg-card rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">Edit Event</h2>
+                <h2 className="text-xl font-semibold text-foreground">Edit Event</h2>
                 <button
                   onClick={() => {
                     setEditingEvent(null);
                     resetForm();
                   }}
-                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
                   <X size={20} />
                 </button>
@@ -608,7 +599,7 @@ const AdminEvents = () => {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                   placeholder="Enter event title"
                 />
               </div>
@@ -620,7 +611,7 @@ const AdminEvents = () => {
                   rows={4}
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                   placeholder="Enter event description"
                 />
               </div>
@@ -633,7 +624,7 @@ const AdminEvents = () => {
                     required
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                   />
                 </div>
                 
@@ -644,7 +635,7 @@ const AdminEvents = () => {
                     required
                     value={formData.location}
                     onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-white bg-gray-900"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                     placeholder="Event location"
                   />
                 </div>
@@ -656,14 +647,14 @@ const AdminEvents = () => {
                 </div>
               )}
               
-              <div className="flex space-x-3 pt-6 border-t border-gray-800">
+              <div className="flex space-x-3 pt-6 border-t border-border">
                 <button
                   type="button"
                   onClick={() => {
                     setEditingEvent(null);
                     resetForm();
                   }}
-                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-900 transition-colors font-medium text-gray-300"
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
                   disabled={isSaving}
                 >
                   Cancel
@@ -671,7 +662,7 @@ const AdminEvents = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSaving ? (
                     <>
