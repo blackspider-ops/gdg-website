@@ -27,17 +27,17 @@ export default async function handler(req, res) {
             });
         }
 
-        const RESEND_API_KEY = process.env.RESEND_API_KEY;
+        const RESEND_API_KEY = process.env.VITE_RESEND_API_KEY;
         if (!RESEND_API_KEY) {
             return res.status(500).json({
                 success: false,
-                error: 'RESEND_API_KEY not configured'
+                error: 'VITE_RESEND_API_KEY not configured'
             });
         }
 
         // Email configuration
-        const FROM_EMAIL = process.env.FROM_EMAIL || 'newsletter@decryptpsu.me';
-        const FROM_NAME = process.env.FROM_NAME || 'GDG@PSU Newsletter';
+        const FROM_EMAIL = process.env.VITE_FROM_EMAIL || 'newsletter@decryptpsu.me';
+        const FROM_NAME = process.env.VITE_FROM_NAME || 'GDG@PSU Newsletter';
 
         // Create unsubscribe footer
         const textFooter = `\n\n---\nYou're receiving this email because you subscribed to GDG@PSU newsletter.\nTo unsubscribe, visit: ${unsubscribe_url || '#'}`;
