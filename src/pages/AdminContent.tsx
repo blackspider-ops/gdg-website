@@ -29,18 +29,12 @@ const AdminContent = () => {
     refreshContent
   } = useContent();
 
+  // All hooks must be called before any early returns
   const [activeTab, setActiveTab] = useState('site-settings');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
-  // Allow direct access in development mode if enabled
-  
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
 
   // Form states for different sections
   const [siteSettingsForm, setSiteSettingsForm] = useState({
@@ -112,7 +106,8 @@ const AdminContent = () => {
         contactLinks = mainContent.contact_links;
       }
     } catch (error) {
-    }
+    console.error(error);
+  }
 
 
 
@@ -151,7 +146,8 @@ const AdminContent = () => {
           setAllLinks(parsedLinks);
           return;
         } catch (error) {
-        }
+    console.error(error);
+  }
       }
 
       if (allLinksData && Array.isArray(allLinksData) && allLinksData.length > 0) {
@@ -333,7 +329,8 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    } finally {
+    console.error(error);
+  } finally {
       setIsSaving(false);
     }
   };
@@ -352,7 +349,8 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    } finally {
+    console.error(error);
+  } finally {
       setIsSaving(false);
     }
   };
@@ -370,7 +368,8 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    } finally {
+    console.error(error);
+  } finally {
       setIsSaving(false);
     }
   };
@@ -492,7 +491,8 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    } finally {
+    console.error(error);
+  } finally {
       setIsSaving(false);
     }
   };
@@ -523,7 +523,8 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    } finally {
+    console.error(error);
+  } finally {
       setIsSaving(false);
     }
   };
@@ -682,7 +683,8 @@ const AdminContent = () => {
           contactLinks = mainContent.contact_links;
         }
       } catch (error) {
-      }
+    console.error(error);
+  }
 
       setContactPageForm({
         title: mainContent.title || 'Get in Touch',
@@ -754,6 +756,11 @@ const AdminContent = () => {
       });
     }
   }, [pageContent]);
+
+  // Authentication check after all hooks
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <AdminLayout

@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Download, Play, BookOpen, Code, Cloud, Smartphone, Brain } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
 import { ResourcesService } from '@/services/resourcesService';
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Resources = () => {
-  const { resources, isLoading } = useContent();
+  const { resources, isLoadingResources, loadResources } = useContent();
+
+  // Load resources when component mounts
+  useEffect(() => {
+    loadResources();
+  }, [loadResources]);
 
   const handleResourceClick = async (resourceId: string, url?: string) => {
     // Increment view count
@@ -80,15 +86,14 @@ const Resources = () => {
       </section>
 
       {/* Study Jams - Only show if there are study jams or if loading */}
-      {(isLoading || studyJams.length > 0) && (
+      {(isLoadingResources || studyJams.length > 0) && (
         <section className="py-20">
           <div className="editorial-grid">
             <div className="col-span-12">
               <h2 className="text-3xl font-display font-bold mb-12">Study Jams</h2>
-              {isLoading ? (
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Loading study jams...</p>
+              {isLoadingResources ? (
+                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                  <LoadingSkeleton variant="card" count={4} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -284,7 +289,7 @@ const Resources = () => {
       )}
 
       {/* No Resources Fallback */}
-      {!isLoading && studyJams.length === 0 && cloudCredits.length === 0 && documentation.length === 0 && recordings.length === 0 && (
+      {!isLoadingResources && studyJams.length === 0 && cloudCredits.length === 0 && documentation.length === 0 && recordings.length === 0 && (
         <section className="py-20">
           <div className="editorial-grid">
             <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">

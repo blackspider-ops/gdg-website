@@ -16,7 +16,8 @@ import {
   MessageSquare,
   FolderOpen,
   RefreshCw,
-  BookOpen
+  BookOpen,
+  PenTool
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -24,6 +25,7 @@ import { MembersService } from '@/services/membersService';
 import { ProjectsService } from '@/services/projectsService';
 import { SponsorsService } from '@/services/sponsorsService';
 import { NewsletterService } from '@/services/newsletterService';
+import { BlogService } from '@/services/blogService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -32,7 +34,8 @@ const AdminDashboard = () => {
     upcomingEvents: 0,
     newsletterSubscribers: 0,
     activeProjects: 0,
-    totalSponsors: 0
+    totalSponsors: 0,
+    blogPosts: 0
   });
   const [recentActivity, setRecentActivity] = useState<Array<{
     id: string;
@@ -43,14 +46,15 @@ const AdminDashboard = () => {
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
   // Load dashboard statistics
   useEffect(() => {
     loadDashboardStats();
   }, []);
+
+  // Authentication check after all hooks
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   const loadDashboardStats = async () => {
     setIsLoading(true);
@@ -69,10 +73,11 @@ const AdminDashboard = () => {
       }));
 
       // Load remaining stats
-      const [projectStats, sponsorStats, newsletterStats] = await Promise.all([
+      const [projectStats, sponsorStats, newsletterStats, blogStats] = await Promise.all([
         ProjectsService.getProjectStats(),
         SponsorsService.getSponsorStats(),
-        NewsletterService.getSubscriberStats()
+        NewsletterService.getSubscriberStats(),
+        BlogService.getBlogStats()
       ]);
 
       setDashboardStats({
@@ -80,18 +85,19 @@ const AdminDashboard = () => {
         upcomingEvents: eventStats.upcoming,
         newsletterSubscribers: newsletterStats.active, // Now using real data
         activeProjects: projectStats.total,
-        totalSponsors: sponsorStats.active
+        totalSponsors: sponsorStats.active,
+        blogPosts: blogStats.publishedPosts
       });
 
       // Generate recent activity based on real data
       const activities = [];
       
-      if (memberStats.recent > 0) {
+      if (memberStats.total > 0) {
         activities.push({
           id: 'members',
           type: 'member',
-          message: `${memberStats.recent} new member${memberStats.recent > 1 ? 's' : ''} joined recently`,
-          timestamp: 'Recent',
+          message: `${memberStats.total} total members in the community`,
+          timestamp: 'Current',
           color: 'bg-green-500'
         });
       }
@@ -145,7 +151,8 @@ const AdminDashboard = () => {
         upcomingEvents: 0,
         newsletterSubscribers: 0,
         activeProjects: 0,
-        totalSponsors: 0
+        totalSponsors: 0,
+        blogPosts: 0
       });
     } finally {
       setIsLoading(false);
@@ -157,6 +164,7 @@ const AdminDashboard = () => {
     { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toString(), icon: Calendar, color: 'text-green-500' },
     { label: 'Newsletter Subscribers', value: dashboardStats.newsletterSubscribers.toString(), icon: Mail, color: 'text-purple-500' },
     { label: 'Active Projects', value: dashboardStats.activeProjects.toString(), icon: FileText, color: 'text-orange-500' },
+    { label: 'Blog Posts', value: dashboardStats.blogPosts.toString(), icon: PenTool, color: 'text-pink-500' },
   ];
 
   const quickActions = [
@@ -166,6 +174,7 @@ const AdminDashboard = () => {
     { label: 'View Members', icon: Users, href: '/admin/members' },
     { label: 'Resources', icon: FileText, href: '/admin/resources' },
     { label: 'Newsletter', icon: Mail, href: '/admin/newsletter' },
+    { label: 'Blog', icon: FileText, href: '/admin/blog' },
   ];
 
   const businessActions = [
@@ -227,9 +236,9 @@ const AdminDashboard = () => {
 
 
         {/* Stats Grid */}
-        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {isLoading ? (
-            Array.from({ length: 4 }).map((_, index) => (
+            Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="bg-card border border-border rounded-lg p-6">
                 <div className="animate-pulse">
                   <div className="flex items-center justify-between mb-4">

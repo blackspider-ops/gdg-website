@@ -27,11 +27,16 @@ export class AdminService {
         return null;
       }
 
-      // Update last login timestamp
-      await supabase
-        .from('admin_users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', adminUser.id);
+      // Update last login timestamp (ignore RLS errors for now)
+      try {
+        await supabase
+          .from('admin_users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', adminUser.id);
+      } catch (updateError) {
+        // Ignore RLS errors for last_login updates
+        console.warn('Could not update last_login due to RLS policy');
+      }
 
       // Log admin action
       await this.logAdminAction(adminUser.id, 'login', email);
@@ -52,7 +57,7 @@ export class AdminService {
     details?: any
   ): Promise<void> {
     try {
-      await supabase
+      const { error } = await supabase
         .from('admin_actions')
         .insert({
           admin_id: adminId,
@@ -60,7 +65,12 @@ export class AdminService {
           target_email: targetEmail,
           details
         });
+      
+      if (error) {
+        console.warn('Could not log admin action due to RLS policy:', error.message);
+      }
     } catch (error) {
+      console.warn('Could not log admin action:', error);
     }
   }
 
@@ -114,7 +124,12 @@ export class AdminService {
         .select()
         .single();
 
-      if (error || !newAdmin) {
+      if (error) {
+        console.error('Could not create admin user due to RLS policy:', error.message);
+        return null;
+      }
+      
+      if (!newAdmin) {
         return null;
       }
 
@@ -138,6 +153,7 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
+        console.error('Could not update password due to RLS policy:', error.message);
         return false;
       }
 
@@ -186,6 +202,7 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
+        console.error('Could not update admin user due to RLS policy:', error.message);
         return false;
       }
 
@@ -212,6 +229,7 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
+        console.error('Could not delete admin user due to RLS policy:', error.message);
         return false;
       }
 

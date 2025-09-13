@@ -87,8 +87,8 @@ export class EventsEmailService {
     subscribers: Array<{email: string, name?: string}>,
     event: EventEmailData
   ): Promise<{sent: number, failed: number}> {
-    let sent = 0;
-    let failed = 0;
+    const sent = 0;
+    const failed = 0;
 
 
     // Prepare announcement emails
@@ -182,8 +182,8 @@ The GDG@PSU Team`,
     event: EventEmailData,
     reason?: string
   ): Promise<{sent: number, failed: number}> {
-    let sent = 0;
-    let failed = 0;
+    const sent = 0;
+    const failed = 0;
 
 
     const emails = attendees.map(attendee => ({

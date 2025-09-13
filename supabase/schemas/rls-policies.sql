@@ -21,9 +21,8 @@ CREATE POLICY "Public read access for site_content" ON site_content FOR SELECT U
 -- RLS Policies for newsletter subscriptions
 CREATE POLICY "Anyone can subscribe to newsletter" ON newsletter_subscribers FOR INSERT WITH CHECK (true);
 
--- Admin policies - simplified to avoid recursion
-CREATE POLICY "Public read access for admin_users" ON admin_users FOR SELECT USING (true);
-CREATE POLICY "Users can update their own last_login" ON admin_users FOR UPDATE USING (true);
+-- Admin policies - allow all operations for admin functionality
+CREATE POLICY "Allow admin operations" ON admin_users FOR ALL USING (true);
 
 -- Admin management policies
 CREATE POLICY "Allow all operations on events" ON events FOR ALL USING (true);
@@ -32,5 +31,15 @@ CREATE POLICY "Allow all operations on projects" ON projects FOR ALL USING (true
 CREATE POLICY "Allow all operations on sponsors" ON sponsors FOR ALL USING (true);
 CREATE POLICY "Allow all operations on site_content" ON site_content FOR ALL USING (true);
 CREATE POLICY "Allow all operations on newsletter_subscribers" ON newsletter_subscribers FOR ALL USING (true);
-CREATE POLICY "Admins can view admin_actions" ON admin_actions FOR SELECT USING (true);
-CREATE POLICY "Admins can insert admin_actions" ON admin_actions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow all admin_actions operations" ON admin_actions FOR ALL USING (true);
+
+-- Additional table policies
+CREATE POLICY "Allow all operations on page_content" ON page_content FOR ALL USING (true);
+CREATE POLICY "Allow all operations on navigation_items" ON navigation_items FOR ALL USING (true);
+CREATE POLICY "Allow all operations on social_links" ON social_links FOR ALL USING (true);
+CREATE POLICY "Allow all operations on footer_content" ON footer_content FOR ALL USING (true);
+CREATE POLICY "Allow all operations on members" ON members FOR ALL USING (true);
+CREATE POLICY "Allow all operations on resources" ON resources FOR ALL USING (true);
+CREATE POLICY "Allow all operations on newsletter_campaigns" ON newsletter_campaigns FOR ALL USING (true);
+CREATE POLICY "Allow all operations on newsletter_email_logs" ON newsletter_email_logs FOR ALL USING (true);
+CREATE POLICY "Allow all operations on security_events" ON security_events FOR ALL USING (true);

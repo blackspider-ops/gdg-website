@@ -56,7 +56,9 @@ This project is built with:
 - **Frontend**: Vite, TypeScript, React, shadcn-ui, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL database, Authentication, Real-time subscriptions)
 - **Admin Panel**: Full-featured admin dashboard for content management
+- **Performance**: Lazy loading, caching, and optimized data fetching
 - **Services**: Dedicated service classes for Events, Members, Projects, Sponsors, and Content management
+- **Deployment**: Vercel with automatic deployments and service worker caching
 
 ## How can I deploy this project?
 
@@ -102,6 +104,30 @@ The admin panel provides comprehensive management capabilities:
 2. **Database Setup**: Follow `scripts/setup-database.md` for initial setup
 3. **Production Ready**: All development features removed for production deployment
 4. **Content Management**: Access `/admin` to manage all site content
+
+## Project Structure
+
+```
+gdg-website/
+├── api/                    # Serverless functions
+├── public/                 # Static assets
+├── src/
+│   ├── components/         # React components
+│   ├── contexts/          # React contexts
+│   ├── hooks/             # Custom hooks
+│   ├── lib/               # Utilities
+│   ├── pages/             # Page components
+│   └── services/          # API services
+├── supabase/
+│   ├── functions/         # Edge functions
+│   ├── migrations/        # Database migrations
+│   ├── schemas/           # Database schemas
+│   └── seeds/             # Seed data
+├── package.json           # Dependencies
+├── tailwind.config.ts     # Styling config
+├── tsconfig.json          # TypeScript config
+└── vite.config.ts         # Build config
+```
 
 ## Database Schema
 

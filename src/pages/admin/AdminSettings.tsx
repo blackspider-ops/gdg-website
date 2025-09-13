@@ -222,10 +222,10 @@ const AdminSettings = () => {
               </div>
             </div>
 
-                    className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
-                  />
-                </div>
-
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+              <h3 className="font-semibold text-lg mb-6 text-foreground">Notification Settings</h3>
+              
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-medium text-foreground">New Member Alerts</div>

@@ -301,7 +301,8 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
           return link.url;
         }
       } catch (error) {
-      }
+    console.error(error);
+  }
     }
 
     // Fallback to old system for backward compatibility
@@ -328,7 +329,8 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
           return allLinks;
         }
       } catch (error) {
-      }
+    console.error(error);
+  }
     }
     return [];
   };

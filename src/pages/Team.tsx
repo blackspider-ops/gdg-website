@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Github, Linkedin, Twitter, Mail } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
+import { useEffect } from 'react';
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Team = () => {
-    const { teamMembers, isLoading } = useContent();
+    const { teamMembers, isLoadingTeam, loadTeamMembers } = useContent();
+
+    // Load team members when component mounts
+    useEffect(() => {
+        loadTeamMembers();
+    }, [loadTeamMembers]);
 
     // Transform team members data to match component structure
     const transformedMembers = teamMembers.map(member => ({
@@ -117,9 +124,9 @@ const Team = () => {
                 <div className="editorial-grid">
                     <div className="col-span-12">
                         <h2 className="text-3xl font-display font-bold text-center mb-12">Leadership Team</h2>
-                        {isLoading ? (
-                            <div className="flex justify-center">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                        {isLoadingTeam ? (
+                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                                <LoadingSkeleton variant="team" count={3} />
                             </div>
                         ) : leadership.length > 0 ? (
                             <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">

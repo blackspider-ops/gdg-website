@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, Users, Calendar, Award, Heart } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Sponsors = () => {
-  const { sponsors, isLoading } = useContent();
+  const { sponsors, isLoadingSponsors, loadSponsors } = useContent();
+
+  // Load sponsors when component mounts
+  useEffect(() => {
+    loadSponsors();
+  }, [loadSponsors]);
 
   // Group sponsors by tier
   const platinumSponsors = sponsors.filter(s => s.tier === 'platinum');
@@ -140,12 +146,14 @@ const Sponsors = () => {
         </div>
       </section>
 
-      {isLoading ? (
+      {isLoadingSponsors ? (
         <section className="py-20">
           <div className="editorial-grid">
-            <div className="col-span-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading sponsors...</p>
+            <div className="col-span-12">
+              <h2 className="text-3xl font-display font-bold text-center mb-12">Loading Sponsors...</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+                <LoadingSkeleton variant="card" count={6} />
+              </div>
             </div>
           </div>
         </section>

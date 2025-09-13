@@ -27,6 +27,7 @@ import AdminTeam from "./pages/admin/AdminTeam";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminResources from "./pages/admin/AdminResources";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminBlog from "./pages/admin/AdminBlog";
 
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProfile from "./pages/admin/AdminProfile";
@@ -106,6 +107,7 @@ const App = () => (
                     <Route path="/admin/members" element={<AdminMembers />} />
                     <Route path="/admin/resources" element={<AdminResources />} />
                     <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+                    <Route path="/admin/blog" element={<AdminBlog />} />
 
                     <Route path="/admin/users" element={<AdminUsers />} />
                     <Route path="/admin/profile" element={<AdminProfile />} />

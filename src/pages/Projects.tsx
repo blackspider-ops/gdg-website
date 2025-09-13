@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Github, ExternalLink, Users, Calendar, Star } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Projects = () => {
-  const { projects, isLoading } = useContent();
+  const { projects, isLoadingProjects, loadProjects } = useContent();
   const [selectedCategory, setSelectedCategory] = React.useState('All');
+
+  // Load projects when component mounts
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   // Transform projects data to match component structure
   const transformedProjects = projects.map(project => ({
@@ -68,9 +74,9 @@ const Projects = () => {
       <section className="py-20">
         <div className="editorial-grid">
           <div className="col-span-12">
-            {isLoading ? (
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            {isLoadingProjects ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                <LoadingSkeleton variant="card" count={6} />
                 <p className="mt-4 text-muted-foreground">Loading projects...</p>
               </div>
             ) : filteredProjects.length > 0 ? (
