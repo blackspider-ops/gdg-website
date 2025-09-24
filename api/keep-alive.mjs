@@ -23,8 +23,8 @@ export default async function handler(req, res) {
 
     // Perform a lightweight query - just check if we can connect
     const { data, error } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
+      .from('navigation_items')
+      .select('id')
       .limit(1)
 
     if (error) {
