@@ -41,7 +41,25 @@ export class AttendanceService {
     notes?: string;
   }): Promise<Attendee | null> {
     try {
-      // First, add the attendee to the attendance table
+      // First, check if the user is already registered for this event
+      const { data: existingAttendee, error: checkError } = await supabase
+        .from('event_attendance')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('attendee_email', attendeeData.attendee_email)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is what we want
+        throw checkError;
+      }
+
+      if (existingAttendee) {
+        // User is already registered
+        throw new Error('You are already registered for this event');
+      }
+
+      // Add the attendee to the attendance table
       const { data: attendee, error: attendeeError } = await supabase
         .from('event_attendance')
         .insert({
@@ -53,7 +71,13 @@ export class AttendanceService {
         .select()
         .single();
 
-      if (attendeeError) throw attendeeError;
+      if (attendeeError) {
+        // Handle duplicate key constraint error
+        if (attendeeError.code === '23505') {
+          throw new Error('You are already registered for this event');
+        }
+        throw attendeeError;
+      }
 
       // Then, increment the attendees_count in the events table
       const { error: updateError } = await supabase.rpc('increment_attendees_count', {

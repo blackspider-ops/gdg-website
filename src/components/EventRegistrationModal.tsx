@@ -33,6 +33,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Lock body scroll when modal is open
   useBodyScrollLock(isOpen);
@@ -78,6 +79,8 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      setError(null); // Clear any previous errors
+      
       const result = await AttendanceService.addAttendee(event.id, {
         attendee_name: formData.name,
         attendee_email: formData.email,
@@ -90,13 +93,19 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
           onClose();
           setSubmitted(false);
           setFormData({ name: '', email: '', notes: '' });
+          setError(null);
         }, 2000);
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
       
-      // Handle duplicate registration
-      if (error?.code === '23505' || error?.message?.includes('duplicate key')) {
+      // Handle specific error cases
+      if (error?.message?.includes('already registered')) {
+        setError('You are already registered for this event.');
+      } else if (error?.code === '23505' || error?.message?.includes('duplicate key')) {
+        setError('You are already registered for this event.');
       } else {
+        setError('Failed to register for the event. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -332,6 +341,13 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
         {/* Fixed Footer with Buttons - Only for internal registration */}
         {!submitted && registrationMethod === 'internal' && (
           <div className="flex-shrink-0 p-4 border-t border-border bg-card rounded-b-xl">
+            {/* Error Message */}
+            {error && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            
             <div className="flex space-x-3">
               <button
                 type="button"
