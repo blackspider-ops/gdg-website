@@ -34,9 +34,30 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
+  const [checkingRegistration, setCheckingRegistration] = useState(false);
 
   // Lock body scroll when modal is open
   useBodyScrollLock(isOpen);
+
+  const checkRegistrationStatus = async (email: string) => {
+    if (!email || !email.includes('@')) return;
+    
+    setCheckingRegistration(true);
+    try {
+      const isRegistered = await AttendanceService.checkIfUserRegistered(event.id, email);
+      setIsAlreadyRegistered(isRegistered);
+      if (isRegistered) {
+        setError('You are already registered for this event.');
+      } else {
+        setError(null);
+      }
+    } catch (error) {
+      console.error('Error checking registration:', error);
+    } finally {
+      setCheckingRegistration(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -264,11 +285,39 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
                         type="email"
                         required
                         value={formData.email}
-                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(e) => {
+                          const email = e.target.value;
+                          setFormData(prev => ({ ...prev, email }));
+                          
+                          // Check registration status after a short delay
+                          if (email.includes('@')) {
+                            setTimeout(() => checkRegistrationStatus(email), 500);
+                          } else {
+                            setIsAlreadyRegistered(false);
+                            setError(null);
+                          }
+                        }}
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
+                          isAlreadyRegistered ? 'border-red-300 bg-red-50' : 'border-border'
+                        }`}
                         placeholder="Enter your email address"
                       />
+                      {checkingRegistration && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        </div>
+                      )}
+                      {isAlreadyRegistered && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
+                    {isAlreadyRegistered && (
+                      <p className="text-sm text-red-600 mt-1">✓ You're already registered for this event</p>
+                    )}
                   </div>
 
                   <div>
@@ -359,10 +408,10 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleInternalRegistration()}
-                disabled={isSubmitting || !formData.name || !formData.email}
+                disabled={isSubmitting || !formData.name || !formData.email || isAlreadyRegistered}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Registering...' : 'Register'}
+                {isSubmitting ? 'Registering...' : isAlreadyRegistered ? 'Already Registered' : 'Register'}
               </button>
             </div>
           </div>

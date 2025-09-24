@@ -20,6 +20,26 @@ export interface AttendanceStats {
 }
 
 export class AttendanceService {
+  static async checkIfUserRegistered(eventId: string, email: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('event_attendance')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('attendee_email', email)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 means no rows found
+        throw error;
+      }
+
+      return !!data;
+    } catch (error) {
+      return false;
+    }
+  }
+
   static async getEventAttendees(eventId: string): Promise<Attendee[]> {
     try {
       const { data, error } = await supabase
