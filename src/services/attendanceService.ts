@@ -117,8 +117,8 @@ export class AttendanceService {
       };
 
 
-      // Use the new Edge Function with a different name
-      const { data, error: functionError } = await supabase.functions.invoke('email-confirmation', {
+      // Use the confirmation-mail Edge Function
+      const { data, error: functionError } = await supabase.functions.invoke('confirmation-mail', {
         body: emailPayload
       });
 
