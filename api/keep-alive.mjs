@@ -1,15 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req, res) {
-  // Only allow POST requests from Vercel cron
-  if (req.method !== 'POST') {
+  // Allow both GET and POST requests (Vercel cron uses GET)
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Verify the request is from Vercel cron (optional security)
-  const authHeader = req.headers.authorization
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' })
+  // For manual testing with POST, verify auth header
+  if (req.method === 'POST') {
+    const authHeader = req.headers.authorization
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
   }
 
   try {
@@ -27,25 +29,25 @@ export default async function handler(req, res) {
 
     if (error) {
       console.error('Supabase keep-alive error:', error)
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Database connection failed',
-        details: error.message 
+        details: error.message
       })
     }
 
     console.log('Supabase keep-alive successful at:', new Date().toISOString())
-    
-    return res.status(200).json({ 
-      success: true, 
+
+    return res.status(200).json({
+      success: true,
       message: 'Supabase connection maintained',
       timestamp: new Date().toISOString()
     })
 
   } catch (error) {
     console.error('Keep-alive error:', error)
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Internal server error',
-      details: error.message 
+      details: error.message
     })
   }
 }
