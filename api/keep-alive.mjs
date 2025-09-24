@@ -1,0 +1,51 @@
+import { createClient } from '@supabase/supabase-js'
+
+export default async function handler(req, res) {
+  // Only allow POST requests from Vercel cron
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Verify the request is from Vercel cron (optional security)
+  const authHeader = req.headers.authorization
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    // Initialize Supabase client
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
+    // Perform a lightweight query - just check if we can connect
+    const { data, error } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .limit(1)
+
+    if (error) {
+      console.error('Supabase keep-alive error:', error)
+      return res.status(500).json({ 
+        error: 'Database connection failed',
+        details: error.message 
+      })
+    }
+
+    console.log('Supabase keep-alive successful at:', new Date().toISOString())
+    
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Supabase connection maintained',
+      timestamp: new Date().toISOString()
+    })
+
+  } catch (error) {
+    console.error('Keep-alive error:', error)
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    })
+  }
+}

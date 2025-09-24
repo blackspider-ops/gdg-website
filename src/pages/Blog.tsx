@@ -97,7 +97,7 @@ const Blog = () => {
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-8 gdg-accent-bar pl-6">
+            <div className="col-span-12 gdg-accent-bar pl-6">
               <article 
                 className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => openPostModal(featuredPost)}
@@ -147,24 +147,7 @@ const Blog = () => {
               </article>
             </div>
 
-            <div className="col-span-12 lg:col-span-4 lg:col-start-9 mt-8 lg:mt-0">
-              <div className="bg-muted/50 rounded-lg p-6">
-                <h3 className="font-display font-semibold text-lg mb-4">Newsletter</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Get weekly updates on events, new blog posts, and community highlights.
-                </p>
-                <div className="space-y-3">
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <button className="btn-editorial px-4 py-2 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90 w-full">
-                    Subscribe
-                  </button>
-                </div>
-              </div>
-            </div>
+
           </div>
         </section>
       )}
