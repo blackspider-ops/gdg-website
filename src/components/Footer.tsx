@@ -341,9 +341,9 @@ const Footer = () => {
                 <button 
                   type="submit"
                   disabled={isSubscribing}
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-primary text-black rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubscribing ? 'Subscribing...' : newsletterContent.buttonText}
+                  {isSubscribing ? 'Subscribing...' : (newsletterContent.buttonText || 'Subscribe')}
                 </button>
               </form>
               
