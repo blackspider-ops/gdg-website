@@ -36,35 +36,59 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
   const [checkingRegistration, setCheckingRegistration] = useState(false);
+  const [checkTimeout, setCheckTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Lock body scroll when modal is open
   useBodyScrollLock(isOpen);
 
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (checkTimeout) {
+        clearTimeout(checkTimeout);
+      }
+    };
+  }, [checkTimeout]);
+
   const checkRegistrationStatus = async (email: string) => {
-    // Only check if email looks complete
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Clear any existing timeout
+    if (checkTimeout) {
+      clearTimeout(checkTimeout);
+    }
+
+    // Only check if email looks complete and valid
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!email || !emailRegex.test(email)) {
       setIsAlreadyRegistered(false);
-      setError(null);
+      setCheckingRegistration(false);
+      if (error && error.includes('already registered')) {
+        setError(null);
+      }
       return;
     }
     
     setCheckingRegistration(true);
-    try {
-      const isRegistered = await AttendanceService.checkIfUserRegistered(event.id, email);
-      setIsAlreadyRegistered(isRegistered);
-      if (isRegistered) {
-        setError('You are already registered for this event.');
-      } else {
+    
+    // Add a timeout to prevent multiple rapid calls
+    const timeout = setTimeout(async () => {
+      try {
+        const isRegistered = await AttendanceService.checkIfUserRegistered(event.id, email);
+        setIsAlreadyRegistered(isRegistered);
+        if (isRegistered) {
+          setError('You are already registered for this event.');
+        } else {
+          setError(null);
+        }
+      } catch (error) {
+        console.error('Error checking registration:', error);
+        setIsAlreadyRegistered(false);
         setError(null);
+      } finally {
+        setCheckingRegistration(false);
       }
-    } catch (error) {
-      console.error('Error checking registration:', error);
-      setIsAlreadyRegistered(false);
-      setError(null);
-    } finally {
-      setCheckingRegistration(false);
-    }
+    }, 800);
+    
+    setCheckTimeout(timeout);
   };
 
   if (!isOpen) return null;
@@ -297,16 +321,8 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
                           const email = e.target.value;
                           setFormData(prev => ({ ...prev, email }));
                           
-                          // Check registration status after a longer delay and only for complete emails
-                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                          if (emailRegex.test(email)) {
-                            setTimeout(() => checkRegistrationStatus(email), 1000);
-                          } else {
-                            setIsAlreadyRegistered(false);
-                            if (error && error.includes('already registered')) {
-                              setError(null);
-                            }
-                          }
+                          // Use the debounced check function
+                          checkRegistrationStatus(email);
                         }}
                         className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
                           isAlreadyRegistered ? 'border-red-300 bg-red-50' : 'border-border'

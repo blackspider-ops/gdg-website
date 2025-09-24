@@ -22,20 +22,27 @@ export interface AttendanceStats {
 export class AttendanceService {
   static async checkIfUserRegistered(eventId: string, email: string): Promise<boolean> {
     try {
+      // Validate email format before making the request
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!email || !emailRegex.test(email)) {
+        return false;
+      }
+
       const { data, error } = await supabase
         .from('event_attendance')
         .select('id')
         .eq('event_id', eventId)
         .eq('attendee_email', email)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows found
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 means no rows found
-        throw error;
+      if (error) {
+        console.error('Error checking registration:', error);
+        return false;
       }
 
       return !!data;
     } catch (error) {
+      console.error('Error in checkIfUserRegistered:', error);
       return false;
     }
   }
@@ -67,10 +74,9 @@ export class AttendanceService {
         .select('*')
         .eq('event_id', eventId)
         .eq('attendee_email', attendeeData.attendee_email)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 means no rows found, which is what we want
+      if (checkError) {
         throw checkError;
       }
 
@@ -117,7 +123,7 @@ export class AttendanceService {
 
       return attendee;
     } catch (error: any) {
-      
+
       // Re-throw the error so the UI can handle it properly
       throw error;
     }
@@ -161,7 +167,7 @@ export class AttendanceService {
       };
 
 
-      // Use the confirmation-mail Edge Function
+      // Use the confirmation-mail Edge Function (cache-bust-v2)
       const { data, error: functionError } = await supabase.functions.invoke('confirmation-mail', {
         body: emailPayload
       });
