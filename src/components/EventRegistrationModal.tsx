@@ -41,7 +41,13 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
   useBodyScrollLock(isOpen);
 
   const checkRegistrationStatus = async (email: string) => {
-    if (!email || !email.includes('@')) return;
+    // Only check if email looks complete
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      setIsAlreadyRegistered(false);
+      setError(null);
+      return;
+    }
     
     setCheckingRegistration(true);
     try {
@@ -54,6 +60,8 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
       }
     } catch (error) {
       console.error('Error checking registration:', error);
+      setIsAlreadyRegistered(false);
+      setError(null);
     } finally {
       setCheckingRegistration(false);
     }
@@ -289,12 +297,15 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
                           const email = e.target.value;
                           setFormData(prev => ({ ...prev, email }));
                           
-                          // Check registration status after a short delay
-                          if (email.includes('@')) {
-                            setTimeout(() => checkRegistrationStatus(email), 500);
+                          // Check registration status after a longer delay and only for complete emails
+                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                          if (emailRegex.test(email)) {
+                            setTimeout(() => checkRegistrationStatus(email), 1000);
                           } else {
                             setIsAlreadyRegistered(false);
-                            setError(null);
+                            if (error && error.includes('already registered')) {
+                              setError(null);
+                            }
                           }
                         }}
                         className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
