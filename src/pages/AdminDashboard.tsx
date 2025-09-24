@@ -17,7 +17,8 @@ import {
   FolderOpen,
   RefreshCw,
   BookOpen,
-  PenTool
+  PenTool,
+  Link as LinkIcon
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -175,6 +176,7 @@ const AdminDashboard = () => {
     { label: 'Resources', icon: FileText, href: '/admin/resources' },
     { label: 'Newsletter', icon: Mail, href: '/admin/newsletter' },
     { label: 'Blog', icon: FileText, href: '/admin/blog' },
+    { label: 'Linktree', icon: LinkIcon, href: '/admin/linktree' },
   ];
 
   const businessActions = [

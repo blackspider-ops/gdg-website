@@ -28,13 +28,14 @@ import AdminMembers from "./pages/admin/AdminMembers";
 import AdminResources from "./pages/admin/AdminResources";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminBlog from "./pages/admin/AdminBlog";
-
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSponsors from "./pages/admin/AdminSponsors";
 import AdminCommunications from "./pages/admin/AdminCommunications";
 import AdminMedia from "./pages/admin/AdminMedia";
 import AdminGuide from "./pages/admin/AdminGuide";
+import AdminLinktree from "./pages/admin/AdminLinktree";
+import Linktree from "./pages/Linktree";
 import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NotFound from "./pages/NotFound";
 
@@ -76,6 +77,18 @@ const ScrollToTop = () => {
   return null;
 };
 
+// Component to conditionally render footer
+const ConditionalFooter = () => {
+  const location = useLocation();
+  const isLinktreePage = location.pathname.startsWith('/l/');
+  
+  if (isLinktreePage) {
+    return null;
+  }
+  
+  return <Footer />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
       <AdminProvider>
@@ -108,19 +121,20 @@ const App = () => (
                     <Route path="/admin/resources" element={<AdminResources />} />
                     <Route path="/admin/newsletter" element={<AdminNewsletter />} />
                     <Route path="/admin/blog" element={<AdminBlog />} />
-
                     <Route path="/admin/users" element={<AdminUsers />} />
                     <Route path="/admin/profile" element={<AdminProfile />} />
                     <Route path="/admin/sponsors" element={<AdminSponsors />} />
                     <Route path="/admin/communications" element={<AdminCommunications />} />
                     <Route path="/admin/media" element={<AdminMedia />} />
                     <Route path="/admin/guide" element={<AdminGuide />} />
+                    <Route path="/admin/linktree" element={<AdminLinktree />} />
+                    <Route path="/l/:username" element={<Linktree />} />
                     <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   </main>
-                  <Footer />
+                  <ConditionalFooter />
                 </div>
               </BrowserRouter>
             </TooltipProvider>
