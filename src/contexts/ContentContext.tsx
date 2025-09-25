@@ -25,7 +25,7 @@ interface ContentContextType {
   isLoadingResources: boolean;
   lastUpdated: number;
   refreshContent: () => Promise<void>;
-  loadEvents: () => Promise<void>;
+  loadEvents: (forceReload?: boolean) => Promise<void>;
   loadTeamMembers: () => Promise<void>;
   loadProjects: () => Promise<void>;
   loadSponsors: () => Promise<void>;
@@ -138,12 +138,12 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   }, [loadedSections]);
 
   // Lazy load events
-  const loadEvents = useCallback(async () => {
-    if (events.length > 0) return; // Already loaded
+  const loadEvents = useCallback(async (forceReload = false) => {
+    if (events.length > 0 && !forceReload) return; // Already loaded
     
     try {
       setIsLoadingEvents(true);
-      const eventsData = await EventsService.getEvents();
+      const eventsData = await EventsService.getEventsWithAccurateAttendeeCount();
       setEvents(eventsData);
     } catch (error) {
       console.error('Error loading events:', error);
@@ -263,6 +263,8 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   const refreshContent = async () => {
     // Clear cache and reload essential content
     setLoadedSections(new Set());
+    // Force reload events with accurate counts
+    await loadEvents(true);
     await loadEssentialContent();
   };
 

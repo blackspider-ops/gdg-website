@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Navigate } from 'react-router-dom';
-import { Mail, Send, Users, Eye, Calendar, Plus, Edit, Trash2, Download, RefreshCw, FileText } from 'lucide-react';
+import { Mail, Send, Users, Eye, Calendar, Plus, Edit, Trash2, Download, RefreshCw, FileText, X } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { NewsletterService, type NewsletterSubscriber, type NewsletterCampaign, type NewsletterTemplate } from '@/services/newsletterService';
 import { useNewsletterScheduler } from '@/hooks/useNewsletterScheduler';
@@ -22,8 +22,11 @@ const AdminNewsletter = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<NewsletterCampaign | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<NewsletterTemplate | null>(null);
+  const [sendingCampaign, setSendingCampaign] = useState<NewsletterCampaign | null>(null);
+  const [isSendingNewsletter, setIsSendingNewsletter] = useState(false);
   
   // Form states
   const [campaignForm, setCampaignForm] = useState({
@@ -39,6 +42,10 @@ const AdminNewsletter = () => {
     description: '',
     content: '',
     html_content: ''
+  });
+
+  const [sendForm, setSendForm] = useState({
+    custom_emails: ''
   });
 
   
@@ -199,22 +206,38 @@ const AdminNewsletter = () => {
     }
   };
 
-  const handleSendCampaign = async (id: string) => {
-    if (window.confirm('Are you sure you want to send this newsletter to all subscribers? This action cannot be undone.')) {
-      setError(null);
-      
-      try {
-        const sent = await NewsletterService.sendCampaign(id);
-        if (sent) {
-          await loadNewsletterData();
-          setSuccess('Newsletter sent successfully!');
-          setTimeout(() => setSuccess(null), 3000);
-        } else {
-          setError('Failed to send newsletter. Please try again.');
-        }
-      } catch (error) {
-        setError('An error occurred while sending the newsletter.');
+  const handleSendCampaign = (campaign: NewsletterCampaign) => {
+    setSendingCampaign(campaign);
+    setSendForm({ custom_emails: '' });
+    setShowSendModal(true);
+  };
+
+  const handleConfirmSend = async () => {
+    if (!sendingCampaign) return;
+
+    setIsSendingNewsletter(true);
+    setError(null);
+
+    try {
+      const result = await NewsletterService.sendNewsletterCampaign({
+        campaign_id: sendingCampaign.id,
+        subject: sendingCampaign.subject,
+        content: sendingCampaign.content,
+        html_content: sendingCampaign.html_content,
+        custom_emails: sendForm.custom_emails
+      });
+
+      if (result.success) {
+        setSuccess(`Newsletter sent successfully to ${result.total_sent} recipients!`);
+        setShowSendModal(false);
+        await loadNewsletterData();
+      } else {
+        setError(result.error || 'Failed to send newsletter');
       }
+    } catch (error) {
+      setError('An error occurred while sending the newsletter.');
+    } finally {
+      setIsSendingNewsletter(false);
     }
   };
 
@@ -344,34 +367,7 @@ const AdminNewsletter = () => {
             <Calendar size={16} />
             <span>Process Scheduled</span>
           </button>
-          <button 
-            onClick={async () => {
-              const email = prompt('Enter your email to send a test newsletter:');
-              if (email) {
-                setSuccess('Sending test email...');
-                try {
-                  const { ResendService } = await import('@/services/resendService');
-                  const success = await ResendService.sendTestEmail(email);
-                  if (success) {
-                    setSuccess(`✅ Test email sent successfully to ${email}! Check your inbox.`);
-                  } else {
-                    setError('❌ Failed to send test email. Check console for details.');
-                  }
-                } catch (error) {
-                  setError('❌ Error sending test email. Check your Resend API key.');
-                }
-                setTimeout(() => {
-                  setSuccess(null);
-                  setError(null);
-                }, 5000);
-              }
-            }}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-foreground rounded-lg hover:bg-green-700 transition-colors font-medium"
-            title="Send a test email to verify Resend configuration"
-          >
-            <Mail size={16} />
-            <span>Test Email</span>
-          </button>
+
           <button 
             onClick={() => {
               resetCampaignForm();
@@ -594,7 +590,7 @@ const AdminNewsletter = () => {
                           
                           {campaign.status === 'draft' && (
                             <button 
-                              onClick={() => handleSendCampaign(campaign.id)}
+                              onClick={() => handleSendCampaign(campaign)}
                               className="p-2 hover:bg-green-800 rounded-md transition-colors text-muted-foreground hover:text-green-400"
                               title="Send now"
                             >
@@ -604,7 +600,7 @@ const AdminNewsletter = () => {
                           
                           {campaign.status === 'scheduled' && (
                             <button 
-                              onClick={() => handleSendCampaign(campaign.id)}
+                              onClick={() => handleSendCampaign(campaign)}
                               className="p-2 hover:bg-yellow-800 rounded-md transition-colors text-muted-foreground hover:text-yellow-400"
                               title="Send immediately (override schedule)"
                             >
@@ -795,16 +791,43 @@ const AdminNewsletter = () => {
 
       {/* Create/Edit Campaign Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCreateModal(false);
+              setEditingCampaign(null);
+              resetCampaignForm();
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
             <div className="flex-shrink-0 p-6 border-b border-border">
               <h2 className="text-xl font-semibold text-foreground">
                 {editingCampaign ? 'Edit Campaign' : 'Create New Campaign'}
               </h2>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={editingCampaign ? handleUpdateCampaign : handleCreateCampaign} className="space-y-6">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-auto p-6">
+              <form id="campaign-form" onSubmit={editingCampaign ? handleUpdateCampaign : handleCreateCampaign} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Subject *</label>
                   <input
@@ -945,27 +968,31 @@ const AdminNewsletter = () => {
                     </div>
                   )}
                 </div>
-                
-                <div className="flex space-x-3 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateModal(false);
-                      setEditingCampaign(null);
-                      resetCampaignForm();
-                    }}
-                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                  >
-                    {editingCampaign ? 'Update Campaign' : 'Create Campaign'}
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-6 border-t border-border">
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingCampaign(null);
+                    resetCampaignForm();
+                  }}
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="campaign-form"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                >
+                  {editingCampaign ? 'Update Campaign' : 'Create Campaign'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -973,16 +1000,43 @@ const AdminNewsletter = () => {
 
       {/* Create/Edit Template Modal */}
       {showTemplateModal && (
-        <div className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowTemplateModal(false);
+              setEditingTemplate(null);
+              resetTemplateForm();
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
             <div className="flex-shrink-0 p-6 border-b border-border">
               <h2 className="text-xl font-semibold text-foreground">
                 {editingTemplate ? 'Edit Template' : 'Create New Template'}
               </h2>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={handleCreateTemplate} className="space-y-6">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-auto p-6">
+              <form id="template-form" onSubmit={handleCreateTemplate} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Template Name *</label>
                   <input
@@ -1028,27 +1082,162 @@ const AdminNewsletter = () => {
                     placeholder="HTML version of the template"
                   />
                 </div>
-                
-                <div className="flex space-x-3 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTemplateModal(false);
-                      setEditingTemplate(null);
-                      resetTemplateForm();
-                    }}
-                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                  >
-                    {editingTemplate ? 'Update Template' : 'Create Template'}
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-6 border-t border-border">
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTemplateModal(false);
+                    setEditingTemplate(null);
+                    resetTemplateForm();
+                  }}
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="template-form"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                >
+                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Newsletter Modal */}
+      {showSendModal && sendingCampaign && (
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSendModal(false);
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Send Newsletter Campaign
+                  </h2>
+                  <p className="text-muted-foreground mt-1">
+                    {sendingCampaign.subject}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSendModal(false)}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  disabled={isSendingNewsletter}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-auto p-6">
+              <div className="space-y-6">
+                {/* Newsletter Preview */}
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-3">Newsletter Preview</h3>
+                  <div className="bg-muted/50 rounded-lg p-4 border">
+                    <h4 className="font-semibold text-foreground mb-2">{sendingCampaign.subject}</h4>
+                    <div className="text-sm text-muted-foreground max-h-32 overflow-y-auto">
+                      {sendingCampaign.content.substring(0, 200)}...
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recipients Info */}
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-3">Recipients</h3>
+                  <div className="bg-muted/50 rounded-lg p-4 border">
+                    <p className="text-sm text-muted-foreground">
+                      This newsletter will be sent to all active subscribers plus any additional emails you specify below.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Custom Email Addresses */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Additional Recipients (Optional)</label>
+                  <textarea
+                    value={sendForm.custom_emails}
+                    onChange={(e) => setSendForm(prev => ({ ...prev, custom_emails: e.target.value }))}
+                    rows={4}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="Enter additional email addresses separated by commas or new lines&#10;example@psu.edu, another@example.com"
+                    disabled={isSendingNewsletter}
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Additional emails will be added to the recipient list. Separate multiple emails with commas or new lines.
+                    Use <code className="bg-gray-700 px-1 rounded">{'{name}'}</code> in your newsletter content for personalization.
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-6 border-t border-border">
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSendModal(false)}
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
+                  disabled={isSendingNewsletter}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSend}
+                  disabled={isSendingNewsletter}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
+                >
+                  {isSendingNewsletter ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      <span>Send Newsletter</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

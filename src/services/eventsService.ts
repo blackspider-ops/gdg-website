@@ -13,6 +13,7 @@ export interface Event {
   max_participants?: number;
   registration_enabled?: boolean;
   is_featured: boolean;
+  external_attendees?: number;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +29,61 @@ export class EventsService {
       if (error) throw error;
       return data || [];
     } catch (error) {
+      return [];
+    }
+  }
+
+  static async getEventsWithAccurateAttendeeCount(): Promise<(Event & { accurate_attendee_count: number })[]> {
+    try {
+      const events = await this.getEvents();
+      
+      // For each event, get the unique internal attendee count
+      const eventsWithCounts = await Promise.all(
+        events.map(async (event) => {
+          try {
+            // Get unique attendees for this event
+            const { data: attendees, error } = await supabase
+              .from('event_attendance')
+              .select('attendee_email')
+              .eq('event_id', event.id);
+
+            if (error) {
+              console.error('Error fetching attendees for event:', event.id, error);
+              return {
+                ...event,
+                accurate_attendee_count: event.external_attendees || 0
+              };
+            }
+
+            // Count unique attendees by email
+            const uniqueAttendees = attendees?.reduce((acc: string[], current) => {
+              if (!acc.includes(current.attendee_email)) {
+                acc.push(current.attendee_email);
+              }
+              return acc;
+            }, []) || [];
+
+            const internalCount = uniqueAttendees.length;
+            const externalCount = event.external_attendees || 0;
+            const totalCount = internalCount + externalCount;
+
+            return {
+              ...event,
+              accurate_attendee_count: totalCount
+            };
+          } catch (error) {
+            console.error('Error calculating attendee count for event:', event.id, error);
+            return {
+              ...event,
+              accurate_attendee_count: event.external_attendees || 0
+            };
+          }
+        })
+      );
+
+      return eventsWithCounts;
+    } catch (error) {
+      console.error('Error getting events with accurate attendee count:', error);
       return [];
     }
   }
@@ -116,17 +172,17 @@ export class EventsService {
 
   static async getEventStats() {
     try {
-      const [totalEvents, upcomingEvents, pastEvents, attendeesSum] = await Promise.all([
+      const [totalEvents, upcomingEvents, pastEvents] = await Promise.all([
         supabase.from('events').select('id', { count: 'exact' }),
         supabase.from('events').select('id', { count: 'exact' }).gte('date', new Date().toISOString()),
-        supabase.from('events').select('id', { count: 'exact' }).lt('date', new Date().toISOString()),
-        supabase.from('events').select('attendees_count')
+        supabase.from('events').select('id', { count: 'exact' }).lt('date', new Date().toISOString())
       ]);
 
-      // Calculate total attendees by summing all attendees_count values
-      const totalAttendees = attendeesSum.data?.reduce((sum, event) => {
-        return sum + (event.attendees_count || 0);
-      }, 0) || 0;
+      // Get accurate attendee counts for all events
+      const eventsWithCounts = await this.getEventsWithAccurateAttendeeCount();
+      const totalAttendees = eventsWithCounts.reduce((sum, event) => {
+        return sum + event.accurate_attendee_count;
+      }, 0);
 
       return {
         total: totalEvents.count || 0,

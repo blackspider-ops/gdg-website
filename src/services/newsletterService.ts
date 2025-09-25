@@ -271,7 +271,7 @@ export class NewsletterService {
     }
   }
 
-  static async sendCampaign(id: string): Promise<boolean> {
+  static async sendCampaign(id: string, customEmails?: string): Promise<boolean> {
     try {
       // Get campaign details
       const { data: campaign, error: campaignError } = await supabase
@@ -284,71 +284,70 @@ export class NewsletterService {
         throw new Error('Campaign not found');
       }
 
-      // Get active subscribers
-      const subscribers = await this.getSubscribers();
-      
-      if (subscribers.length === 0) {
-        throw new Error('No active subscribers found');
-      }
-
-      // Update campaign status to sending
-      await this.updateCampaign(id, {
-        status: 'sending',
-        recipient_count: subscribers.length
+      // Send using the new edge function
+      const result = await this.sendNewsletterCampaign({
+        campaign_id: id,
+        subject: campaign.subject,
+        content: campaign.content,
+        html_content: campaign.html_content,
+        custom_emails: customEmails
       });
 
-
-      // Send emails to all subscribers
-      const emailResults = await this.sendBulkEmails(campaign, subscribers);
-      
-      // Update campaign status based on results
-      if (emailResults.success) {
-        await this.updateCampaign(id, {
-          status: 'sent',
-          sent_at: new Date().toISOString()
-        });
-        return true;
-      } else {
-        await this.updateCampaign(id, { status: 'failed' });
-        return false;
-      }
+      return result.success;
     } catch (error) {
-      
-      // Update campaign status to failed
-      try {
-        await this.updateCampaign(id, { status: 'failed' });
-      } catch (updateError) {
-      }
-      
       return false;
     }
   }
 
+  static async sendNewsletterCampaign(campaignData: {
+    campaign_id: string;
+    subject: string;
+    content: string;
+    html_content?: string;
+    custom_emails?: string;
+  }): Promise<{
+    success: boolean;
+    total_sent?: number;
+    total_failed?: number;
+    results?: {
+      successful: number;
+      failed: number;
+      failed_emails: Array<{ email: string; error: string }>;
+    };
+    error?: string;
+  }> {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-newsletter-campaign', {
+        body: campaignData
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send newsletter'
+      };
+    }
+  }
+
+  // Legacy method - kept for backward compatibility
   static async sendBulkEmails(campaign: NewsletterCampaign, subscribers: NewsletterSubscriber[]): Promise<{success: boolean, sent: number, failed: number}> {
     try {
-      // Import the email service dynamically
-      const { EmailService, DirectEmailService } = await import('@/services/emailService');
-      
-      // Prepare email data for all subscribers
-      const emails = subscribers.map(subscriber => ({
-        to: subscriber.email,
+      const result = await this.sendNewsletterCampaign({
+        campaign_id: campaign.id,
         subject: campaign.subject,
         content: campaign.content,
-        html_content: campaign.html_content,
-        subscriber_name: subscriber.name || 'Subscriber',
-        unsubscribe_url: `${window.location.origin}/newsletter/unsubscribe?token=${subscriber.unsubscribe_token}`
-      }));
-
-      // Use Resend service directly
-      const { ResendService } = await import('@/services/resendService');
-      
-      
-      const result = await ResendService.sendBulkEmails(emails);
+        html_content: campaign.html_content
+      });
 
       return {
         success: result.success,
-        sent: result.sent,
-        failed: result.failed
+        sent: result.total_sent || 0,
+        failed: result.total_failed || 0
       };
     } catch (error) {
       return { success: false, sent: 0, failed: subscribers.length };

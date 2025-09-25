@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Mail, MessageSquare, Users, Calendar, Github, Twitter, Instagram } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
+import { ContactService, type ContactFormData } from '@/services/contactService';
 
 const HeroScene = React.lazy(() => import('@/components/HeroScene'));
 
@@ -49,6 +50,12 @@ const Contact = () => {
     interests: [] as string[],
   });
 
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitStatus, setSubmitStatus] = React.useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+
   const contactTypes = [
     { value: 'general', label: 'General Inquiry' },
     { value: 'join', label: 'Join Chapter' },
@@ -77,9 +84,45 @@ const Contact = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Form submission handled by contact form service
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+
+    try {
+      const result = await ContactService.submitContactForm(formData);
+
+      if (result.success) {
+        setSubmitStatus({
+          type: 'success',
+          message: 'Thank you for your message! We\'ll get back to you soon.'
+        });
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          type: 'general',
+          message: '',
+          interests: [],
+        });
+      } else {
+        setSubmitStatus({
+          type: 'error',
+          message: result.error || 'Failed to send message. Please try again.'
+        });
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'An unexpected error occurred. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+      // Clear status after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus({ type: null, message: '' });
+      }, 5000);
+    }
   };
 
   return (
@@ -210,11 +253,30 @@ const Contact = () => {
                 />
               </div>
 
+              {/* Status Messages */}
+              {submitStatus.type && (
+                <div className={`p-4 rounded-lg ${
+                  submitStatus.type === 'success' 
+                    ? 'bg-green-900/20 border border-green-500 text-green-400' 
+                    : 'bg-red-900/20 border border-red-500 text-red-400'
+                }`}>
+                  {submitStatus.message}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="btn-editorial px-6 py-3 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90"
+                disabled={isSubmitting}
+                className="btn-editorial px-6 py-3 bg-gdg-blue text-foreground border-gdg-blue hover:bg-gdg-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                {contactContent.button_text || 'Send Message'}
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <span>{contactContent.button_text || 'Send Message'}</span>
+                )}
               </button>
             </form>
           </div>

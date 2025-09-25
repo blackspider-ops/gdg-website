@@ -9,10 +9,10 @@ const Events = () => {
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  // Load events when component mounts
+  // Load events when component mounts - force reload to get accurate attendee counts
   useEffect(() => {
-    loadEvents();
-  }, [loadEvents]);
+    loadEvents(true); // Force reload to ensure accurate attendee counts
+  }, []);
 
   // Transform events data to match component structure
   const allEvents = events.map(event => {
@@ -35,7 +35,7 @@ const Events = () => {
       }),
       location: event.location,
       room: (event as any).room || '',
-      attendees: (event as any).attendees_count || 0,
+      attendees: event.accurate_attendee_count || 0,
       capacity: event.max_participants || undefined,
       description: event.description,
       level: (event as any).level as 'Beginner' | 'Intermediate' | 'Advanced' || undefined,

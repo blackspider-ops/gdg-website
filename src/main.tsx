@@ -1,11 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { EmailService } from "./services/emailService";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-
-// Initialize email service
-EmailService.initialize();
 
 // Register service worker for caching
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

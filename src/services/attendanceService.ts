@@ -56,7 +56,23 @@ export class AttendanceService {
         .order('registration_date', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Filter for unique attendees by email (keep the latest registration)
+      const uniqueAttendees = data?.reduce((acc: Attendee[], current: Attendee) => {
+        const existingIndex = acc.findIndex(attendee => attendee.attendee_email === current.attendee_email);
+        if (existingIndex === -1) {
+          acc.push(current);
+        } else {
+          // Keep the more recent registration
+          const existing = acc[existingIndex];
+          if (new Date(current.registration_date) > new Date(existing.registration_date)) {
+            acc[existingIndex] = current;
+          }
+        }
+        return acc;
+      }, []) || [];
+      
+      return uniqueAttendees;
     } catch (error) {
       return [];
     }
@@ -259,15 +275,11 @@ export class AttendanceService {
 
   static async getEventAttendanceStats(eventId: string): Promise<AttendanceStats> {
     try {
-      const { data, error } = await supabase
-        .from('event_attendance')
-        .select('attended')
-        .eq('event_id', eventId);
+      // Get unique attendees first
+      const uniqueAttendees = await this.getEventAttendees(eventId);
 
-      if (error) throw error;
-
-      const totalRegistrations = data?.length || 0;
-      const totalAttended = data?.filter(record => record.attended).length || 0;
+      const totalRegistrations = uniqueAttendees.length;
+      const totalAttended = uniqueAttendees.filter(attendee => attendee.attended).length;
       const attendanceRate = totalRegistrations > 0 ? (totalAttended / totalRegistrations) * 100 : 0;
 
       return {

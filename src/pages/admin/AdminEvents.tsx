@@ -3,10 +3,11 @@ import { useAdmin } from '@/contexts/AdminContext';
 
 import { useContent } from '@/contexts/ContentContext';
 import { Navigate } from 'react-router-dom';
-import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff, Mail } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { EventsService, type Event } from '@/services/eventsService';
 import { AttendanceService, type Attendee } from '@/services/attendanceService';
+import { EmailService, type EventEmailRequest } from '@/services/emailService';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 const AdminEvents = () => {
@@ -29,9 +30,20 @@ const AdminEvents = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [viewingAttendees, setViewingAttendees] = useState<Event | null>(null);
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [attendanceStats, setAttendanceStats] = useState<any>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailData, setEmailData] = useState({
+    subject: '',
+    message: '',
+    email_type: 'reminder' as 'reminder' | 'thank_you' | 'update' | 'custom',
+    custom_emails: ''
+  });
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Lock body scroll when any modal is open
-  useBodyScrollLock(showCreateForm || !!editingEvent);
+  useBodyScrollLock(showCreateForm || !!editingEvent || !!viewingAttendees || showEmailModal);
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -48,6 +60,7 @@ const AdminEvents = () => {
     google_form_url: '',
     registration_type: 'both' as 'external' | 'internal' | 'both',
     max_participants: '',
+    external_attendees: '',
     registration_enabled: true,
     is_featured: false
   });
@@ -106,6 +119,7 @@ const AdminEvents = () => {
       google_form_url: '',
       registration_type: 'both',
       max_participants: '',
+      external_attendees: '',
       registration_enabled: true,
       is_featured: false
     });
@@ -129,6 +143,7 @@ const AdminEvents = () => {
         google_form_url: formData.google_form_url,
         registration_type: formData.registration_type,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
         registration_enabled: formData.registration_enabled,
         is_featured: formData.is_featured
       };
@@ -164,6 +179,7 @@ const AdminEvents = () => {
       google_form_url: event.google_form_url || '',
       registration_type: event.registration_type || 'both',
       max_participants: event.max_participants?.toString() || '',
+      external_attendees: event.external_attendees?.toString() || '0',
       registration_enabled: event.registration_enabled !== false,
       is_featured: event.is_featured
     });
@@ -190,6 +206,7 @@ const AdminEvents = () => {
         google_form_url: formData.google_form_url,
         registration_type: formData.registration_type,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
         registration_enabled: formData.registration_enabled,
         is_featured: formData.is_featured
       };
@@ -247,6 +264,164 @@ const AdminEvents = () => {
       }
     } catch (error) {
       setError('Failed to update event status.');
+    }
+  };
+
+  const handleViewAttendees = async (event: Event) => {
+    try {
+      setViewingAttendees(event);
+      const eventAttendees = await AttendanceService.getEventAttendees(event.id);
+      const stats = await AttendanceService.getEventAttendanceStats(event.id);
+      setAttendees(eventAttendees);
+      setAttendanceStats(stats);
+    } catch (error) {
+      setError('Failed to load attendees');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const handleCloseAttendeesModal = () => {
+    setViewingAttendees(null);
+    setAttendees([]);
+    setAttendanceStats(null);
+  };
+
+  const getEmailTemplates = (event: Event | null) => {
+    if (!event) return {
+      reminder: { subject: '', message: '' },
+      thank_you: { subject: '', message: '' },
+      update: { subject: '', message: '' },
+      custom: { subject: '', message: '' }
+    };
+
+    const eventDate = new Date(event.date);
+    const isUpcoming = eventDate > new Date();
+
+    return {
+      reminder: {
+        subject: `Reminder: ${event.title}`,
+        message: `Dear {name},
+
+We hope you're excited about the upcoming event!
+
+Please make sure to arrive on time. We're looking forward to seeing you there!
+
+If you have any questions or need directions, feel free to reach out to us.
+
+Best regards,
+The GDG@PSU Team`
+      },
+      thank_you: {
+        subject: `Thank you for attending: ${event.title}`,
+        message: `Dear {name},
+
+Thank you for attending our event! We hope you enjoyed it and found it valuable.
+
+Your participation made it a great success!
+
+We'd love to hear your feedback and see you at future events. If you have any questions or suggestions, please don't hesitate to reach out.
+
+Best regards,
+The GDG@PSU Team`
+      },
+      update: {
+        subject: `Update: ${event.title}`,
+        message: `Dear {name},
+
+We have an important update regarding the upcoming event.
+
+[Please add your update information here]
+
+If you have any questions about these changes, please feel free to contact us.
+
+Best regards,
+The GDG@PSU Team`
+      },
+      custom: {
+        subject: `${event.title}`,
+        message: `Dear {name},
+
+[Add your custom message here]
+
+Best regards,
+The GDG@PSU Team`
+      }
+    };
+  };
+
+  const handleEmailAttendees = () => {
+    if (!viewingAttendees) return;
+
+    // Determine if event is upcoming or past
+    const eventDate = new Date(viewingAttendees.date);
+    const now = new Date();
+    const isUpcoming = eventDate > now;
+    
+    // Get email templates and set default based on event timing
+    const templates = getEmailTemplates(viewingAttendees);
+    const defaultType = isUpcoming ? 'reminder' : 'thank_you';
+    
+    setEmailData({
+      subject: templates[defaultType].subject,
+      message: templates[defaultType].message,
+      email_type: defaultType,
+      custom_emails: ''
+    });
+    
+    setShowEmailModal(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!viewingAttendees || !emailData.subject || !emailData.message) return;
+
+    setIsSendingEmail(true);
+    setError(null);
+
+    try {
+      const result = await EmailService.sendEventEmail({
+        event_id: viewingAttendees.id,
+        subject: emailData.subject,
+        message: emailData.message,
+        email_type: emailData.email_type,
+        custom_emails: emailData.custom_emails
+      });
+
+      if (result.success) {
+        setSuccess(`Email sent successfully to ${result.total_sent} recipients!`);
+        setShowEmailModal(false);
+        
+        // Reset email data
+        setEmailData({
+          subject: '',
+          message: '',
+          email_type: 'reminder',
+          custom_emails: ''
+        });
+      } else {
+        setError(result.error || 'Failed to send email');
+      }
+    } catch (error) {
+      setError('Failed to send email. Please try again.');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleToggleAttendance = async (attendeeId: string, currentStatus: boolean) => {
+    try {
+      const success = await AttendanceService.markAttendance(attendeeId, !currentStatus);
+      if (success && viewingAttendees) {
+        // Refresh the attendees list and stats
+        const eventAttendees = await AttendanceService.getEventAttendees(viewingAttendees.id);
+        const stats = await AttendanceService.getEventAttendanceStats(viewingAttendees.id);
+        setAttendees(eventAttendees);
+        setAttendanceStats(stats);
+        setSuccess(`Attendance ${!currentStatus ? 'marked' : 'unmarked'} successfully!`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (error) {
+      setError('Failed to update attendance');
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -431,13 +606,20 @@ const AdminEvents = () => {
                         {event.registration_enabled ? <Eye size={18} /> : <EyeOff size={18} />}
                       </button>
                       <button 
+                        onClick={() => handleViewAttendees(event)}
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-blue-400"
+                        title="View Registrations"
+                      >
+                        <UserCheck size={18} />
+                      </button>
+                      <button 
                         onClick={() => handleToggleFeatured(event)}
                         className={`p-2 hover:bg-gray-800 rounded-lg transition-colors ${
-                          event.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-muted-foreground hover:text-muted-foreground'
+                          event.is_featured ? 'text-yellow-400 hover:text-yellow-300' : 'text-gray-400 hover:text-yellow-400'
                         }`}
                         title={event.is_featured ? 'Remove from featured' : 'Mark as featured'}
                       >
-                        ⭐
+                        <span className={event.is_featured ? 'text-yellow-400' : 'text-gray-400'}>⭐</span>
                       </button>
                       <button 
                         onClick={() => handleEditEvent(event)}
@@ -528,6 +710,38 @@ const AdminEvents = () => {
                     className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
                     placeholder="Event location"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Event Capacity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.max_participants}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_participants: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="Maximum number of participants"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Leave empty for unlimited capacity
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">External Attendees</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.external_attendees}
+                    onChange={(e) => setFormData(prev => ({ ...prev, external_attendees: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="Number of external attendees"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Manual count for external registrations
+                  </p>
                 </div>
               </div>
 
@@ -641,6 +855,38 @@ const AdminEvents = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Event Capacity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.max_participants}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_participants: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="Maximum number of participants"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Leave empty for unlimited capacity
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">External Attendees</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.external_attendees}
+                    onChange={(e) => setFormData(prev => ({ ...prev, external_attendees: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="Number of external attendees"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Manual count for external registrations
+                  </p>
+                </div>
+              </div>
+
               {error && (
                 <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
                   {error}
@@ -678,6 +924,355 @@ const AdminEvents = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Attendees Modal */}
+      {viewingAttendees && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={handleCloseAttendeesModal}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Event Registrations
+                  </h2>
+                  <p className="text-muted-foreground mt-1">
+                    {viewingAttendees.title}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleEmailAttendees}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                    title={`Send email to attendees and custom recipients`}
+                  >
+                    <Mail size={16} />
+                    <span>Email All ({attendees.length > 0 ? attendees.length : 'Custom Only'})</span>
+                  </button>
+                  <button
+                    onClick={handleCloseAttendeesModal}
+                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Stats */}
+              {attendanceStats && (
+                <div className="grid grid-cols-4 gap-4 mt-4">
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-blue-500">
+                      {attendanceStats.totalRegistrations}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Internal Registrations
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-purple-500">
+                      {viewingAttendees.external_attendees || 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      External Attendees
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-orange-500">
+                      {attendanceStats.totalRegistrations + (viewingAttendees.external_attendees || 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Attendees
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-green-500">
+                      {attendanceStats.totalAttended}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Attended (Internal)
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {attendees.length > 0 ? (
+                <div className="space-y-4">
+                  {attendees.map((attendee) => (
+                    <div 
+                      key={attendee.id} 
+                      className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <div>
+                              <h3 className="font-semibold text-foreground">
+                                {attendee.attendee_name}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {attendee.attendee_email}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span>
+                              Registered: {new Date(attendee.registration_date).toLocaleDateString()}
+                            </span>
+                            {attendee.check_in_time && (
+                              <span>
+                                Checked in: {new Date(attendee.check_in_time).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          {attendee.notes && (
+                            <div className="mt-2">
+                              <p className="text-sm text-muted-foreground">
+                                <strong>Notes:</strong> {attendee.notes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleToggleAttendance(attendee.id, attendee.attended)}
+                            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              attendee.attended 
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40'
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:hover:bg-gray-900/40'
+                            }`}
+                            title={`Click to mark as ${attendee.attended ? 'not attended' : 'attended'}`}
+                          >
+                            {attendee.attended ? '✓ Attended' : '○ Registered'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    No Registrations Yet
+                  </h3>
+                  <p className="text-muted-foreground">
+                    No one has registered for this event yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Modal */}
+      {showEmailModal && viewingAttendees && (
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowEmailModal(false);
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Send Email to Attendees
+                  </h2>
+                  <p className="text-muted-foreground mt-1">
+                    {viewingAttendees.title} • {(() => {
+                      const customEmailCount = emailData.custom_emails 
+                        ? emailData.custom_emails.split(/[,\n\r]+/).filter(email => email.trim() && email.includes('@')).length 
+                        : 0;
+                      const totalRecipients = attendees.length + customEmailCount;
+                      
+                      if (attendees.length === 0 && customEmailCount === 0) {
+                        return 'No recipients yet - add custom emails below';
+                      } else if (attendees.length === 0) {
+                        return `${customEmailCount} custom recipients`;
+                      } else if (customEmailCount === 0) {
+                        return `${attendees.length} attendees`;
+                      } else {
+                        return `${attendees.length} attendees + ${customEmailCount} custom = ${totalRecipients} total`;
+                      }
+                    })()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEmailModal(false)}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  disabled={isSendingEmail}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-auto p-6">
+              <div className="space-y-6">
+              {/* Email Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email Type</label>
+                <select
+                  value={emailData.email_type}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'reminder' | 'thank_you' | 'update' | 'custom';
+                    const templates = getEmailTemplates(viewingAttendees);
+                    setEmailData(prev => ({ 
+                      ...prev, 
+                      email_type: newType,
+                      subject: templates[newType].subject,
+                      message: templates[newType].message
+                    }));
+                  }}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  disabled={isSendingEmail}
+                >
+                  <option value="reminder">Reminder</option>
+                  <option value="thank_you">Thank You</option>
+                  <option value="update">Update</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                <input
+                  type="text"
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="Enter email subject"
+                  disabled={isSendingEmail}
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                <textarea
+                  value={emailData.message}
+                  onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+                  rows={8}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="Enter your message to attendees"
+                  disabled={isSendingEmail}
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  Event details (date, time, location) will be automatically included in the email template.
+                  Use <code className="bg-gray-700 px-1 rounded">{'{name}'}</code> to personalize with recipient names.
+                </p>
+              </div>
+
+              {/* Custom Email Addresses */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Additional Recipients (Optional)</label>
+                <textarea
+                  value={emailData.custom_emails}
+                  onChange={(e) => setEmailData(prev => ({ ...prev, custom_emails: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="Enter additional email addresses separated by commas or new lines&#10;example@psu.edu, another@example.com"
+                  disabled={isSendingEmail}
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  Additional emails will be added to BCC. Separate multiple emails with commas or new lines.
+                </p>
+              </div>
+
+  
+
+              {error && (
+                  <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-6 border-t border-border">
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
+                  disabled={isSendingEmail}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail || !emailData.subject || !emailData.message || (() => {
+                    const customEmailCount = emailData.custom_emails 
+                      ? emailData.custom_emails.split(/[,\n\r]+/).filter(email => email.trim() && email.includes('@')).length 
+                      : 0;
+                    return attendees.length === 0 && customEmailCount === 0;
+                  })()}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium flex items-center justify-center space-x-2"
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mail size={16} />
+                      <span>Send to {(() => {
+                        const customEmailCount = emailData.custom_emails 
+                          ? emailData.custom_emails.split(/[,\n\r]+/).filter(email => email.trim() && email.includes('@')).length 
+                          : 0;
+                        const totalRecipients = attendees.length + customEmailCount;
+                        
+                        if (totalRecipients === 0) {
+                          return 'recipients (add emails above)';
+                        } else {
+                          return totalRecipients === 1 ? '1 recipient' : `${totalRecipients} recipients`;
+                        }
+                      })()}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
