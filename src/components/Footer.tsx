@@ -28,7 +28,7 @@ const Footer = () => {
         const code = await ContentService.getAdminSecretCode();
         setAdminSecretCode(code);
       } catch (error) {
-    console.error(error);
+    // Silently handle errors
   }
     };
     loadSecretCode();

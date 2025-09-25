@@ -5,6 +5,8 @@ import { TeamService } from '@/services/teamService';
 import { ProjectsService } from '@/services/projectsService';
 import { SponsorsService } from '@/services/sponsorsService';
 import { ResourcesService } from '@/services/resourcesService';
+import { OptimizedContentService } from '@/services/optimizedContentService';
+import { preloaderService } from '@/services/preloaderService';
 import { supabase } from '@/lib/supabase';
 
 interface ContentContextType {
@@ -72,20 +74,17 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   // Cache for loaded data to prevent unnecessary refetches
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
 
-  // Load only essential content on initial load
+  // Load only essential content on initial load with optimizations
   const loadEssentialContent = async () => {
     try {
       setIsLoading(true);
 
-      // Load only critical content for initial page render
-      const [settings, navItems, footer] = await Promise.all([
-        ContentService.getSiteSettings(),
-        ContentService.getNavigationItems(),
-        ContentService.getFooterContent()
-      ]);
+      // Use optimized batch loading for essential content
+      const { siteSettings: settings, navigationItems: navItems, footerContent: footer, homeContent } = 
+        await OptimizedContentService.loadEssentialContent();
 
       // Process site settings
-      const settingsMap = settings.reduce((acc, setting) => {
+      const settingsMap = settings.reduce((acc: Record<string, any>, setting: any) => {
         acc[setting.key] = setting.value;
         return acc;
       }, {} as Record<string, any>);
@@ -95,15 +94,14 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       setNavigationItems(navItems);
 
       // Process footer
-      const footerMap = footer.reduce((acc, item) => {
+      const footerMap = footer.reduce((acc: Record<string, any>, item: any) => {
         acc[item.section_key] = item.content;
         return acc;
       }, {} as Record<string, any>);
       setFooterContent(footerMap);
 
-      // Load home page content immediately (most likely first page viewed)
-      const homeContent = await ContentService.getPageContent('home');
-      const homeContentMap = homeContent.reduce((acc, item) => {
+      // Process home content
+      const homeContentMap = homeContent.reduce((acc: Record<string, any>, item: any) => {
         acc[item.section_key] = item.content;
         return acc;
       }, {} as Record<string, any>);
@@ -111,21 +109,38 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       setPageContent(prev => ({ ...prev, home: homeContentMap }));
       setLoadedSections(prev => new Set([...prev, 'home']));
 
+      // Start preloading other content in the background
+      setTimeout(() => {
+        OptimizedContentService.preloadContent(['events', 'team', 'projects', 'contact']);
+        
+        // Preload critical assets
+        preloaderService.intelligentPreload({
+          fonts: [
+            { family: 'Space Grotesk', weight: '400' },
+            { family: 'Space Grotesk', weight: '600' },
+            { family: 'Space Grotesk', weight: '700' },
+            { family: 'Inter', weight: '400' },
+            { family: 'Inter', weight: '500' },
+            { family: 'Inter', weight: '600' }
+          ]
+        });
+      }, 100);
+
     } catch (error) {
-      console.error('Error loading essential content:', error);
+      // Silently handle errors
     } finally {
       setIsLoading(false);
       setLastUpdated(Date.now());
     }
   };
 
-  // Lazy load page content when needed
+  // Lazy load page content when needed with caching
   const loadPageContent = useCallback(async (pageSlug: string) => {
     if (loadedSections.has(pageSlug)) return;
 
     try {
-      const content = await ContentService.getPageContent(pageSlug);
-      const contentMap = content.reduce((acc, item) => {
+      const content = await OptimizedContentService.getPageContent(pageSlug);
+      const contentMap = content.reduce((acc: Record<string, any>, item: any) => {
         acc[item.section_key] = item.content;
         return acc;
       }, {} as Record<string, any>);
@@ -133,80 +148,85 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       setPageContent(prev => ({ ...prev, [pageSlug]: contentMap }));
       setLoadedSections(prev => new Set([...prev, pageSlug]));
     } catch (error) {
-      console.error(`Error loading ${pageSlug} content:`, error);
+      // Silently handle errors
     }
   }, [loadedSections]);
 
-  // Lazy load events
+  // Lazy load events with caching
   const loadEvents = useCallback(async (forceReload = false) => {
     if (events.length > 0 && !forceReload) return; // Already loaded
     
     try {
       setIsLoadingEvents(true);
-      const eventsData = await EventsService.getEventsWithAccurateAttendeeCount();
+      
+      if (forceReload) {
+        OptimizedContentService.invalidateCache('events');
+      }
+      
+      const eventsData = await OptimizedContentService.getEventsWithAccurateAttendeeCount();
       setEvents(eventsData);
     } catch (error) {
-      console.error('Error loading events:', error);
+      // Silently handle errors
     } finally {
       setIsLoadingEvents(false);
     }
   }, [events.length]);
 
-  // Lazy load team members
+  // Lazy load team members with caching
   const loadTeamMembers = useCallback(async () => {
     if (teamMembers.length > 0) return; // Already loaded
     
     try {
       setIsLoadingTeam(true);
-      const teamData = await TeamService.getTeamMembers();
+      const teamData = await OptimizedContentService.getTeamMembers();
       setTeamMembers(teamData);
     } catch (error) {
-      console.error('Error loading team members:', error);
+      // Silently handle errors
     } finally {
       setIsLoadingTeam(false);
     }
   }, [teamMembers.length]);
 
-  // Lazy load projects
+  // Lazy load projects with caching
   const loadProjects = useCallback(async () => {
     if (projects.length > 0) return; // Already loaded
     
     try {
       setIsLoadingProjects(true);
-      const projectsData = await ProjectsService.getProjects();
+      const projectsData = await OptimizedContentService.getProjects();
       setProjects(projectsData);
     } catch (error) {
-      console.error('Error loading projects:', error);
+      // Silently handle errors
     } finally {
       setIsLoadingProjects(false);
     }
   }, [projects.length]);
 
-  // Lazy load sponsors
+  // Lazy load sponsors with caching
   const loadSponsors = useCallback(async () => {
     if (sponsors.length > 0) return; // Already loaded
     
     try {
       setIsLoadingSponsors(true);
-      const sponsorsData = await SponsorsService.getSponsors();
+      const sponsorsData = await OptimizedContentService.getSponsors();
       setSponsors(sponsorsData);
     } catch (error) {
-      console.error('Error loading sponsors:', error);
+      // Silently handle errors
     } finally {
       setIsLoadingSponsors(false);
     }
   }, [sponsors.length]);
 
-  // Lazy load resources
+  // Lazy load resources with caching
   const loadResources = useCallback(async () => {
     if (resources.length > 0) return; // Already loaded
     
     try {
       setIsLoadingResources(true);
-      const resourcesData = await ResourcesService.getResources();
+      const resourcesData = await OptimizedContentService.getResources();
       setResources(resourcesData);
     } catch (error) {
-      console.error('Error loading resources:', error);
+      // Silently handle errors
     } finally {
       setIsLoadingResources(false);
     }
@@ -261,8 +281,10 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   }, [events.length, teamMembers.length, loadEvents, loadTeamMembers]);
 
   const refreshContent = async () => {
-    // Clear cache and reload essential content
+    // Clear all caches and reload essential content
+    OptimizedContentService.clearAllCaches();
     setLoadedSections(new Set());
+    
     // Force reload events with accurate counts
     await loadEvents(true);
     await loadEssentialContent();
@@ -303,7 +325,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
           return link.url;
         }
       } catch (error) {
-    console.error(error);
+    // Silently handle errors
   }
     }
 
@@ -331,7 +353,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
           return allLinks;
         }
       } catch (error) {
-    console.error(error);
+    // Silently handle errors
   }
     }
     return [];

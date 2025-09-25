@@ -62,13 +62,11 @@ export class BlogService {
         .order('order_index', { ascending: true });
 
       if (error) {
-        console.error('Error fetching blog categories:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching blog categories:', error);
       return [];
     }
   }
@@ -84,13 +82,11 @@ export class BlogService {
         .order('order_index', { ascending: true });
 
       if (error) {
-        console.error('Error fetching all blog categories:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching all blog categories:', error);
       return [];
     }
   }
@@ -107,13 +103,11 @@ export class BlogService {
         .single();
 
       if (error) {
-        console.error('Error creating blog category:', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error creating blog category:', error);
       return null;
     }
   }
@@ -129,13 +123,11 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error updating blog category:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error updating blog category:', error);
       return false;
     }
   }
@@ -151,13 +143,11 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting blog category:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error deleting blog category:', error);
       return false;
     }
   }
@@ -183,13 +173,11 @@ export class BlogService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching published blog posts:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching published blog posts:', error);
       return [];
     }
   }
@@ -208,13 +196,11 @@ export class BlogService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching all blog posts:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching all blog posts:', error);
       return [];
     }
   }
@@ -235,13 +221,11 @@ export class BlogService {
         .single();
 
       if (error) {
-        console.error('Error fetching blog post by slug:', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error fetching blog post by slug:', error);
       return null;
     }
   }
@@ -261,13 +245,11 @@ export class BlogService {
         .single();
 
       if (error) {
-        console.error('Error fetching blog post by ID:', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error fetching blog post by ID:', error);
       return null;
     }
   }
@@ -284,13 +266,11 @@ export class BlogService {
         .single();
 
       if (error) {
-        console.error('Error creating blog post:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
       return data;
     } catch (error) {
-      console.error('Error creating blog post:', error);
       throw error;
     }
   }
@@ -306,13 +286,11 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error updating blog post:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
       return true;
     } catch (error) {
-      console.error('Error updating blog post:', error);
       throw error;
     }
   }
@@ -328,13 +306,11 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting blog post:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error deleting blog post:', error);
       return false;
     }
   }
@@ -352,7 +328,6 @@ export class BlogService {
         .single();
 
       if (fetchError) {
-        console.error('Error fetching current post for view increment:', fetchError);
         return false;
       }
 
@@ -365,13 +340,11 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error incrementing blog views:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error incrementing blog views:', error);
       return false;
     }
   }
@@ -434,7 +407,6 @@ export class BlogService {
         totalCategories
       };
     } catch (error) {
-      console.error('Error fetching blog stats:', error);
       return {
         totalPosts: 0,
         publishedPosts: 0,
@@ -489,13 +461,11 @@ export class BlogService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
-        console.error('Error checking if user liked post:', error);
         return false;
       }
 
       return !!data;
     } catch (error) {
-      console.error('Error checking if user liked post:', error);
       return false;
     }
   }
@@ -517,7 +487,6 @@ export class BlogService {
           .eq('user_identifier', userIdentifier);
 
         if (deleteError) {
-          console.error('Error removing like:', deleteError);
           return { success: false, isLiked: true, newCount: 0 };
         }
       } else {
@@ -530,7 +499,6 @@ export class BlogService {
           });
 
         if (insertError) {
-          console.error('Error adding like:', insertError);
           return { success: false, isLiked: false, newCount: 0 };
         }
       }
@@ -542,7 +510,6 @@ export class BlogService {
         .eq('post_id', postId);
 
       if (countError) {
-        console.error('Error getting like count:', countError);
         return { success: false, isLiked: !hasLiked, newCount: 0 };
       }
 
@@ -555,7 +522,7 @@ export class BlogService {
         .eq('id', postId);
 
       if (updateError) {
-        console.error('Error updating post like count:', updateError);
+        // Silently handle update errors
       }
 
       return { 
@@ -564,7 +531,6 @@ export class BlogService {
         newCount 
       };
     } catch (error) {
-      console.error('Error toggling like:', error);
       return { success: false, isLiked: false, newCount: 0 };
     }
   }
@@ -580,13 +546,11 @@ export class BlogService {
         .eq('post_id', postId);
 
       if (error) {
-        console.error('Error getting like count:', error);
         return 0;
       }
 
       return data?.length || 0;
     } catch (error) {
-      console.error('Error getting like count:', error);
       return 0;
     }
   }
@@ -603,7 +567,6 @@ export class BlogService {
         .select('id');
 
       if (postsError) {
-        console.error('Error fetching posts for sync:', postsError);
         return;
       }
 
@@ -616,10 +579,8 @@ export class BlogService {
           .update({ likes_count: actualCount })
           .eq('id', post.id);
       }
-
-      console.log('Like counts synced successfully');
     } catch (error) {
-      console.error('Error syncing like counts:', error);
+      // Silently handle sync errors
     }
   }
 }

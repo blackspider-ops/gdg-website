@@ -96,14 +96,104 @@
 @layer components {
   /* Layout System */
   .editorial-grid {
-    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+    @apply container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-12;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 1.5rem;
+    gap: 1rem;
+  }
+  
+  @screen sm {
+    .editorial-grid {
+      gap: 1.25rem;
+    }
+  }
+  
+  @screen md {
+    .editorial-grid {
+      gap: 1.5rem;
+    }
+  }
+  
+  @screen lg {
+    .editorial-grid {
+      gap: 2rem;
+    }
   }
 
   .content-measure {
     max-width: 65ch;
+  }
+  
+  /* Responsive text sizing */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl;
+  }
+  
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl;
+  }
+  
+  /* Responsive spacing utilities */
+  .space-responsive-sm {
+    @apply space-y-4 sm:space-y-6;
+  }
+  
+  .space-responsive-md {
+    @apply space-y-6 sm:space-y-8 lg:space-y-12;
+  }
+  
+  .space-responsive-lg {
+    @apply space-y-8 sm:space-y-12 lg:space-y-16;
+  }
+  
+  .space-responsive-xl {
+    @apply space-y-12 sm:space-y-16 lg:space-y-24;
+  }
+  
+  /* Responsive padding utilities */
+  .p-responsive-sm {
+    @apply p-4 sm:p-6;
+  }
+  
+  .p-responsive-md {
+    @apply p-6 sm:p-8;
+  }
+  
+  .p-responsive-lg {
+    @apply p-8 sm:p-12;
+  }
+  
+  /* Responsive margin utilities */
+  .m-responsive-sm {
+    @apply m-4 sm:m-6;
+  }
+  
+  .m-responsive-md {
+    @apply m-6 sm:m-8;
+  }
+  
+  .m-responsive-lg {
+    @apply m-8 sm:m-12;
   }
 
   /* Typography */
@@ -121,6 +211,41 @@
 
   .font-body {
     font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Responsive typography scaling */
+  .text-hero {
+    @apply text-2xl leading-tight;
+  }
+  
+  @screen sm {
+    .text-hero {
+      @apply text-3xl;
+    }
+  }
+  
+  @screen md {
+    .text-hero {
+      @apply text-4xl;
+    }
+  }
+  
+  @screen lg {
+    .text-hero {
+      @apply text-5xl;
+    }
+  }
+  
+  @screen xl {
+    .text-hero {
+      @apply text-6xl;
+    }
+  }
+  
+  @screen 2xl {
+    .text-hero {
+      @apply text-7xl;
+    }
   }
 
   /* Interactive Elements */
@@ -160,6 +285,38 @@
   .hero-canvas {
     @apply absolute inset-0;
     background: radial-gradient(circle at center, hsl(var(--background)) 0%, hsl(224 15% 3%) 100%);
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+  
+  /* Responsive 3D canvas sizing */
+  .canvas-container {
+    @apply w-full h-full;
+    min-height: 50vh;
+  }
+  
+  @screen sm {
+    .canvas-container {
+      min-height: 60vh;
+    }
+  }
+  
+  @screen md {
+    .canvas-container {
+      min-height: 70vh;
+    }
+  }
+  
+  @screen lg {
+    .canvas-container {
+      min-height: 80vh;
+    }
+  }
+  
+  @screen xl {
+    .canvas-container {
+      min-height: 100vh;
+    }
   }
 
   /* Animations */
@@ -224,6 +381,51 @@
     color: hsl(var(--foreground)) !important;
   }
 
+  /* Mobile-specific optimizations */
+  @media (max-width: 767px) {
+    .editorial-grid {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    .magnetic-button {
+      transform: none !important;
+    }
+    
+    .panel-hover {
+      transform: none !important;
+    }
+  }
+  
+  /* Touch device optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    .magnetic-button:hover,
+    .panel-hover:hover {
+      transform: none;
+    }
+    
+    .underline-slide::after {
+      transform: scaleX(1);
+    }
+  }
+  
+  /* High DPI display optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .hero-canvas,
+    .canvas-container {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+  
+  /* Landscape mobile optimizations */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .hero-canvas,
+    .canvas-container {
+      min-height: 100vh;
+    }
+  }
+  
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     .animate-fade-up,
@@ -233,6 +435,12 @@
       animation: none;
       transition: none;
       transform: none;
+    }
+    
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
   }
 }

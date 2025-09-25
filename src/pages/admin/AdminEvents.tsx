@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-
 import { useContent } from '@/contexts/ContentContext';
 import { Navigate } from 'react-router-dom';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff, Mail } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { EventsService, type Event } from '@/services/eventsService';
@@ -443,8 +443,9 @@ The GDG@PSU Team`
   };
 
   return (
-    <AdminLayout
-      title="Event Management"
+    <AdminPageWrapper pageName="Admin Events" pageTitle="Event Management">
+      <AdminLayout
+        title="Event Management"
       subtitle="Create and manage GDG events"
       icon={Calendar}
       actions={
@@ -1277,6 +1278,7 @@ The GDG@PSU Team`
         </div>
       )}
     </AdminLayout>
+    </AdminPageWrapper>
   );
 };
 

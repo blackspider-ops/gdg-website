@@ -40,25 +40,25 @@ const Navigation = () => {
       )}
       
       <div className="editorial-grid">
-        <div className="col-span-12 flex items-center justify-between py-3 px-2 gap-4">
+        <div className="col-span-12 flex items-center justify-between py-2 sm:py-3 px-2 gap-2 sm:gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 magnetic-button min-w-0 flex-shrink-0">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-display font-bold text-lg">G</span>
+          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 magnetic-button min-w-0 flex-shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground font-display font-bold text-sm sm:text-lg">G</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-display font-semibold text-base sm:text-lg leading-tight truncate">{siteTitle}</span>
+              <span className="font-display font-semibold text-sm sm:text-base md:text-lg leading-tight truncate">{siteTitle}</span>
               <span className="text-muted-foreground text-xs hidden sm:block leading-tight truncate">{siteSubtitle}</span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-2 lg:space-x-6 flex-shrink-0">
+          <div className="hidden md:flex items-center space-x-1 lg:space-x-4 xl:space-x-6 flex-shrink-0">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`text-sm font-medium transition-colors underline-slide focus-ring px-2 py-1 rounded whitespace-nowrap ${
+                className={`text-xs lg:text-sm font-medium transition-colors underline-slide focus-ring px-2 py-1 rounded whitespace-nowrap ${
                   isActive(item.href) 
                     ? 'text-primary' 
                     : 'text-foreground/80 hover:text-foreground'
@@ -67,7 +67,7 @@ const Navigation = () => {
                 {item.name}
               </Link>
             ))}
-            <Link to="/contact" className="magnetic-button px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium focus-ring whitespace-nowrap ml-4">
+            <Link to="/contact" className="magnetic-button px-3 lg:px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium focus-ring whitespace-nowrap ml-2 lg:ml-4 text-xs lg:text-sm">
               Join Chapter
             </Link>
           </div>

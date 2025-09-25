@@ -21,7 +21,7 @@ const Blog = () => {
       const blogPosts = await BlogService.getPublishedPosts();
       setPosts(blogPosts);
     } catch (error) {
-      console.error('Error loading blog posts:', error);
+      // Silently handle loading errors
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +44,7 @@ const Blog = () => {
           )
         );
       } catch (error) {
-        console.error('Error incrementing view count:', error);
+        // Silently handle view count errors
       }
     }
   };

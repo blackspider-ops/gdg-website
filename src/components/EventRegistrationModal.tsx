@@ -80,7 +80,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
           setError(null);
         }
       } catch (error) {
-        console.error('Error checking registration:', error);
+        // Silently handle errors
         setIsAlreadyRegistered(false);
         setError(null);
       } finally {
@@ -150,7 +150,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
         }, 2000);
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      // Silently handle errors
       
       // Handle specific error cases
       if (error?.message?.includes('already registered')) {

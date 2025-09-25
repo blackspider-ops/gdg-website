@@ -31,7 +31,7 @@ const LinktreeAnalytics = ({ profileId }: LinktreeAnalyticsProps) => {
       setAnalytics(analyticsData);
       setLinks(linksData);
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      // Silently handle errors
     } finally {
       setLoading(false);
     }

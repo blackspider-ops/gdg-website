@@ -36,13 +36,11 @@ export class AttendanceService {
         .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows found
 
       if (error) {
-        console.error('Error checking registration:', error);
         return false;
       }
 
       return !!data;
     } catch (error) {
-      console.error('Error in checkIfUserRegistered:', error);
       return false;
     }
   }

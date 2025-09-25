@@ -48,7 +48,6 @@ export class EventsService {
               .eq('event_id', event.id);
 
             if (error) {
-              console.error('Error fetching attendees for event:', event.id, error);
               return {
                 ...event,
                 accurate_attendee_count: event.external_attendees || 0
@@ -72,7 +71,6 @@ export class EventsService {
               accurate_attendee_count: totalCount
             };
           } catch (error) {
-            console.error('Error calculating attendee count for event:', event.id, error);
             return {
               ...event,
               accurate_attendee_count: event.external_attendees || 0
@@ -83,7 +81,6 @@ export class EventsService {
 
       return eventsWithCounts;
     } catch (error) {
-      console.error('Error getting events with accurate attendee count:', error);
       return [];
     }
   }

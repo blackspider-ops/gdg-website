@@ -51,7 +51,7 @@ const AdminLinktree = () => {
         setSelectedProfile(data[0]);
       }
     } catch (error) {
-      console.error('Error fetching profiles:', error);
+      // Silently handle errors
       toast.error('Failed to fetch profiles');
     } finally {
       setLoading(false);
@@ -63,7 +63,7 @@ const AdminLinktree = () => {
       const data = await linktreeService.getProfileLinks(profileId);
       setLinks(data);
     } catch (error) {
-      console.error('Error fetching links:', error);
+      // Silently handle errors
       toast.error('Failed to fetch links');
     }
   };
@@ -78,7 +78,7 @@ const AdminLinktree = () => {
         toast.success('Profile created successfully');
       }
     } catch (error) {
-      console.error('Error creating profile:', error);
+      // Silently handle errors
       toast.error('Failed to create profile');
     }
   };
@@ -93,7 +93,7 @@ const AdminLinktree = () => {
         toast.success('Profile updated successfully');
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      // Silently handle errors
       toast.error('Failed to update profile');
     }
   };
@@ -113,7 +113,7 @@ const AdminLinktree = () => {
         toast.success('Profile deleted successfully');
       }
     } catch (error) {
-      console.error('Error deleting profile:', error);
+      // Silently handle errors
       toast.error('Failed to delete profile');
     }
   };
@@ -127,7 +127,7 @@ const AdminLinktree = () => {
         toast.success('Link created successfully');
       }
     } catch (error) {
-      console.error('Error creating link:', error);
+      // Silently handle errors
       toast.error('Failed to create link');
     }
   };
@@ -141,7 +141,7 @@ const AdminLinktree = () => {
         toast.success('Link updated successfully');
       }
     } catch (error) {
-      console.error('Error updating link:', error);
+      // Silently handle errors
       toast.error('Failed to update link');
     }
   };
@@ -158,7 +158,7 @@ const AdminLinktree = () => {
         toast.success('Link deleted successfully');
       }
     } catch (error) {
-      console.error('Error deleting link:', error);
+      // Silently handle errors
       toast.error('Failed to delete link');
     }
   };

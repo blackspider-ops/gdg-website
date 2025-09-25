@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Navigate } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useAuditTracking, useAdminOperationTracking, useAdminTabTracking } from '@/hooks/useAuditTracking';
 import {
   Users,
   Plus,
@@ -100,6 +101,17 @@ const AdminUsers = () => {
   // Check if current user is super admin
   const isSuperAdmin = AdminService.isSuperAdmin(currentAdmin);
 
+  // Initialize audit tracking
+  const { logAction, logCreate, logUpdate, logDelete, logView, logExport } = useAuditTracking('Admin Users Management', {
+    trackPageView: true,
+    trackPageExit: true,
+    trackFormSubmissions: true,
+    trackNavigation: true
+  });
+
+  const { trackOperation } = useAdminOperationTracking();
+  const { trackTabChange } = useAdminTabTracking('Admin Users Management');
+
   if (!isAuthenticated || !isSuperAdmin) {
     return <Navigate to="/admin" replace />;
   }
@@ -109,19 +121,19 @@ const AdminUsers = () => {
   }, []);
 
   useEffect(() => {
-    // Log when audit tab is viewed
-    if (activeTab === 'audit' && currentAdmin?.id) {
-      AuditService.logAction(
-        currentAdmin.id,
-        'view_audit_log',
-        undefined,
-        {
-          description: 'Viewed comprehensive audit log',
-          viewed_at: new Date().toISOString()
-        }
-      );
+    // Track tab changes with previous tab info
+    if (currentAdmin?.id) {
+      const tabNames = {
+        users: 'Admin Users',
+        team: 'Team Members',
+        audit: 'Audit Log',
+        security: 'Security Management'
+      };
+
+      const previousTab = Object.keys(tabNames).find(key => key !== activeTab);
+      trackTabChange(tabNames[activeTab] || activeTab, previousTab ? tabNames[previousTab as keyof typeof tabNames] : undefined);
     }
-  }, [activeTab, currentAdmin?.id]);
+  }, [activeTab, currentAdmin?.id, trackTabChange]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -156,15 +168,12 @@ const AdminUsers = () => {
       );
 
       if (newAdmin) {
-        await AuditService.logAction(
-          currentAdmin!.id,
-          'create_admin',
-          createForm.email,
-          { 
-            role: createForm.role,
-            description: `Created new ${createForm.role} account for ${createForm.email}`
-          }
-        );
+        await trackOperation('create_admin', 'admin', newAdmin.id, createForm.email, {
+          role: createForm.role,
+          description: `Created new ${createForm.role} account for ${createForm.email}`,
+          password_type: 'manual',
+          created_from: 'admin_users_page'
+        });
         
         setShowCreateModal(false);
         setCreateForm({ email: '', password: '', role: 'admin' });
@@ -181,6 +190,12 @@ const AdminUsers = () => {
     
     setIsSaving(true);
     try {
+      const changes = {
+        email: editForm.email !== selectedAdmin.email ? { from: selectedAdmin.email, to: editForm.email } : undefined,
+        role: editForm.role !== selectedAdmin.role ? { from: selectedAdmin.role, to: editForm.role } : undefined,
+        is_active: editForm.is_active !== selectedAdmin.is_active ? { from: selectedAdmin.is_active, to: editForm.is_active } : undefined
+      };
+
       const success = await AdminService.updateAdmin(
         selectedAdmin.id,
         {
@@ -192,19 +207,13 @@ const AdminUsers = () => {
       );
 
       if (success) {
-        await AuditService.logAction(
-          currentAdmin!.id,
-          'update_admin',
-          selectedAdmin.email,
-          {
-            description: `Updated admin account for ${selectedAdmin.email}`,
-            changes: {
-              email: editForm.email !== selectedAdmin.email ? { from: selectedAdmin.email, to: editForm.email } : undefined,
-              role: editForm.role !== selectedAdmin.role ? { from: selectedAdmin.role, to: editForm.role } : undefined,
-              is_active: editForm.is_active !== selectedAdmin.is_active ? { from: selectedAdmin.is_active, to: editForm.is_active } : undefined
-            }
-          }
-        );
+        await trackOperation('update_admin', 'admin', selectedAdmin.id, selectedAdmin.email, {
+          description: `Updated admin account for ${selectedAdmin.email}`,
+          changes: Object.fromEntries(Object.entries(changes).filter(([_, value]) => value !== undefined)),
+          updated_fields: Object.keys(changes).filter(key => changes[key as keyof typeof changes] !== undefined),
+          previous_role: selectedAdmin.role,
+          new_role: editForm.role
+        });
         
         setShowEditModal(false);
         setSelectedAdmin(null);
@@ -224,15 +233,13 @@ const AdminUsers = () => {
       const success = await AdminService.deleteAdmin(selectedAdmin.id, currentAdmin!.id);
       
       if (success) {
-        await AuditService.logAction(
-          currentAdmin!.id,
-          'delete_admin',
-          selectedAdmin.email,
-          {
-            description: `Deleted admin account for ${selectedAdmin.email}`,
-            deleted_admin_role: selectedAdmin.role
-          }
-        );
+        await trackOperation('delete_admin', 'admin', selectedAdmin.id, selectedAdmin.email, {
+          description: `Deleted admin account for ${selectedAdmin.email}`,
+          deleted_admin_role: selectedAdmin.role,
+          deleted_admin_status: selectedAdmin.is_active ? 'active' : 'inactive',
+          deletion_reason: 'manual_deletion',
+          last_login: selectedAdmin.last_login
+        });
         
         setShowDeleteModal(false);
         setSelectedAdmin(null);
@@ -258,15 +265,13 @@ const AdminUsers = () => {
       );
 
       if (success) {
-        await AuditService.logAction(
-          currentAdmin!.id,
-          'reset_password',
-          selectedAdmin.email,
-          {
-            description: `Reset password for admin ${selectedAdmin.email}`,
-            target_admin_role: selectedAdmin.role
-          }
-        );
+        await trackOperation('reset_password', 'admin', selectedAdmin.id, selectedAdmin.email, {
+          description: `Reset password for admin ${selectedAdmin.email}`,
+          target_admin_role: selectedAdmin.role,
+          password_strength: passwordForm.newPassword.length >= 12 ? 'strong' : 'medium',
+          reset_reason: 'manual_reset',
+          force_change_on_login: true
+        });
         
         setShowPasswordModal(false);
         setSelectedAdmin(null);
@@ -292,22 +297,18 @@ const AdminUsers = () => {
       );
 
       if (newAdmin) {
-        await AuditService.logAction(
-          currentAdmin!.id,
-          'promote_team_member',
-          promoteForm.email,
-          { 
-            description: `Promoted team member ${selectedTeamMember.name} to ${promoteForm.role}`,
-            team_member_name: selectedTeamMember.name,
-            team_member_role: selectedTeamMember.role,
-            promoted_to_role: promoteForm.role,
-            admin_email: promoteForm.email,
-            temporary_password: promoteForm.useTemporaryPassword,
-            password_must_change: promoteForm.useTemporaryPassword
-          },
-          selectedTeamMember.id,
-          'team_member'
-        );
+        await trackOperation('promote_team_member', 'team_member', selectedTeamMember.id, promoteForm.email, {
+          description: `Promoted team member ${selectedTeamMember.name} to ${promoteForm.role}`,
+          team_member_name: selectedTeamMember.name,
+          team_member_role: selectedTeamMember.role,
+          team_member_email: selectedTeamMember.email,
+          promoted_to_role: promoteForm.role,
+          admin_email: promoteForm.email,
+          temporary_password: promoteForm.useTemporaryPassword,
+          password_must_change: promoteForm.useTemporaryPassword,
+          promotion_source: 'team_members_tab',
+          new_admin_id: newAdmin.id
+        });
         
         // Show success modal with password info
         setPromotedAdminInfo({

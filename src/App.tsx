@@ -38,6 +38,8 @@ import AdminLinktree from "./pages/admin/AdminLinktree";
 import Linktree from "./pages/Linktree";
 import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NotFound from "./pages/NotFound";
+import PerformanceOptimizer from "./components/PerformanceOptimizer";
+import AdminTracker from "./components/admin/AdminTracker";
 
 const queryClient = new QueryClient();
 
@@ -94,50 +96,53 @@ const App = () => (
       <AdminProvider>
         <ContentProvider>
           <PerformanceMonitor>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <ScrollToTop />
-                <SmoothScroll />
-                <GlobalBackground />
-                <div className="min-h-screen flex flex-col relative z-10">
-                  <Navigation />
-                  <main className="flex-1">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/events" element={<Events />} />
-                    <Route path="/blog" element={<Blog />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/projects" element={<Projects />} />
-                    <Route path="/team" element={<Team />} />
-                    <Route path="/resources" element={<Resources />} />
-                    <Route path="/sponsors" element={<Sponsors />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/content" element={<AdminContent />} />
-                    <Route path="/admin/events" element={<AdminEvents />} />
-                    <Route path="/admin/team" element={<AdminTeam />} />
-                    <Route path="/admin/members" element={<AdminMembers />} />
-                    <Route path="/admin/resources" element={<AdminResources />} />
-                    <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-                    <Route path="/admin/blog" element={<AdminBlog />} />
-                    <Route path="/admin/users" element={<AdminUsers />} />
-                    <Route path="/admin/profile" element={<AdminProfile />} />
-                    <Route path="/admin/sponsors" element={<AdminSponsors />} />
-                    <Route path="/admin/communications" element={<AdminCommunications />} />
-                    <Route path="/admin/media" element={<AdminMedia />} />
-                    <Route path="/admin/guide" element={<AdminGuide />} />
-                    <Route path="/admin/linktree" element={<AdminLinktree />} />
-                    <Route path="/l/:username" element={<Linktree />} />
-                    <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  </main>
-                  <ConditionalFooter />
-                </div>
-              </BrowserRouter>
-            </TooltipProvider>
+            <PerformanceOptimizer>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <ScrollToTop />
+                  <SmoothScroll />
+                  <GlobalBackground />
+                  <AdminTracker />
+                  <div className="min-h-screen flex flex-col relative z-10">
+                    <Navigation />
+                    <main className="flex-1">
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/events" element={<Events />} />
+                      <Route path="/blog" element={<Blog />} />
+                      <Route path="/contact" element={<Contact />} />
+                      <Route path="/projects" element={<Projects />} />
+                      <Route path="/team" element={<Team />} />
+                      <Route path="/resources" element={<Resources />} />
+                      <Route path="/sponsors" element={<Sponsors />} />
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/admin/content" element={<AdminContent />} />
+                      <Route path="/admin/events" element={<AdminEvents />} />
+                      <Route path="/admin/team" element={<AdminTeam />} />
+                      <Route path="/admin/members" element={<AdminMembers />} />
+                      <Route path="/admin/resources" element={<AdminResources />} />
+                      <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+                      <Route path="/admin/blog" element={<AdminBlog />} />
+                      <Route path="/admin/users" element={<AdminUsers />} />
+                      <Route path="/admin/profile" element={<AdminProfile />} />
+                      <Route path="/admin/sponsors" element={<AdminSponsors />} />
+                      <Route path="/admin/communications" element={<AdminCommunications />} />
+                      <Route path="/admin/media" element={<AdminMedia />} />
+                      <Route path="/admin/guide" element={<AdminGuide />} />
+                      <Route path="/admin/linktree" element={<AdminLinktree />} />
+                      <Route path="/l/:username" element={<Linktree />} />
+                      <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    </main>
+                    <ConditionalFooter />
+                  </div>
+                </BrowserRouter>
+              </TooltipProvider>
+            </PerformanceOptimizer>
           </PerformanceMonitor>
         </ContentProvider>
       </AdminProvider>

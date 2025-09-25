@@ -123,17 +123,14 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
-      alert('Please enter a title for the blog post');
       return;
     }
 
     if (!formData.content.trim()) {
-      alert('Please enter content for the blog post');
       return;
     }
 
     if (!formData.author_name.trim()) {
-      alert('Please enter an author name');
       return;
     }
 
@@ -174,8 +171,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
       onSave(); // Refresh the parent component
       onClose(); // Close the modal
     } catch (error) {
-      console.error('Error saving blog post:', error);
-      alert(`Failed to save blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Silently handle save errors
     } finally {
       setIsSaving(false);
     }

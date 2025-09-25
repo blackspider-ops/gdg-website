@@ -354,7 +354,7 @@ const AdminMedia: React.FC = () => {
                 totalFiles: 0,
                 progress: 0
             });
-            alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // Silently handle upload errors
         } finally {
             setIsSaving(false);
         }
@@ -494,7 +494,7 @@ const AdminMedia: React.FC = () => {
             window.open(fileUrl, '_blank');
             
         } catch (error) {
-            alert('Failed to open file. The file may not be accessible.');
+            // Silently handle file open errors
         }
     };
 
@@ -881,7 +881,7 @@ const AdminMedia: React.FC = () => {
                                                         try {
                                                             await MediaService.downloadFile(file.file_path, file.original_name);
                                                         } catch (error) {
-                                                            alert(`Failed to download file: ${error.message}`);
+                                                            // Silently handle download errors
                                                         }
                                                     }}
                                                     className="p-1 hover:bg-gray-700 rounded transition-colors"
@@ -1094,7 +1094,7 @@ const AdminMedia: React.FC = () => {
                                                         try {
                                                             await MediaService.downloadFile(file.file_path, file.original_name);
                                                         } catch (error) {
-                                                            alert(`Failed to download file: ${error.message}`);
+                                                            // Silently handle download errors
                                                         }
                                                     }}
                                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"

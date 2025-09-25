@@ -85,8 +85,36 @@ class SimplexNoise {
 
 // Performance utilities
 const isMobile = () => window.innerWidth < 768;
+const isTablet = () => window.innerWidth >= 768 && window.innerWidth < 1024;
+const isDesktop = () => window.innerWidth >= 1024;
 const isLowPowerDevice = () => navigator.hardwareConcurrency <= 4;
 const getTargetFPS = () => isLowPowerDevice() ? 30 : 60;
+const getDevicePixelRatio = () => Math.min(window.devicePixelRatio || 1, 2);
+
+// Responsive particle counts and sizes
+const getParticleCount = () => {
+  if (isMobile()) return 800;
+  if (isTablet()) return 1200;
+  return 1500;
+};
+
+const getParticleSize = () => {
+  if (isMobile()) return 0.03;
+  if (isTablet()) return 0.04;
+  return 0.05;
+};
+
+const getWireframeSphereCount = () => {
+  if (isMobile()) return 3;
+  if (isTablet()) return 4;
+  return 4;
+};
+
+const getInteractiveNodeCount = () => {
+  if (isMobile()) return 8;
+  if (isTablet()) return 10;
+  return 12;
+};
 
 // Smooth mouse tracking with spring damping
 class SmoothPointer {
@@ -146,15 +174,20 @@ const CyberTechScene = () => {
   // Particle System with text area avoidance
   const particleGeometry = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
-    const particleCount = isMobile() ? 1000 : 1500; // Reduced count for performance
+    const particleCount = getParticleCount();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
     const velocities = new Float32Array(particleCount * 3);
     const alphas = new Float32Array(particleCount);
 
-    // Text area bounds (approximate hero text position)
-    const textArea = { x: 0, y: 1, width: 8, height: 4 };
-    const minDistance = 80 / 50; // Convert 80px to 3D units (rough conversion)
+    // Responsive text area bounds (approximate hero text position)
+    const textArea = { 
+      x: 0, 
+      y: isMobile() ? 0.5 : 1, 
+      width: isMobile() ? 6 : isTablet() ? 7 : 8, 
+      height: isMobile() ? 3 : 4 
+    };
+    const minDistance = isMobile() ? 60 / 50 : 80 / 50; // Convert px to 3D units
 
     for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
@@ -207,11 +240,12 @@ const CyberTechScene = () => {
 
   const particleMaterial = useMemo(() => {
     return new THREE.PointsMaterial({
-      size: isMobile() ? 0.04 : 0.05,
+      size: getParticleSize(),
       vertexColors: true,
       transparent: true,
       opacity: 0.7,
       blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
     });
   }, []);
 
@@ -224,14 +258,15 @@ const CyberTechScene = () => {
     });
     
     // Generate node data with base scales and noise seeds
-    const data = Array.from({ length: 12 }, (_, i) => ({
+    const nodeCount = getInteractiveNodeCount();
+    const data = Array.from({ length: nodeCount }, (_, i) => ({
       position: [
-        Math.cos((i / 12) * Math.PI * 2) * 5,
-        Math.sin((i / 12) * Math.PI * 4) * 2,
-        Math.sin((i / 12) * Math.PI * 2) * 3,
+        Math.cos((i / nodeCount) * Math.PI * 2) * (isMobile() ? 3 : isTablet() ? 4 : 5),
+        Math.sin((i / nodeCount) * Math.PI * 4) * (isMobile() ? 1.5 : 2),
+        Math.sin((i / nodeCount) * Math.PI * 2) * (isMobile() ? 2 : 3),
       ] as [number, number, number],
       colorIndex: i % 4,
-      baseScale: 0.1,
+      baseScale: isMobile() ? 0.08 : isTablet() ? 0.09 : 0.1,
       noiseSeed: Math.random() * 1000,
     }));
     
@@ -337,7 +372,7 @@ const CyberTechScene = () => {
       smoothPointer.update();
       
       // Calculate max displacement based on device
-      const maxDisplacement = isMobile() ? 18 : 40;
+      const maxDisplacement = isMobile() ? 15 : isTablet() ? 25 : 40;
       const smoothMouse = {
         x: smoothPointer.current.x * viewport.width * 0.5,
         y: smoothPointer.current.y * viewport.height * 0.5
@@ -424,7 +459,7 @@ const CyberTechScene = () => {
       smoothPointer.setTarget(mouse.x, mouse.y);
       smoothPointer.update();
 
-      const maxParallax = isMobile() ? 18 : 40;
+      const maxParallax = isMobile() ? 15 : isTablet() ? 25 : 40;
 
       for (let i = 0; i < positions.length; i += 3) {
         // Apply velocities with smooth turbulence
@@ -492,7 +527,7 @@ const CyberTechScene = () => {
 
     // Group parallax effect with smooth transitions
     if (groupRef.current && !prefersReducedMotion) {
-      const parallaxFactor = isMobile() ? 0.03 : 0.05;
+      const parallaxFactor = isMobile() ? 0.02 : isTablet() ? 0.035 : 0.05;
       groupRef.current.rotation.x = THREE.MathUtils.lerp(
         groupRef.current.rotation.x,
         smoothPointer.current.y * parallaxFactor,
@@ -507,11 +542,11 @@ const CyberTechScene = () => {
       {/* Particle Flow System */}
       <points ref={particleSystemRef} geometry={particleGeometry} material={particleMaterial} />
       
-      {/* Wireframe Spheres */}
-      <WireframeSphere position={[-3, 2, -2]} colorIndex={0} scale={0.8} />
-      <WireframeSphere position={[3, -1, 1]} colorIndex={1} scale={1.2} />
-      <WireframeSphere position={[0, 3, -1]} colorIndex={2} scale={0.6} />
-      <WireframeSphere position={[-2, -3, 2]} colorIndex={3} scale={1.0} />
+      {/* Responsive Wireframe Spheres */}
+      <WireframeSphere position={[-3, 2, -2]} colorIndex={0} scale={isMobile() ? 0.6 : 0.8} />
+      <WireframeSphere position={[3, -1, 1]} colorIndex={1} scale={isMobile() ? 0.9 : 1.2} />
+      <WireframeSphere position={[0, 3, -1]} colorIndex={2} scale={isMobile() ? 0.5 : 0.6} />
+      {!isMobile() && <WireframeSphere position={[-2, -3, 2]} colorIndex={3} scale={1.0} />}
       
       {/* Light Trails */}
       {lightTrailPaths.map((points, i) => (
@@ -534,7 +569,7 @@ const HomeHeroScene = () => {
           alpha: true,
           powerPreference: "high-performance"
         }}
-        dpr={[1, Math.min(window.devicePixelRatio || 1, 1.5)]}
+        dpr={[1, Math.min(getDevicePixelRatio(), isLowPowerDevice() ? 1 : 1.5)]}
       >
         {/* Lighting setup for neon glow effect */}
         <ambientLight intensity={0.3} />

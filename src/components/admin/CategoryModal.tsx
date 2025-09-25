@@ -119,7 +119,6 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      alert('Please enter a category name');
       return;
     }
 
@@ -136,12 +135,9 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
       if (success) {
         onSave();
         onClose();
-      } else {
-        alert('Failed to save category');
       }
     } catch (error) {
-      console.error('Error saving category:', error);
-      alert('Failed to save category');
+      // Silently handle save errors
     } finally {
       setIsSaving(false);
     }

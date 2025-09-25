@@ -128,39 +128,39 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section with 3D Scene */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-[60vh] sm:h-[70vh] md:h-[80vh] lg:h-screen flex items-center justify-center overflow-hidden">
         <Suspense fallback={<div className="absolute inset-0 bg-background" />}>
           <HeroScene />
         </Suspense>
         
         {/* Hero Content */}
         <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
-          <div className="animate-fade-up backdrop-blur-sm bg-background/20 rounded-2xl p-8 border border-white/10">
-            <div className="flex items-center justify-center space-x-2 mb-6">
-              <span className="text-sm font-medium text-primary uppercase tracking-wide">
+          <div className="animate-fade-up backdrop-blur-sm bg-background/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 border border-white/10">
+            <div className="flex items-center justify-center space-x-2 mb-4 sm:mb-6">
+              <span className="text-xs sm:text-sm font-medium text-primary uppercase tracking-wide">
                 Contact Us
               </span>
-              <div className="w-12 h-px bg-border"></div>
+              <div className="w-8 sm:w-12 h-px bg-border"></div>
             </div>
             
-            <h1 className="font-display text-5xl lg:text-7xl font-bold mb-6 leading-tight text-foreground drop-shadow-lg">
+            <h1 className="font-display text-responsive-3xl font-bold mb-4 sm:mb-6 leading-tight text-foreground drop-shadow-lg">
               {contactContent.title || 'Get in Touch'}
               <br />
               <span className="text-primary">with {getSiteSetting('site_title') || 'GDG PSU'}</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground content-measure mx-auto mb-8 drop-shadow-md">
+            <p className="text-responsive-base text-muted-foreground content-measure mx-auto mb-6 sm:mb-8 drop-shadow-md">
               {contactContent.subtitle || 'Ready to join our community? Have questions about events? Let\'s connect.'}
             </p>
           </div>
         </div>
       </section>
 
-      <div className="editorial-grid py-16">
+      <div className="editorial-grid py-12 sm:py-16">
         {/* Contact Form */}
         <div className="col-span-12 lg:col-span-8">
-          <div className="gdg-accent-bar pl-6">
-            <h2 className="text-display text-2xl font-semibold mb-6">{contactContent.form_title || 'Send us a Message'}</h2>
+          <div className="gdg-accent-bar pl-4 sm:pl-6">
+            <h2 className="text-display text-responsive-lg font-semibold mb-4 sm:mb-6">{contactContent.form_title || 'Send us a Message'}</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}

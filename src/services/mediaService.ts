@@ -16,7 +16,6 @@ const getServiceRoleClient = () => {
   clientInitialized = true;
   
   if (!supabaseUrl || !serviceRoleKey) {
-    console.warn('Service role credentials not available, falling back to regular client');
     serviceRoleClient = supabase;
     return supabase;
   }
@@ -29,7 +28,6 @@ const getServiceRoleClient = () => {
       }
     });
   } catch (error) {
-    console.warn('Failed to create service role client, falling back to regular client:', error);
     serviceRoleClient = supabase;
   }
   
@@ -504,7 +502,6 @@ export class MediaService {
           enrichedData.folder = null;
         }
       } catch (enrichError) {
-        console.warn('Could not enrich file data:', enrichError);
         // Set defaults if enrichment fails
         enrichedData.uploaded_by_user = { email: 'Unknown', role: 'unknown' };
         enrichedData.folder = null;

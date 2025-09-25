@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
+import { getDeviceConfig, getCanvasConfig } from '@/utils/responsive3D';
 
 // Simplex noise implementation for smooth scaling
 class SimplexNoise {
@@ -84,7 +85,24 @@ class SimplexNoise {
 
 // Performance utilities
 const isMobile = () => window.innerWidth < 768;
+const isTablet = () => window.innerWidth >= 768 && window.innerWidth < 1024;
+const isDesktop = () => window.innerWidth >= 1024;
 const isLowPowerDevice = () => navigator.hardwareConcurrency <= 4;
+const getDevicePixelRatio = () => Math.min(window.devicePixelRatio || 1, 2);
+
+// Responsive particle counts
+const getParticleCount = () => {
+  if (isMobile()) return 600;
+  if (isTablet()) return 900;
+  return 1200;
+};
+
+// Responsive particle sizes
+const getParticleSize = () => {
+  if (isMobile()) return 0.025;
+  if (isTablet()) return 0.035;
+  return 0.045;
+};
 
 // Smooth mouse tracking with spring damping
 class SmoothPointer {
@@ -112,6 +130,9 @@ const GlobalScene = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [scrollY, setScrollY] = useState(0);
+  
+  // Responsive configuration
+  const deviceConfig = useMemo(() => getDeviceConfig(), []);
   
   // Smooth pointer tracking
   const smoothPointer = useMemo(() => new SmoothPointer(), []);
@@ -151,10 +172,10 @@ const GlobalScene = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Particle System
+  // Particle System with responsive sizing
   const particleGeometry = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
-    const particleCount = isMobile() ? 800 : 1200;
+    const particleCount = deviceConfig.particleCount;
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
     const velocities = new Float32Array(particleCount * 3);
@@ -188,13 +209,14 @@ const GlobalScene = () => {
 
   const particleMaterial = useMemo(() => {
     return new THREE.PointsMaterial({
-      size: isMobile() ? 0.035 : 0.045,
+      size: deviceConfig.particleSize,
       vertexColors: true,
       transparent: true,
       opacity: 0.6,
       blending: THREE.AdditiveBlending,
+      sizeAttenuation: true, // Makes particles scale with distance
     });
-  }, []);
+  }, [deviceConfig.particleSize]);
 
   // Wireframe Spheres
   const WireframeSphere = ({ position, colorIndex, scale = 1 }: { 
@@ -237,9 +259,8 @@ const GlobalScene = () => {
     
     const time = state.clock.elapsedTime;
 
-    // Scroll-aware parallax
-    const parallaxStrength = isMobile() ? 0.001 : 0.002;
-    const target = scrollY * parallaxStrength;
+    // Responsive scroll-aware parallax
+    const target = scrollY * deviceConfig.parallaxStrength;
     parallaxZ.current = THREE.MathUtils.lerp(parallaxZ.current, target, 0.08);
 
     // Animate particle system
@@ -250,7 +271,7 @@ const GlobalScene = () => {
       smoothPointer.setTarget(mouse.x, mouse.y);
       smoothPointer.update();
 
-      const maxParallax = isMobile() ? 15 : 30;
+      const maxParallax = deviceConfig.maxParallax;
 
       for (let i = 0; i < positions.length; i += 3) {
         const noiseX = noise.noise2D(time * 0.08 + i * 0.008, 0) * 0.0003;
@@ -305,11 +326,11 @@ const GlobalScene = () => {
     if (groupRef.current) {
       groupRef.current.position.z = baseZ.current + parallaxZ.current;
       
-      // Gentle overall movement
-      const groupParallax = isMobile() ? 0.02 : 0.03;
+      // Responsive overall movement
+      const groupParallax = isMobile() ? 0.015 : isTablet() ? 0.025 : 0.03;
       groupRef.current.rotation.y = time * 0.01;
-      groupRef.current.position.x = smoothPointer.current.x * viewport.width * 0.0005;
-      groupRef.current.position.y = smoothPointer.current.y * viewport.height * 0.0005;
+      groupRef.current.position.x = smoothPointer.current.x * viewport.width * (isMobile() ? 0.0003 : 0.0005);
+      groupRef.current.position.y = smoothPointer.current.y * viewport.height * (isMobile() ? 0.0003 : 0.0005);
     }
   });
 
@@ -334,29 +355,32 @@ const GlobalScene = () => {
 
 const GlobalBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isLowPower, setIsLowPower] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  // Performance monitoring
-  useEffect(() => {
-    const checkPerformance = () => {
-      const isLowPowerDevice = navigator.hardwareConcurrency <= 4;
-      setIsLowPower(isLowPowerDevice);
-    };
-    
-    checkPerformance();
-  }, []);
+  
+  // Get responsive canvas configuration
+  const canvasConfig = useMemo(() => getCanvasConfig(), []);
 
   // Check for reduced motion preference
   useEffect(() => {
+    setPrefersReducedMotion(canvasConfig.disableAnimations);
+    
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-    
     const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener('change', handleChange);
     
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
+    
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
+  }, [canvasConfig.disableAnimations]);
 
   // Handle resize
   useEffect(() => {
@@ -395,23 +419,10 @@ const GlobalBackground = () => {
     >
       <Canvas
         ref={canvasRef}
-        camera={{ 
-          position: [0, 0, 8], 
-          fov: 60,
-          near: 0.1,
-          far: 100
-        }}
-        dpr={Math.min(window.devicePixelRatio, isLowPower ? 1 : 1.5)}
-        performance={{
-          min: isLowPower ? 0.3 : 0.5,
-          max: 1,
-          debounce: 200
-        }}
-        gl={{
-          alpha: true,
-          antialias: !isLowPower,
-          powerPreference: isLowPower ? 'low-power' : 'high-performance'
-        }}
+        camera={canvasConfig.camera}
+        dpr={canvasConfig.dpr}
+        performance={canvasConfig.performance}
+        gl={canvasConfig.gl}
       >
         <GlobalScene />
       </Canvas>

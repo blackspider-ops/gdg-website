@@ -55,7 +55,6 @@ class LinktreeService {
       .single();
 
     if (error) {
-      console.error('Error fetching profile:', error);
       return null;
     }
 
@@ -69,7 +68,6 @@ class LinktreeService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching profiles:', error);
       return [];
     }
 
@@ -84,7 +82,6 @@ class LinktreeService {
       .single();
 
     if (error) {
-      console.error('Error creating profile:', error);
       return null;
     }
 
@@ -100,7 +97,6 @@ class LinktreeService {
       .single();
 
     if (error) {
-      console.error('Error updating profile:', error);
       return null;
     }
 
@@ -114,7 +110,6 @@ class LinktreeService {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting profile:', error);
       return false;
     }
 
@@ -131,7 +126,6 @@ class LinktreeService {
       .order('sort_order', { ascending: true });
 
     if (error) {
-      console.error('Error fetching links:', error);
       return [];
     }
 
@@ -146,7 +140,6 @@ class LinktreeService {
       .single();
 
     if (error) {
-      console.error('Error creating link:', error);
       return null;
     }
 
@@ -162,7 +155,6 @@ class LinktreeService {
       .single();
 
     if (error) {
-      console.error('Error updating link:', error);
       return null;
     }
 
@@ -176,7 +168,6 @@ class LinktreeService {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting link:', error);
       return false;
     }
 
@@ -200,7 +191,6 @@ class LinktreeService {
 
       return true;
     } catch (error) {
-      console.error('Error reordering links:', error);
       return false;
     }
   }
@@ -221,7 +211,7 @@ class LinktreeService {
         await supabase.rpc('increment_link_clicks', { link_id: linkId });
       }
     } catch (error) {
-      console.error('Error tracking click:', error);
+      // Silently handle tracking errors
     }
   }
 
@@ -237,7 +227,6 @@ class LinktreeService {
       .order('clicked_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching analytics:', error);
       return [];
     }
 
@@ -256,7 +245,6 @@ class LinktreeService {
       .order('clicked_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching link analytics:', error);
       return [];
     }
 

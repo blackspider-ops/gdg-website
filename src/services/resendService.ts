@@ -18,7 +18,7 @@ export class ResendService {
 
   static async sendEmail(emailData: ResendEmailData): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
-      console.log('Sending email via:', this.EMAIL_API_URL);
+
       
       // Use backend API endpoint to send email (avoids CORS issues)
       const response = await fetch(this.EMAIL_API_URL, {
@@ -30,12 +30,8 @@ export class ResendService {
       });
 
       if (!response.ok) {
-        // If the API endpoint fails, log the error but don't crash
-        console.error(`Email API returned ${response.status}: ${response.statusText}`);
-        
         // In development, return a mock success to avoid blocking the UI
         if (import.meta.env.DEV) {
-          console.warn('Development mode: Email sending mocked as successful');
           return { 
             success: true, 
             id: `mock-${Date.now()}`,
@@ -57,11 +53,8 @@ export class ResendService {
         return { success: false, error: result.error || 'Unknown error' };
       }
     } catch (error) {
-      console.error('Email sending error:', error);
-      
       // In development, return a mock success to avoid blocking the UI
       if (import.meta.env.DEV) {
-        console.warn('Development mode: Email sending mocked as successful due to error');
         return { 
           success: true, 
           id: `mock-error-${Date.now()}`,

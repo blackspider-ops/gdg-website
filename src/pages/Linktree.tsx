@@ -42,7 +42,7 @@ const Linktree = () => {
           referrer: document.referrer
         });
       } catch (err) {
-        console.error('Error fetching linktree data:', err);
+        // Silently handle errors
         setNotFound(true);
       } finally {
         setLoading(false);

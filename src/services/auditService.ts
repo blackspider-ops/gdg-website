@@ -26,7 +26,13 @@ export type AuditActionType =
   // Security Actions
   | 'change_password' | 'update_security_settings' | 'view_audit_log' | 'export_audit_log'
   // System Actions
-  | 'backup_database' | 'restore_database' | 'clear_cache' | 'update_system_settings';
+  | 'backup_database' | 'restore_database' | 'clear_cache' | 'update_system_settings'
+  // Navigation & Page Access
+  | 'view_admin_dashboard' | 'view_admin_page' | 'change_admin_tab' | 'access_admin_section'
+  | 'view_admin_users' | 'view_admin_events' | 'view_admin_team' | 'view_admin_members'
+  | 'view_admin_resources' | 'view_admin_newsletter' | 'view_admin_blog' | 'view_admin_profile'
+  | 'view_admin_sponsors' | 'view_admin_communications' | 'view_admin_media' | 'view_admin_guide'
+  | 'view_admin_linktree' | 'view_admin_content' | 'view_admin_security';
 
 export interface AuditLogEntry {
   id: string;
@@ -63,8 +69,12 @@ export interface AuditStats {
 }
 
 export class AuditService {
+  // Deduplication cache to prevent duplicate logs for the same user/action within a time window
+  private static recentActions = new Map<string, number>();
+  private static readonly DEDUP_WINDOW = 5000; // 5 seconds
+
   /**
-   * Log an admin action with comprehensive details
+   * Log an admin action with comprehensive details and deduplication
    */
   static async logAction(
     adminId: string,
@@ -77,27 +87,170 @@ export class AuditService {
     userAgent?: string
   ): Promise<boolean> {
     try {
-      // Use only the basic columns that definitely exist
-      const basicData = {
+      // Create deduplication key
+      const dedupKey = `${adminId}-${action}-${targetEmail || targetId || 'no-target'}`;
+      const now = Date.now();
+      
+      // Check if this action was recently logged by the same user
+      const lastLogged = this.recentActions.get(dedupKey);
+      if (lastLogged && (now - lastLogged) < this.DEDUP_WINDOW) {
+        return true; // Skip duplicate, but return success
+      }
+
+      // Skip IP address from client-side since we can't get real IP reliably
+      // IP address should be set server-side if needed
+      
+      if (!userAgent && typeof navigator !== 'undefined') {
+        userAgent = navigator.userAgent;
+      }
+
+      // Enhanced details with context
+      const enhancedDetails = {
+        ...details,
+        timestamp: new Date().toISOString(),
+        session_id: this.getSessionId(),
+        page_url: typeof window !== 'undefined' ? window.location.href : undefined,
+        referrer: typeof document !== 'undefined' ? document.referrer : undefined,
+        screen_resolution: typeof screen !== 'undefined' ? `${screen.width}x${screen.height}` : undefined,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: typeof navigator !== 'undefined' ? navigator.language : undefined
+      };
+
+      // Use only the basic columns that definitely exist in the database
+      const auditData = {
         admin_id: adminId,
         action,
         target_email: targetEmail,
-        details: details || {},
+        details: enhancedDetails,
         created_at: new Date().toISOString()
       };
 
+      // Only add optional columns if they have values and are valid
+      if (targetId) {
+        (auditData as any).target_id = targetId;
+      }
+      if (targetType) {
+        (auditData as any).target_type = targetType;
+      }
+      // Skip IP address from client-side to avoid database type errors
+      if (ipAddress && ipAddress !== 'client-side' && /^(\d{1,3}\.){3}\d{1,3}$/.test(ipAddress)) {
+        (auditData as any).ip_address = ipAddress;
+      }
+      if (userAgent && userAgent.length < 500) { // Limit user agent length
+        (auditData as any).user_agent = userAgent.substring(0, 500);
+      }
+
       const { error } = await supabase
         .from('admin_actions')
-        .insert(basicData);
+        .insert(auditData);
 
       if (error) {
-        console.error('Audit log error:', error);
+        // Log error to console in development but don't break the app
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Audit logging failed:', error.message);
+        }
         return false;
       }
 
+      // Update deduplication cache
+      this.recentActions.set(dedupKey, now);
+      
+      // Clean up old entries from cache
+      this.cleanupDeduplicationCache();
+
       return true;
     } catch (error) {
-      console.error('Audit log exception:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get or create a session ID for tracking user sessions
+   */
+  private static getSessionId(): string {
+    if (typeof window === 'undefined') return 'server-side';
+    
+    let sessionId = sessionStorage.getItem('gdg-admin-session-id');
+    if (!sessionId) {
+      sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('gdg-admin-session-id', sessionId);
+    }
+    return sessionId;
+  }
+
+  /**
+   * Clean up old entries from deduplication cache
+   */
+  private static cleanupDeduplicationCache(): void {
+    const now = Date.now();
+    const cutoff = now - this.DEDUP_WINDOW * 2; // Keep entries for 2x the dedup window
+    
+    for (const [key, timestamp] of this.recentActions.entries()) {
+      if (timestamp < cutoff) {
+        this.recentActions.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Log multiple actions in batch (useful for bulk operations)
+   */
+  static async logBatchActions(
+    adminId: string,
+    actions: Array<{
+      action: AuditActionType;
+      targetEmail?: string;
+      details?: any;
+      targetId?: string;
+      targetType?: string;
+    }>
+  ): Promise<boolean> {
+    try {
+      const timestamp = new Date().toISOString();
+      const sessionId = this.getSessionId();
+      // Skip IP address for batch operations to avoid database errors
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent?.substring(0, 500) : undefined;
+
+      const auditEntries = actions.map(actionData => {
+        const baseEntry = {
+          admin_id: adminId,
+          action: actionData.action,
+          target_email: actionData.targetEmail,
+          details: {
+            ...actionData.details,
+            timestamp,
+            session_id: sessionId,
+            batch_operation: true,
+            batch_size: actions.length
+          },
+          created_at: timestamp
+        };
+
+        // Only add optional columns if they have values and are valid
+        if (actionData.targetId) {
+          (baseEntry as any).target_id = actionData.targetId;
+        }
+        if (actionData.targetType) {
+          (baseEntry as any).target_type = actionData.targetType;
+        }
+        // Skip IP address for batch operations
+        if (userAgent) {
+          (baseEntry as any).user_agent = userAgent;
+        }
+
+        return baseEntry;
+      });
+
+      const { error } = await supabase
+        .from('admin_actions')
+        .insert(auditEntries);
+
+      if (error && process.env.NODE_ENV === 'development') {
+        console.warn('Batch audit logging failed:', error.message);
+      }
+
+      return !error;
+    } catch (error) {
       return false;
     }
   }
@@ -148,14 +301,14 @@ export class AuditService {
       }
       
       if (filters?.search && filters.search.trim()) {
-        // Simple search in target_email and action
-        query = query.or(`target_email.ilike.%${filters.search}%,action.ilike.%${filters.search}%`);
+        // Enhanced search in multiple fields
+        const searchTerm = filters.search.trim();
+        query = query.or(`target_email.ilike.%${searchTerm}%,action.ilike.%${searchTerm}%,details->>description.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching audit log:', error);
         return [];
       }
 
@@ -189,7 +342,36 @@ export class AuditService {
 
       return enrichedData;
     } catch (error) {
-      console.error('Error in getAuditLog:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all admins who have performed actions (for filter dropdown)
+   */
+  static async getActiveAdmins(): Promise<Array<{id: string, email: string}>> {
+    try {
+      // Get unique admin IDs from audit log
+      const { data: auditData } = await supabase
+        .from('admin_actions')
+        .select('admin_id')
+        .limit(5000);
+
+      if (!auditData) return [];
+
+      const uniqueAdminIds = [...new Set(auditData.map(entry => entry.admin_id))];
+      
+      if (uniqueAdminIds.length === 0) return [];
+
+      // Get admin details
+      const { data: adminData } = await supabase
+        .from('admin_users')
+        .select('id, email')
+        .in('id', uniqueAdminIds)
+        .order('email');
+
+      return adminData || [];
+    } catch (error) {
       return [];
     }
   }
@@ -277,7 +459,6 @@ export class AuditService {
         topAdmins
       };
     } catch (error) {
-      console.error('Error getting audit stats:', error);
       return {
         totalActions: 0,
         todayActions: 0,
@@ -362,6 +543,13 @@ export class AuditService {
       ],
       'System Actions': [
         'backup_database', 'restore_database', 'clear_cache', 'update_system_settings'
+      ],
+      'Navigation & Access': [
+        'view_admin_dashboard', 'view_admin_page', 'change_admin_tab', 'access_admin_section',
+        'view_admin_users', 'view_admin_events', 'view_admin_team', 'view_admin_members',
+        'view_admin_resources', 'view_admin_newsletter', 'view_admin_blog', 'view_admin_profile',
+        'view_admin_sponsors', 'view_admin_communications', 'view_admin_media', 'view_admin_guide',
+        'view_admin_linktree', 'view_admin_content', 'view_admin_security'
       ]
     };
   }
@@ -482,7 +670,28 @@ export class AuditService {
       'backup_database': 'Created database backup',
       'restore_database': 'Restored database from backup',
       'clear_cache': 'Cleared system cache',
-      'update_system_settings': 'Updated system settings'
+      'update_system_settings': 'Updated system settings',
+      
+      // Navigation & Page Access
+      'view_admin_dashboard': 'Accessed admin dashboard',
+      'view_admin_page': 'Viewed admin page',
+      'change_admin_tab': 'Changed admin tab',
+      'access_admin_section': 'Accessed admin section',
+      'view_admin_users': 'Viewed admin users management',
+      'view_admin_events': 'Viewed events management',
+      'view_admin_team': 'Viewed team management',
+      'view_admin_members': 'Viewed members management',
+      'view_admin_resources': 'Viewed resources management',
+      'view_admin_newsletter': 'Viewed newsletter management',
+      'view_admin_blog': 'Viewed blog management',
+      'view_admin_profile': 'Viewed admin profile',
+      'view_admin_sponsors': 'Viewed sponsors management',
+      'view_admin_communications': 'Viewed communications hub',
+      'view_admin_media': 'Viewed media library',
+      'view_admin_guide': 'Viewed admin guide',
+      'view_admin_linktree': 'Viewed linktree management',
+      'view_admin_content': 'Viewed content management',
+      'view_admin_security': 'Viewed security management'
     };
 
     let description = descriptions[action] || action.replace('_', ' ');

@@ -1,7 +1,7 @@
 import { useAdmin } from '@/contexts/AdminContext';
-
 import { Navigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import { 
   Users, 
   Calendar, 
@@ -199,7 +199,8 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pt-20">
+    <AdminPageWrapper pageName="Admin Dashboard" pageTitle="Dashboard">
+      <div className="min-h-screen bg-background pt-20">
       <div className="editorial-grid py-8">
         {/* Header */}
         <div className="col-span-12 flex items-center justify-between mb-8">
@@ -419,6 +420,7 @@ const AdminDashboard = () => {
 
       </div>
     </div>
+    </AdminPageWrapper>
   );
 };
 

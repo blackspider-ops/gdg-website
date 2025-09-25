@@ -70,7 +70,7 @@ const AdminBlog = () => {
       setCategories(categoriesData);
       setBlogStats(statsData);
     } catch (error) {
-      console.error('Error loading blog data:', error);
+      // Silently handle errors
     } finally {
       setIsLoading(false);
     }
@@ -515,11 +515,9 @@ const AdminBlog = () => {
                   if (window.confirm('This will sync all blog post like counts with the authentic like system. Continue?')) {
                     try {
                       await BlogService.syncLikeCounts();
-                      alert('Like counts synced successfully!');
                       await loadBlogData(); // Refresh the data
                     } catch (error) {
-                      alert('Error syncing like counts. Check console for details.');
-                      console.error('Sync error:', error);
+                      // Silently handle sync errors
                     }
                   }
                 }}

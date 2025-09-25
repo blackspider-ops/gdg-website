@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Download, Filter, RefreshCw } from 'lucide-react';
+import { Activity, Download, Filter, RefreshCw, Calendar, User, Clock } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { AuditService, type AuditLogEntry, type AuditStats, type AuditFilters } from '@/services/auditService';
 
@@ -8,7 +8,22 @@ interface ComprehensiveAuditLogProps {
 }
 
 const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAdmin }) => {
+  // Check if current user is super admin - audit log is super admin only
+  const isSuperAdmin = currentAdmin?.role === 'super_admin';
+  
+  if (!isSuperAdmin) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-8 text-center">
+        <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">Access Restricted</h3>
+        <p className="text-muted-foreground">
+          Audit log access is restricted to Super Administrators only.
+        </p>
+      </div>
+    );
+  }
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
+  const [allAdmins, setAllAdmins] = useState<Array<{id: string, email: string}>>([]);
   const [auditStats, setAuditStats] = useState<AuditStats>({
     totalActions: 0,
     todayActions: 0,
@@ -19,10 +34,13 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAction, setSelectedAction] = useState('');
+  const [selectedAdmin, setSelectedAdmin] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadAuditData();
@@ -38,14 +56,16 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
     }
   }, [currentAdmin]);
 
-  const loadAuditData = async () => {
+  const loadAuditData = async (filters?: AuditFilters) => {
     setIsLoading(true);
     try {
-      const [entries, stats] = await Promise.all([
-        AuditService.getAuditLog(),
-        AuditService.getAuditStats()
+      const [entries, stats, admins] = await Promise.all([
+        AuditService.getAuditLog(filters, 1000), // Load more entries for better filtering
+        AuditService.getAuditStats(),
+        loadAllAdmins()
       ]);
       setAuditEntries(entries || []);
+      setAllAdmins(admins);
       setAuditStats(stats || {
         totalActions: 0,
         todayActions: 0,
@@ -55,9 +75,9 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
         topAdmins: []
       });
     } catch (error) {
-      console.error('Error loading audit data:', error);
-      // Set empty data on error
+      // Silently handle errors
       setAuditEntries([]);
+      setAllAdmins([]);
       setAuditStats({
         totalActions: 0,
         todayActions: 0,
@@ -71,32 +91,146 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
     }
   };
 
+  const loadAllAdmins = async () => {
+    try {
+      return await AuditService.getActiveAdmins();
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const applyFilters = async () => {
+    setIsFiltering(true);
+    
+    const filters: AuditFilters = {};
+    
+    if (selectedAction) {
+      filters.action = selectedAction as any;
+    }
+    
+    if (selectedAdmin) {
+      filters.adminId = selectedAdmin;
+    }
+    
+    if (dateFrom) {
+      filters.dateFrom = new Date(dateFrom).toISOString();
+    }
+    
+    if (dateTo) {
+      // Set to end of day for dateTo
+      const endDate = new Date(dateTo);
+      endDate.setHours(23, 59, 59, 999);
+      filters.dateTo = endDate.toISOString();
+    }
+    
+    if (searchTerm.trim()) {
+      filters.search = searchTerm.trim();
+    }
+
+    await loadAuditData(filters);
+    setIsFiltering(false);
+  };
+
+  const clearFilters = async () => {
+    setSelectedAction('');
+    setSelectedAdmin('');
+    setDateFrom('');
+    setDateTo('');
+    setSearchTerm('');
+    await loadAuditData();
+  };
+
   const handleExport = async () => {
-    const csvData = await AuditService.exportAuditLog();
+    const filters: AuditFilters = {};
+    
+    if (selectedAction) filters.action = selectedAction as any;
+    if (selectedAdmin) filters.adminId = selectedAdmin;
+    if (dateFrom) filters.dateFrom = new Date(dateFrom).toISOString();
+    if (dateTo) {
+      const endDate = new Date(dateTo);
+      endDate.setHours(23, 59, 59, 999);
+      filters.dateTo = endDate.toISOString();
+    }
+    if (searchTerm.trim()) filters.search = searchTerm.trim();
+
+    const csvData = await AuditService.exportAuditLog(filters);
     if (csvData) {
       const blob = new Blob([csvData], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      // Create filename with filter info
+      let filename = 'audit-log';
+      if (dateFrom || dateTo) {
+        filename += `_${dateFrom || 'start'}-to-${dateTo || 'end'}`;
+      }
+      if (selectedAdmin) {
+        const adminEmail = allAdmins.find(a => a.id === selectedAdmin)?.email || 'admin';
+        filename += `_${adminEmail.replace('@', '_at_')}`;
+      }
+      filename += `_${new Date().toISOString().split('T')[0]}.csv`;
+      
+      a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
     }
   };
 
+  // Set default date range (last 30 days)
+  const setDefaultDateRange = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    setDateFrom(thirtyDaysAgo.toISOString().split('T')[0]);
+    setDateTo(today.toISOString().split('T')[0]);
+  };
+
+  // Set date range for last 7 days
+  const setWeekRange = () => {
+    const today = new Date();
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    setDateFrom(weekAgo.toISOString().split('T')[0]);
+    setDateTo(today.toISOString().split('T')[0]);
+  };
+
+  // Set date range for today
+  const setTodayRange = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setDateFrom(today);
+    setDateTo(today);
+  };
+
   const getActionColor = (action: string) => {
-    switch (action.toLowerCase()) {
-      case 'create':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'update':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'delete':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'login':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
-      default:
-        return 'bg-gray-100 text-foreground dark:bg-gray-900/20 dark:text-muted-foreground';
+    const actionLower = action.toLowerCase();
+    
+    if (actionLower.includes('create')) {
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     }
+    if (actionLower.includes('update') || actionLower.includes('edit')) {
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+    }
+    if (actionLower.includes('delete') || actionLower.includes('remove')) {
+      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+    }
+    if (actionLower.includes('login') || actionLower.includes('auth')) {
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
+    }
+    if (actionLower.includes('view') || actionLower.includes('access')) {
+      return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-400';
+    }
+    if (actionLower.includes('export') || actionLower.includes('download')) {
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
+    }
+    if (actionLower.includes('promote') || actionLower.includes('role')) {
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400';
+    }
+    if (actionLower.includes('password') || actionLower.includes('reset')) {
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+    }
+    
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
   };
 
   const renderDetails = (details: any) => {
@@ -128,20 +262,11 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
     return String(details);
   };
 
-  const filteredLogs = auditEntries.filter(log => {
-    const detailsString = typeof log.details === 'object' 
-      ? JSON.stringify(log.details) 
-      : (log.details || '');
-    
-    const matchesSearch = !searchTerm || 
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      detailsString.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.admin_users?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesAction = !selectedAction || log.action === selectedAction;
-    
-    return matchesSearch && matchesAction;
-  });
+  // Get unique action types for filter dropdown
+  const uniqueActions = [...new Set(auditEntries.map(log => log.action))].sort();
+
+  // Client-side filtering is minimal since server-side filtering is applied
+  const filteredLogs = auditEntries;
 
   return (
     <AdminLayout 
@@ -185,56 +310,195 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
           <div className="bg-card border border-border rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Entries</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {(selectedAction || selectedAdmin || dateFrom || dateTo || searchTerm) ? 'Filtered Results' : 'Total Entries'}
+                </p>
                 <p className="text-2xl font-bold text-foreground">{filteredLogs.length}</p>
+                {(selectedAction || selectedAdmin || dateFrom || dateTo || searchTerm) && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {filteredLogs.length} of {auditStats.totalActions} total
+                  </p>
+                )}
               </div>
               <Activity className="h-8 w-8 text-primary" />
             </div>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <input
-              type="text"
-              placeholder="Search audit log..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
-            />
-            
-            <select
-              value={selectedAction}
-              onChange={(e) => setSelectedAction(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
-            >
-              <option value="">All Actions</option>
-              <option value="create">Create</option>
-              <option value="update">Update</option>
-              <option value="delete">Delete</option>
-              <option value="login">Login</option>
-            </select>
-          </div>
-          
-          <div className="flex gap-2">
+        {/* Filter Controls */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-foreground">Filters</h3>
             <button
-              onClick={loadAuditData}
-              disabled={isRefreshing}
+              onClick={() => setShowFilters(!showFilters)}
               className="flex items-center space-x-2 px-3 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors"
             >
-              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-              <span>Refresh</span>
-            </button>
-            
-            <button
-              onClick={handleExport}
-              className="flex items-center space-x-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              <Download size={16} />
-              <span>Export</span>
+              <Filter size={16} />
+              <span>{showFilters ? 'Hide' : 'Show'} Filters</span>
             </button>
           </div>
+
+          {showFilters && (
+            <div className="space-y-4">
+              {/* Search and Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <input
+                  type="text"
+                  placeholder="Search audit log..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
+                />
+                
+                <select
+                  value={selectedAction}
+                  onChange={(e) => setSelectedAction(e.target.value)}
+                  className="px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
+                >
+                  <option value="">All Actions</option>
+                  {uniqueActions.map(action => (
+                    <option key={action} value={action}>
+                      {action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedAdmin}
+                  onChange={(e) => setSelectedAdmin(e.target.value)}
+                  className="px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
+                >
+                  <option value="">All Admins</option>
+                  {allAdmins.map(admin => (
+                    <option key={admin.id} value={admin.id}>
+                      {admin.email}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={applyFilters}
+                    disabled={isFiltering}
+                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    <Filter size={16} className={isFiltering ? 'animate-spin' : ''} />
+                    <span>Apply</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Date Range */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">From Date</label>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">To Date</label>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Quick Ranges</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={setTodayRange}
+                      className="px-3 py-2 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={setWeekRange}
+                      className="px-3 py-2 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
+                    >
+                      7 Days
+                    </button>
+                    <button
+                      onClick={setDefaultDateRange}
+                      className="px-3 py-2 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
+                    >
+                      30 Days
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Actions</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={clearFilters}
+                      className="px-3 py-2 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      onClick={() => loadAuditData()}
+                      disabled={isRefreshing}
+                      className="flex items-center space-x-1 px-3 py-2 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
+                    >
+                      <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Filters Display */}
+              {(selectedAction || selectedAdmin || dateFrom || dateTo || searchTerm) && (
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                  {searchTerm && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                      Search: "{searchTerm}"
+                    </span>
+                  )}
+                  {selectedAction && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                      Action: {selectedAction.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                  {selectedAdmin && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                      Admin: {allAdmins.find(a => a.id === selectedAdmin)?.email}
+                    </span>
+                  )}
+                  {dateFrom && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                      From: {new Date(dateFrom).toLocaleDateString()}
+                    </span>
+                  )}
+                  {dateTo && (
+                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                      To: {new Date(dateTo).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Export Controls */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleExport}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Download size={16} />
+            <span>Export Filtered Results</span>
+          </button>
         </div>
 
         {/* Audit Log Table */}
@@ -255,35 +519,73 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
                 <thead className="bg-muted">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Timestamp
+                      <div className="flex items-center space-x-1">
+                        <Clock size={14} />
+                        <span>Timestamp</span>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Admin
+                      <div className="flex items-center space-x-1">
+                        <User size={14} />
+                        <span>Admin</span>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Action
+                      <div className="flex items-center space-x-1">
+                        <Activity size={14} />
+                        <span>Action</span>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Target
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-muted/50">
+                    <tr key={log.id} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        {new Date(log.created_at).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                        {log.admin_users?.email || 'Unknown'}
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {new Date(log.created_at).toLocaleDateString()}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(log.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getActionColor(log.action)}`}>
-                          {log.action}
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium text-primary">
+                              {(log.admin_users?.email || 'U').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                              {log.admin_users?.email || 'Unknown'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {log.admin_users?.role || 'unknown'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getActionColor(log.action)}`}>
+                          {log.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground">
-                        {renderDetails(log.details)}
+                      <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs">
+                        <div className="truncate" title={renderDetails(log.details)}>
+                          {renderDetails(log.details)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {log.target_email || log.target_id || '-'}
                       </td>
                     </tr>
                   ))}

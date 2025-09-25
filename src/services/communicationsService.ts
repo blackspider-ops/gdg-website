@@ -35,7 +35,6 @@ const getServiceRoleClient = () => {
   const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !serviceRoleKey) {
-    console.warn('Service role key not found, using regular client');
     serviceRoleClient = supabase;
     return supabase;
   }
@@ -48,7 +47,6 @@ const getServiceRoleClient = () => {
       }
     });
   } catch (error) {
-    console.error('Failed to create service role client:', error);
     serviceRoleClient = supabase;
   }
   
@@ -739,7 +737,6 @@ export class CommunicationsService {
           }
         );
       } catch (auditError) {
-        console.warn('Audit logging failed:', auditError);
         // Continue execution even if audit logging fails
       }
 

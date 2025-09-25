@@ -118,7 +118,7 @@ const Home = () => {
   return (
     <div className="min-h-screen relative z-10">
       {/* Hero Section */}
-      <section className="relative py-16 sm:py-20 lg:py-32 min-h-[70vh] sm:min-h-[80vh] flex items-center">
+      <section className="relative py-12 sm:py-16 md:py-20 lg:py-32 min-h-[60vh] sm:min-h-[70vh] md:min-h-[80vh] flex items-center">
         <div className="editorial-grid relative z-10">
           <div className="col-span-12 text-center">
             <div className="animate-fade-up">
@@ -132,7 +132,7 @@ const Home = () => {
               )}
               
               {heroContent.title && (
-                <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+                <h1 className="font-display text-responsive-3xl font-bold mb-4 sm:mb-6 leading-tight">
                   {heroContent.title}
                   {heroContent.subtitle && (
                     <>
@@ -144,26 +144,26 @@ const Home = () => {
               )}
               
               {heroContent.description && (
-                <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
+                <p className="text-responsive-base text-muted-foreground content-measure mx-auto mb-6 sm:mb-8 px-4 sm:px-0">
                   {heroContent.description}
                 </p>
               )}
 
               {(heroContent.primary_cta_text || heroContent.secondary_cta_text) && (
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
                   {heroContent.primary_cta_text && heroContent.primary_cta_link && (
                     <Link 
                       to={heroContent.primary_cta_link}
-                      className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center justify-center group focus-ring"
+                      className="magnetic-button px-6 sm:px-8 py-3 sm:py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center justify-center group focus-ring text-sm sm:text-base"
                     >
                       {heroContent.primary_cta_text}
-                      <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform sm:w-[18px] sm:h-[18px]" />
                     </Link>
                   )}
                   {heroContent.secondary_cta_text && heroContent.secondary_cta_link && (
                     <Link 
                       to={heroContent.secondary_cta_link}
-                      className="magnetic-button underline-slide px-8 py-4 text-primary hover:text-primary/80 inline-flex items-center justify-center focus-ring"
+                      className="magnetic-button underline-slide px-6 sm:px-8 py-3 sm:py-4 text-primary hover:text-primary/80 inline-flex items-center justify-center focus-ring text-sm sm:text-base"
                     >
                       {heroContent.secondary_cta_text}
                     </Link>
@@ -177,15 +177,15 @@ const Home = () => {
 
       {/* What We Build Section */}
       {(tracksContent.title || tracks.length > 0) && (
-        <section className="py-24 relative">
+        <section className="py-16 sm:py-20 lg:py-24 relative">
           <div className="editorial-grid">
             {tracksContent.title && (
-              <div className="col-span-12 text-center mb-16">
-                <h2 className="font-display text-4xl lg:text-5xl font-bold mb-4">
+              <div className="col-span-12 text-center mb-12 sm:mb-16">
+                <h2 className="font-display text-responsive-2xl font-bold mb-4">
                   {tracksContent.title}
                 </h2>
                 {tracksContent.description && (
-                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  <p className="text-responsive-base text-muted-foreground max-w-2xl mx-auto px-4 sm:px-0">
                     {tracksContent.description}
                   </p>
                 )}
@@ -193,17 +193,17 @@ const Home = () => {
             )}
 
             {tracks.length > 0 && (
-              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                 {tracks.map((track, index) => {
                   const Icon = track.icon;
                   return (
                     <div key={track.id || index} className="panel-hover group">
-                      <div className="p-8 rounded-xl bg-card border border-border hover:border-primary/20 transition-all">
-                        <div className={`w-16 h-16 rounded-lg bg-current/10 flex items-center justify-center mb-6 ${track.color}`}>
-                          <Icon size={32} className="text-current" />
+                      <div className="p-6 sm:p-8 rounded-xl bg-card border border-border hover:border-primary/20 transition-all">
+                        <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-current/10 flex items-center justify-center mb-4 sm:mb-6 ${track.color}`}>
+                          <Icon size={24} className="text-current sm:w-8 sm:h-8" />
                         </div>
-                        <h3 className="font-display text-2xl font-semibold mb-4">{track.title}</h3>
-                        <p className="text-muted-foreground leading-relaxed">{track.description}</p>
+                        <h3 className="font-display text-lg sm:text-xl lg:text-2xl font-semibold mb-3 sm:mb-4">{track.title}</h3>
+                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{track.description}</p>
                       </div>
                     </div>
                   );

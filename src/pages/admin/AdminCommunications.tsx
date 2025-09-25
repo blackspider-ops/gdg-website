@@ -183,12 +183,12 @@ const AdminCommunications: React.FC = () => {
                         }
                     );
                 } catch (auditError) {
-                    console.warn('Audit logging failed:', auditError);
+                    // Silently handle warnings
                     // Continue execution even if audit logging fails
                 }
             }
         } catch (error) {
-            console.error('Error loading communications data:', error);
+            // Silently handle errors
             // Set default empty arrays to prevent crashes
             setAnnouncements([]);
             setTasks([]);
@@ -250,7 +250,7 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error creating item:', error);
+            // Silently handle errors
         } finally {
             setIsSaving(false);
         }
@@ -326,7 +326,7 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error updating item:', error);
+            // Silently handle errors
         } finally {
             setIsSaving(false);
         }
@@ -358,7 +358,7 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error deleting item:', error);
+            // Silently handle errors
         } finally {
             setIsSaving(false);
         }
@@ -468,14 +468,11 @@ const AdminCommunications: React.FC = () => {
             }
 
             if (result.success) {
-                alert(`Email sent successfully to ${result.total_sent} recipients!`);
                 setShowEmailModal(false);
                 resetEmailForm();
-            } else {
-                alert(`Failed to send email: ${result.error}`);
             }
         } catch (error: any) {
-            alert(`Error sending email: ${error.message}`);
+            // Silently handle email errors
         } finally {
             setIsSendingEmail(false);
         }

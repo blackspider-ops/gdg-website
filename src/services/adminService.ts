@@ -39,9 +39,8 @@ export class AdminService {
           authenticated_at: new Date().toISOString()
         }));
         
-        console.log('Created admin session for storage access');
       } catch (sessionError) {
-        console.warn('Could not create admin session:', sessionError);
+        // Silently handle session creation errors
       }
 
       // Update last login timestamp (ignore RLS errors for now)
@@ -52,7 +51,6 @@ export class AdminService {
           .eq('id', adminUser.id);
       } catch (updateError) {
         // Ignore RLS errors for last_login updates
-        console.warn('Could not update last_login due to RLS policy');
       }
 
       // Log admin action
@@ -84,10 +82,10 @@ export class AdminService {
         });
       
       if (error) {
-        console.warn('Could not log admin action due to RLS policy:', error.message);
+        // Silently handle logging errors
       }
     } catch (error) {
-      console.warn('Could not log admin action:', error);
+      // Silently handle logging errors
     }
   }
 
@@ -142,7 +140,6 @@ export class AdminService {
         .single();
 
       if (error) {
-        console.error('Could not create admin user due to RLS policy:', error.message);
         return null;
       }
       
@@ -170,7 +167,6 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
-        console.error('Could not update password due to RLS policy:', error.message);
         return false;
       }
 
@@ -219,7 +215,6 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
-        console.error('Could not update admin user due to RLS policy:', error.message);
         return false;
       }
 
@@ -246,7 +241,6 @@ export class AdminService {
         .eq('id', adminId);
 
       if (error) {
-        console.error('Could not delete admin user due to RLS policy:', error.message);
         return false;
       }
 

@@ -106,7 +106,7 @@ const AdminContent = () => {
         contactLinks = mainContent.contact_links;
       }
     } catch (error) {
-    console.error(error);
+    // Silently handle errors
   }
 
 
@@ -146,7 +146,7 @@ const AdminContent = () => {
           setAllLinks(parsedLinks);
           return;
         } catch (error) {
-    console.error(error);
+    // Silently handle errors
   }
       }
 
@@ -329,7 +329,7 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    console.error(error);
+    // Silently handle errors
   } finally {
       setIsSaving(false);
     }
@@ -349,7 +349,7 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    console.error(error);
+    // Silently handle errors
   } finally {
       setIsSaving(false);
     }
@@ -368,7 +368,7 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    console.error(error);
+    // Silently handle errors
   } finally {
       setIsSaving(false);
     }
@@ -491,7 +491,7 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    console.error(error);
+    // Silently handle errors
   } finally {
       setIsSaving(false);
     }
@@ -523,7 +523,7 @@ const AdminContent = () => {
       await refreshContent();
       setIsEditing(false);
     } catch (error) {
-    console.error(error);
+    // Silently handle errors
   } finally {
       setIsSaving(false);
     }
@@ -683,7 +683,7 @@ const AdminContent = () => {
           contactLinks = mainContent.contact_links;
         }
       } catch (error) {
-    console.error(error);
+    // Silently handle errors
   }
 
       setContactPageForm({

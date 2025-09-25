@@ -38,7 +38,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
         const liked = await BlogService.hasUserLikedPost(currentPost.id);
         setHasLiked(liked);
       } catch (error) {
-        console.error('Error checking like status:', error);
+        // Silently handle errors
       } finally {
         setIsCheckingLikeStatus(false);
       }
@@ -134,7 +134,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
         }));
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
+      // Silently handle errors
     } finally {
       setIsLiking(false);
     }

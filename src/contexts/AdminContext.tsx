@@ -99,9 +99,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     // Sign out from Supabase Auth as well
     try {
       await supabase.auth.signOut();
-      console.log('Signed out from Supabase Auth');
+      // Silently handle logs
     } catch (authError) {
-      console.warn('Could not sign out from Supabase Auth:', authError);
+      // Silently handle warnings
     }
     
     localStorage.removeItem('gdg-admin-session');
