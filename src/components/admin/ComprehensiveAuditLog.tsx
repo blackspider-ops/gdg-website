@@ -26,7 +26,17 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
 
   useEffect(() => {
     loadAuditData();
-  }, []);
+    
+    // Log that the audit log was viewed
+    if (currentAdmin?.id) {
+      AuditService.logAction(
+        currentAdmin.id,
+        'view_audit_log',
+        undefined,
+        { description: 'Viewed comprehensive audit log' }
+      );
+    }
+  }, [currentAdmin]);
 
   const loadAuditData = async () => {
     setIsLoading(true);
@@ -35,10 +45,27 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
         AuditService.getAuditLog(),
         AuditService.getAuditStats()
       ]);
-      setAuditEntries(entries);
-      setAuditStats(stats);
+      setAuditEntries(entries || []);
+      setAuditStats(stats || {
+        totalActions: 0,
+        todayActions: 0,
+        weekActions: 0,
+        monthActions: 0,
+        topActions: [],
+        topAdmins: []
+      });
     } catch (error) {
-      // Error handling
+      console.error('Error loading audit data:', error);
+      // Set empty data on error
+      setAuditEntries([]);
+      setAuditStats({
+        totalActions: 0,
+        todayActions: 0,
+        weekActions: 0,
+        monthActions: 0,
+        topActions: [],
+        topAdmins: []
+      });
     } finally {
       setIsLoading(false);
     }
@@ -72,10 +99,43 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
     }
   };
 
+  const renderDetails = (details: any) => {
+    if (!details) return 'N/A';
+    
+    if (typeof details === 'string') {
+      return details;
+    }
+    
+    if (typeof details === 'object') {
+      // Handle common object structures
+      if (details.description) {
+        return details.description;
+      }
+      
+      if (details.viewed_at) {
+        return `Viewed at: ${new Date(details.viewed_at).toLocaleString()}`;
+      }
+      
+      // For other objects, create a readable summary
+      const entries = Object.entries(details);
+      if (entries.length === 0) return 'N/A';
+      
+      return entries
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
+    }
+    
+    return String(details);
+  };
+
   const filteredLogs = auditEntries.filter(log => {
+    const detailsString = typeof log.details === 'object' 
+      ? JSON.stringify(log.details) 
+      : (log.details || '');
+    
     const matchesSearch = !searchTerm || 
       log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      detailsString.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.admin_users?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesAction = !selectedAction || log.action === selectedAction;
@@ -223,7 +283,7 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">
-                        {log.details}
+                        {renderDetails(log.details)}
                       </td>
                     </tr>
                   ))}

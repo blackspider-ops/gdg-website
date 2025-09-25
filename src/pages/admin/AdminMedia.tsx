@@ -44,6 +44,43 @@ import {
 } from '@/services/mediaService';
 import { AuditService } from '@/services/auditService';
 
+// Component for handling image loading with fallback to signed URLs
+const MediaImage: React.FC<{ filePath: string; alt: string; className: string }> = ({ filePath, alt, className }) => {
+    const [imageSrc, setImageSrc] = useState<string>(MediaService.getFileUrl(filePath));
+    const [imageError, setImageError] = useState<boolean>(false);
+
+    const handleImageError = async () => {
+        if (!imageError) {
+            setImageError(true);
+            try {
+                const signedUrl = await MediaService.getSignedFileUrl(filePath);
+                if (signedUrl) {
+                    setImageSrc(signedUrl);
+                }
+            } catch (error) {
+                // Ignore signed URL errors
+            }
+        }
+    };
+
+    if (imageError && imageSrc === MediaService.getFileUrl(filePath)) {
+        return (
+            <div className={`${className} flex items-center justify-center bg-gray-800`}>
+                <Image size={24} className="text-gray-400" />
+            </div>
+        );
+    }
+
+    return (
+        <img 
+            src={imageSrc}
+            alt={alt}
+            className={className}
+            onError={handleImageError}
+        />
+    );
+};
+
 const AdminMedia: React.FC = () => {
     const { isAuthenticated, currentAdmin } = useAdmin();
     
@@ -86,7 +123,21 @@ const AdminMedia: React.FC = () => {
     
     // File upload
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+    
+    // Upload progress state
+    const [uploadProgress, setUploadProgress] = useState<{
+        isUploading: boolean;
+        currentFile: string;
+        currentIndex: number;
+        totalFiles: number;
+        progress: number;
+    }>({
+        isUploading: false,
+        currentFile: '',
+        currentIndex: 0,
+        totalFiles: 0,
+        progress: 0
+    });
     
     // Lock body scroll when modal is open
     useBodyScrollLock(showUploadModal || showCreateFolderModal || showEditModal || showDeleteModal);
@@ -95,10 +146,10 @@ const AdminMedia: React.FC = () => {
 
     // Load data on component mount
     useEffect(() => {
-        if (canAccess && currentAdmin) {
+        if (isAuthenticated && currentAdmin) {
             loadAllData();
         }
-    }, [canAccess, currentAdmin, currentFolderId]);
+    }, [isAuthenticated, currentAdmin, currentFolderId]);
 
     // Force scroll to top when component mounts
     useEffect(() => {
@@ -126,6 +177,9 @@ const AdminMedia: React.FC = () => {
     const loadAllData = async () => {
         setIsLoading(true);
         try {
+            // Check storage bucket accessibility first
+            await MediaService.checkStorageBucket();
+
             const filters: MediaFilters = {
                 folder_id: currentFolderId,
                 file_type: filterType === 'all' ? undefined : filterType,
@@ -143,20 +197,25 @@ const AdminMedia: React.FC = () => {
             setFolders(foldersData);
             setStats(statsData);
 
-            // Log viewing action
+            // Log viewing action (don't let audit logging failure break the load)
             if (currentAdmin?.id) {
-                await AuditService.logAction(
-                    currentAdmin.id,
-                    'view_media_library',
-                    undefined,
-                    {
-                        description: 'Viewed media library',
-                        folder_id: currentFolderId,
-                        filters
-                    }
-                );
+                try {
+                    await AuditService.logAction(
+                        currentAdmin.id,
+                        'view_media_library',
+                        undefined,
+                        {
+                            description: 'Viewed media library',
+                            folder_id: currentFolderId,
+                            filters
+                        }
+                    );
+                } catch (auditError) {
+                    // Ignore audit logging errors
+                }
             }
         } catch (error) {
+            // Handle load errors silently
         } finally {
             setIsLoading(false);
         }
@@ -165,6 +224,8 @@ const AdminMedia: React.FC = () => {
     const refreshData = () => {
         loadAllData();
     };
+
+
 
     // Navigation functions
     const navigateToFolder = (folderId: string, folderName: string) => {
@@ -212,10 +273,36 @@ const AdminMedia: React.FC = () => {
     const handleFileUpload = async (uploadedFiles: FileList) => {
         if (!currentAdmin?.id || !uploadedFiles.length) return;
         
+        const filesArray = Array.from(uploadedFiles);
+        const totalFiles = filesArray.length;
+        
+        // Initialize upload progress
+        setUploadProgress({
+            isUploading: true,
+            currentFile: 'Preparing upload...',
+            currentIndex: 0,
+            totalFiles,
+            progress: 0
+        });
+        
         setIsSaving(true);
+        
         try {
-            const uploadPromises = Array.from(uploadedFiles).map(async (file) => {
-                return MediaService.uploadFile(
+            const results = [];
+            
+            // Upload files sequentially to show progress
+            for (let i = 0; i < filesArray.length; i++) {
+                const file = filesArray[i];
+                
+                // Update progress
+                setUploadProgress(prev => ({
+                    ...prev,
+                    currentFile: file.name,
+                    currentIndex: i + 1,
+                    progress: Math.round(((i) / totalFiles) * 100)
+                }));
+                
+                const result = await MediaService.uploadFile(
                     file,
                     currentFolderId,
                     currentAdmin.id,
@@ -224,12 +311,50 @@ const AdminMedia: React.FC = () => {
                         tags: []
                     }
                 );
-            });
+                
+                if (!result) {
+                    throw new Error(`Failed to upload file: ${file.name}`);
+                }
+                
+                results.push(result);
+                
+                // Update progress after successful upload
+                setUploadProgress(prev => ({
+                    ...prev,
+                    progress: Math.round(((i + 1) / totalFiles) * 100)
+                }));
+            }
             
-            await Promise.all(uploadPromises);
-            setShowUploadModal(false);
+            // Complete upload
+            setUploadProgress(prev => ({
+                ...prev,
+                progress: 100,
+                currentFile: 'Upload complete!'
+            }));
+            
+            // Wait a moment to show completion
+            setTimeout(() => {
+                setUploadProgress({
+                    isUploading: false,
+                    currentFile: '',
+                    currentIndex: 0,
+                    totalFiles: 0,
+                    progress: 0
+                });
+                setShowUploadModal(false);
+            }, 1000);
+            
             await loadAllData();
+            
         } catch (error) {
+            setUploadProgress({
+                isUploading: false,
+                currentFile: '',
+                currentIndex: 0,
+                totalFiles: 0,
+                progress: 0
+            });
+            alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsSaving(false);
         }
@@ -344,6 +469,32 @@ const AdminMedia: React.FC = () => {
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             handleFileUpload(e.target.files);
+        }
+    };
+
+    const handleViewFile = async (file: MediaFile) => {
+        try {
+            // Get signed URL for secure access
+            const signedUrl = await MediaService.getSignedFileUrl(file.file_path);
+            const fileUrl = signedUrl || MediaService.getFileUrl(file.file_path);
+            
+            // For PDFs and documents, always open in new tab
+            if (file.file_type === 'document' || file.mime_type === 'application/pdf') {
+                window.open(fileUrl, '_blank');
+                return;
+            }
+            
+            // For images and videos, open in new tab
+            if (file.file_type === 'image' || file.file_type === 'video') {
+                window.open(fileUrl, '_blank');
+                return;
+            }
+            
+            // For other files, try to open or download
+            window.open(fileUrl, '_blank');
+            
+        } catch (error) {
+            alert('Failed to open file. The file may not be accessible.');
         }
     };
 
@@ -479,6 +630,49 @@ const AdminMedia: React.FC = () => {
                     );
                 })}
             </div>
+
+            {/* Global Upload Progress */}
+            {(uploadProgress.isUploading || isSaving) && (
+                <div className="bg-card rounded-xl shadow-sm border border-border p-4 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                            <RefreshCw size={20} className="animate-spin text-blue-400" />
+                            <div>
+                                <h3 className="font-medium text-foreground">Uploading Files</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {uploadProgress.totalFiles > 0 
+                                        ? `${uploadProgress.currentIndex} of ${uploadProgress.totalFiles} files completed`
+                                        : 'Uploading files...'
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-lg font-mono font-bold text-blue-400">
+                                {uploadProgress.progress || 0}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                            <div 
+                                className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${uploadProgress.progress || 0}%` }}
+                            ></div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground truncate max-w-md">
+                                Current: {uploadProgress.currentFile || 'Processing...'}
+                            </span>
+                            <span className="text-muted-foreground">
+                                {uploadProgress.currentIndex || 0}/{uploadProgress.totalFiles || 0}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Breadcrumbs */}
             <div className="bg-card rounded-xl shadow-sm border border-border p-4 mb-6">
@@ -644,17 +838,16 @@ const AdminMedia: React.FC = () => {
                             {/* Files */}
                             {files.map((file) => (
                                 <div key={file.id} className="group cursor-pointer">
-                                    <div className="relative bg-muted rounded-lg overflow-hidden hover:bg-gray-800 transition-colors border border-border">
+                                    <div 
+                                        className="relative bg-muted rounded-lg overflow-hidden hover:bg-gray-800 transition-colors border border-border"
+                                        onClick={() => handleViewFile(file)}
+                                    >
                                         {file.file_type === 'image' ? (
                                             <div className="aspect-square">
-                                                <img 
-                                                    src={MediaService.getFileUrl(file.file_path)} 
+                                                <MediaImage 
+                                                    filePath={file.file_path}
                                                     alt={file.alt_text || file.name}
                                                     className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        // Fallback to icon if image fails to load
-                                                        e.currentTarget.style.display = 'none';
-                                                    }}
                                                 />
                                             </div>
                                         ) : (
@@ -672,7 +865,6 @@ const AdminMedia: React.FC = () => {
                                         
                                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <div className="flex items-center space-x-1">
-                                                {file.is_starred && <Star size={14} className="text-yellow-500 fill-current" />}
                                                 <button 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -682,6 +874,20 @@ const AdminMedia: React.FC = () => {
                                                     title={file.is_starred ? 'Unstar' : 'Star'}
                                                 >
                                                     <Star size={14} className={`text-yellow-400 ${file.is_starred ? 'fill-current' : ''}`} />
+                                                </button>
+                                                <button 
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            await MediaService.downloadFile(file.file_path, file.original_name);
+                                                        } catch (error) {
+                                                            alert(`Failed to download file: ${error.message}`);
+                                                        }
+                                                    }}
+                                                    className="p-1 hover:bg-gray-700 rounded transition-colors"
+                                                    title="Download file"
+                                                >
+                                                    <Download size={14} className="text-muted-foreground" />
                                                 </button>
                                                 <button 
                                                     onClick={(e) => {
@@ -740,6 +946,7 @@ const AdminMedia: React.FC = () => {
                                         <FolderPlus size={16} />
                                         <span>Create Folder</span>
                                     </button>
+
                                 </div>
                             </div>
                         )}
@@ -831,13 +1038,10 @@ const AdminMedia: React.FC = () => {
                                         <td className="py-4 px-6">
                                             <div className="flex items-center space-x-3">
                                                 {file.file_type === 'image' ? (
-                                                    <img
-                                                        src={MediaService.getFileUrl(file.file_path)}
+                                                    <MediaImage
+                                                        filePath={file.file_path}
                                                         alt={file.alt_text || file.name}
                                                         className="w-8 h-8 rounded object-cover"
-                                                        onError={(e) => {
-                                                            e.currentTarget.style.display = 'none';
-                                                        }}
                                                     />
                                                 ) : (
                                                     getFileIcon(file.file_type)
@@ -872,7 +1076,7 @@ const AdminMedia: React.FC = () => {
                                                     <Star size={16} className={`text-yellow-400 ${file.is_starred ? 'fill-current' : ''}`} />
                                                 </button>
                                                 <button 
-                                                    onClick={() => window.open(MediaService.getFileUrl(file.file_path), '_blank')}
+                                                    onClick={() => handleViewFile(file)}
                                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="View file"
                                                 >
@@ -886,11 +1090,12 @@ const AdminMedia: React.FC = () => {
                                                     <Copy size={16} />
                                                 </button>
                                                 <button 
-                                                    onClick={() => {
-                                                        const link = document.createElement('a');
-                                                        link.href = MediaService.getFileUrl(file.file_path);
-                                                        link.download = file.original_name;
-                                                        link.click();
+                                                    onClick={async () => {
+                                                        try {
+                                                            await MediaService.downloadFile(file.file_path, file.original_name);
+                                                        } catch (error) {
+                                                            alert(`Failed to download file: ${error.message}`);
+                                                        }
                                                     }}
                                                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Download file"
@@ -930,7 +1135,8 @@ const AdminMedia: React.FC = () => {
                                 <h2 className="text-xl font-semibold text-foreground">Upload Files</h2>
                                 <button
                                     onClick={() => setShowUploadModal(false)}
-                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                                    disabled={uploadProgress.isUploading}
+                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <X size={20} className="text-muted-foreground" />
                                 </button>
@@ -986,11 +1192,31 @@ const AdminMedia: React.FC = () => {
                                 </select>
                             </div>
 
-                            {isSaving && (
+                            {(uploadProgress.isUploading || isSaving) && (
                                 <div className="mt-4 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
-                                    <div className="flex items-center space-x-2">
-                                        <RefreshCw size={16} className="animate-spin text-blue-400" />
-                                        <span className="text-blue-400">Uploading files...</span>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-blue-400 font-medium">
+                                                Uploading {uploadProgress.currentIndex || 0} of {uploadProgress.totalFiles || 0} files
+                                            </span>
+                                            <span className="text-blue-400 font-mono text-sm">
+                                                {uploadProgress.progress || 0}%
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="w-full bg-gray-700 rounded-full h-2">
+                                            <div 
+                                                className="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                                                style={{ width: `${uploadProgress.progress || 0}%` }}
+                                            ></div>
+                                        </div>
+                                        
+                                        <div className="flex items-center space-x-2">
+                                            <RefreshCw size={14} className="animate-spin text-blue-400" />
+                                            <span className="text-blue-300 text-sm truncate">
+                                                {uploadProgress.currentFile || 'Processing...'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -999,10 +1225,10 @@ const AdminMedia: React.FC = () => {
                         <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
                             <button
                                 onClick={() => setShowUploadModal(false)}
-                                disabled={isSaving}
+                                disabled={uploadProgress.isUploading}
                                 className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium disabled:opacity-50"
                             >
-                                Cancel
+                                {uploadProgress.isUploading ? 'Uploading...' : 'Cancel'}
                             </button>
                         </div>
                     </div>

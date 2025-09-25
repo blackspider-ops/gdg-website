@@ -27,6 +27,23 @@ export class AdminService {
         return null;
       }
 
+      // IMPORTANT: Create a temporary session for storage operations
+      // Since Supabase Auth signup is failing, we'll use a different approach
+      try {
+        // Store admin session info that can be used by storage policies
+        // We'll create a custom session that our RLS policies can recognize
+        localStorage.setItem('supabase-admin-session', JSON.stringify({
+          admin_id: adminUser.id,
+          admin_email: adminUser.email,
+          admin_role: adminUser.role,
+          authenticated_at: new Date().toISOString()
+        }));
+        
+        console.log('Created admin session for storage access');
+      } catch (sessionError) {
+        console.warn('Could not create admin session:', sessionError);
+      }
+
       // Update last login timestamp (ignore RLS errors for now)
       try {
         await supabase

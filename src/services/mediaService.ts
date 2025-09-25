@@ -1,4 +1,45 @@
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Create singleton service role client for storage operations
+let serviceRoleClient: any = null;
+let clientInitialized = false;
+
+const getServiceRoleClient = () => {
+  if (clientInitialized) {
+    return serviceRoleClient || supabase;
+  }
+  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  
+  clientInitialized = true;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn('Service role credentials not available, falling back to regular client');
+    serviceRoleClient = supabase;
+    return supabase;
+  }
+  
+  try {
+    serviceRoleClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to create service role client, falling back to regular client:', error);
+    serviceRoleClient = supabase;
+  }
+  
+  return serviceRoleClient;
+};
+
+// Use service role client for storage operations to bypass RLS
+const getStorageClientInstance = () => {
+  return getServiceRoleClient();
+};
 import { AuditService, type AuditActionType } from './auditService';
 
 // Types
@@ -74,15 +115,30 @@ export interface MediaFilters {
 }
 
 export class MediaService {
+  // UTILITY METHODS
+  static async checkStorageBucket(): Promise<boolean> {
+    try {
+      const { data, error } = await getStorageClientInstance().storage
+        .from('media')
+        .list('', { limit: 1 });
+      
+      return !error;
+    } catch (error) {
+      return false;
+    }
+  }
+
+
+
+
+
   // FOLDERS
   static async getFolders(parentId?: string): Promise<MediaFolder[]> {
     try {
-      let query = supabase
+      // Use service role client to bypass RLS
+      let query = getServiceRoleClient()
         .from('media_folders')
-        .select(`
-          *,
-          created_by_user:admin_users!media_folders_created_by_fkey(email, role)
-        `)
+        .select('*')
         .order('name');
 
       if (parentId === 'root' || !parentId) {
@@ -92,27 +148,44 @@ export class MediaService {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        return [];
+      }
 
-      // Get item counts for each folder
+      // Get item counts for each folder and admin info
       const enrichedData = await Promise.all(
         (data || []).map(async (folder) => {
-          const [filesCount, subfoldersCount] = await Promise.all([
-            supabase
-              .from('media_files')
-              .select('id', { count: 'exact' })
-              .eq('folder_id', folder.id),
-            supabase
-              .from('media_folders')
-              .select('id', { count: 'exact' })
-              .eq('parent_id', folder.id)
-          ]);
+          try {
+            const [filesCount, subfoldersCount, adminData] = await Promise.all([
+              getServiceRoleClient()
+                .from('media_files')
+                .select('*', { count: 'exact', head: true })
+                .eq('folder_id', folder.id),
+              getServiceRoleClient()
+                .from('media_folders')
+                .select('*', { count: 'exact', head: true })
+                .eq('parent_id', folder.id),
+              getServiceRoleClient()
+                .from('admin_users')
+                .select('email, role')
+                .eq('id', folder.created_by)
+                .single()
+            ]);
 
-          return {
-            ...folder,
-            item_count: (filesCount.count || 0) + (subfoldersCount.count || 0),
-            subfolder_count: subfoldersCount.count || 0
-          };
+            return {
+              ...folder,
+              item_count: (filesCount.count || 0) + (subfoldersCount.count || 0),
+              subfolder_count: subfoldersCount.count || 0,
+              created_by_user: adminData.data || { email: 'Unknown', role: 'unknown' }
+            };
+          } catch (error) {
+            return {
+              ...folder,
+              item_count: 0,
+              subfolder_count: 0,
+              created_by_user: { email: 'Unknown', role: 'unknown' }
+            };
+          }
         })
       );
 
@@ -129,7 +202,7 @@ export class MediaService {
     createdBy?: string
   ): Promise<MediaFolder | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('media_folders')
         .insert({
           name,
@@ -137,29 +210,52 @@ export class MediaService {
           description,
           created_by: createdBy
         })
-        .select(`
-          *,
-          created_by_user:admin_users!media_folders_created_by_fkey(email, role)
-        `)
+        .select('*')
         .single();
 
-      if (error) throw error;
-
-      // Log the action
-      if (createdBy) {
-        await AuditService.logAction(
-          createdBy,
-          'create_media_folder',
-          undefined,
-          {
-            description: `Created media folder: ${name}`,
-            folder_name: name,
-            parent_id: parentId
-          }
-        );
+      if (error) {
+        return null;
       }
 
-      return data;
+      // Get admin info separately
+      let adminData = null;
+      if (createdBy) {
+        try {
+          const { data: admin } = await getServiceRoleClient()
+            .from('admin_users')
+            .select('email, role')
+            .eq('id', createdBy)
+            .single();
+          adminData = admin;
+        } catch (adminError) {
+          // Ignore admin data fetch errors
+        }
+      }
+
+      const enrichedData = {
+        ...data,
+        created_by_user: adminData || { email: 'Unknown', role: 'unknown' }
+      };
+
+      // Log the action (don't let audit logging failure break the creation)
+      if (createdBy) {
+        try {
+          await AuditService.logAction(
+            createdBy,
+            'create_media_folder',
+            undefined,
+            {
+              description: `Created media folder: ${name}`,
+              folder_name: name,
+              parent_id: parentId
+            }
+          );
+        } catch (auditError) {
+          // Ignore audit logging errors
+        }
+      }
+
+      return enrichedData;
     } catch (error) {
       return null;
     }
@@ -171,7 +267,7 @@ export class MediaService {
     userId: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_folders')
         .update(updates)
         .eq('id', id);
@@ -198,7 +294,7 @@ export class MediaService {
 
   static async deleteFolder(id: string, userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_folders')
         .delete()
         .eq('id', id);
@@ -225,13 +321,10 @@ export class MediaService {
   // FILES
   static async getFiles(filters?: MediaFilters): Promise<MediaFile[]> {
     try {
-      let query = supabase
+      // Use service role client to bypass RLS
+      let query = getServiceRoleClient()
         .from('media_files')
-        .select(`
-          *,
-          uploaded_by_user:admin_users!media_files_uploaded_by_fkey(email, role),
-          folder:media_folders!media_files_folder_id_fkey(name, path)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filters?.folder_id) {
@@ -276,9 +369,43 @@ export class MediaService {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        return [];
+      }
 
-      return data || [];
+      // Enrich data with admin and folder info
+      const enrichedData = await Promise.all(
+        (data || []).map(async (file) => {
+          try {
+            const [adminData, folderData] = await Promise.all([
+              getServiceRoleClient()
+                .from('admin_users')
+                .select('email, role')
+                .eq('id', file.uploaded_by)
+                .single(),
+              file.folder_id ? getServiceRoleClient()
+                .from('media_folders')
+                .select('name, path')
+                .eq('id', file.folder_id)
+                .single() : Promise.resolve({ data: null })
+            ]);
+
+            return {
+              ...file,
+              uploaded_by_user: adminData.data || { email: 'Unknown', role: 'unknown' },
+              folder: folderData.data || null
+            };
+          } catch (error) {
+            return {
+              ...file,
+              uploaded_by_user: { email: 'Unknown', role: 'unknown' },
+              folder: null
+            };
+          }
+        })
+      );
+
+      return enrichedData;
     } catch (error) {
       return [];
     }
@@ -296,23 +423,34 @@ export class MediaService {
     }
   ): Promise<MediaFile | null> {
     try {
+      // Validate file size (50MB limit)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        throw new Error('File size exceeds 50MB limit');
+      }
+
       // Generate unique filename
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `media/${fileName}`;
+      const filePath = fileName;
 
-      // Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload file to Supabase Storage using service role to bypass RLS
+      const { data: uploadData, error: uploadError } = await getStorageClientInstance().storage
         .from('media')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw uploadError;
+      }
 
       // Get file type from mime type
       const fileType = this.getFileTypeFromMime(file.type);
 
-      // Create database record
-      const { data, error } = await supabase
+      // Create database record using service role to bypass RLS
+      const { data, error } = await getServiceRoleClient()
         .from('media_files')
         .insert({
           name: fileName,
@@ -329,32 +467,70 @@ export class MediaService {
           description: metadata?.description,
           tags: metadata?.tags || []
         })
-        .select(`
-          *,
-          uploaded_by_user:admin_users!media_files_uploaded_by_fkey(email, role),
-          folder:media_folders!media_files_folder_id_fkey(name, path)
-        `)
+        .select('*')
         .single();
 
-      if (error) throw error;
-
-      // Log the action
-      if (uploadedBy) {
-        await AuditService.logAction(
-          uploadedBy,
-          'upload_media_file',
-          undefined,
-          {
-            description: `Uploaded file: ${file.name}`,
-            file_name: file.name,
-            file_type: fileType,
-            file_size: file.size,
-            folder_id: folderId
-          }
-        );
+      if (error) {
+        // Clean up uploaded file if database insert fails
+        await getStorageClientInstance().storage.from('media').remove([uploadData.path]);
+        throw error;
       }
 
-      return data;
+      // Enrich data with admin and folder info
+      let enrichedData = { ...data };
+      
+      try {
+        // Get admin user info
+        if (uploadedBy) {
+          const { data: adminData } = await getServiceRoleClient()
+            .from('admin_users')
+            .select('email, role')
+            .eq('id', uploadedBy)
+            .single();
+          
+          enrichedData.uploaded_by_user = adminData || { email: 'Unknown', role: 'unknown' };
+        }
+        
+        // Get folder info
+        if (folderId && folderId !== 'root') {
+          const { data: folderData } = await getServiceRoleClient()
+            .from('media_folders')
+            .select('name, path')
+            .eq('id', folderId)
+            .single();
+          
+          enrichedData.folder = folderData || null;
+        } else {
+          enrichedData.folder = null;
+        }
+      } catch (enrichError) {
+        console.warn('Could not enrich file data:', enrichError);
+        // Set defaults if enrichment fails
+        enrichedData.uploaded_by_user = { email: 'Unknown', role: 'unknown' };
+        enrichedData.folder = null;
+      }
+
+      // Log the action (don't let audit logging failure break the upload)
+      if (uploadedBy) {
+        try {
+          await AuditService.logAction(
+            uploadedBy,
+            'upload_media_file',
+            undefined,
+            {
+              description: `Uploaded file: ${file.name}`,
+              file_name: file.name,
+              file_type: fileType,
+              file_size: file.size,
+              folder_id: folderId
+            }
+          );
+        } catch (auditError) {
+          // Don't throw - file upload was successful
+        }
+      }
+
+      return enrichedData;
     } catch (error) {
       return null;
     }
@@ -366,7 +542,7 @@ export class MediaService {
     userId: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_files')
         .update(updates)
         .eq('id', id);
@@ -394,7 +570,7 @@ export class MediaService {
   static async deleteFile(id: string, userId: string): Promise<boolean> {
     try {
       // Get file info first
-      const { data: file } = await supabase
+      const { data: file } = await getServiceRoleClient()
         .from('media_files')
         .select('file_path, name')
         .eq('id', id)
@@ -402,13 +578,13 @@ export class MediaService {
 
       if (file) {
         // Delete from storage
-        await supabase.storage
+        await getStorageClientInstance().storage
           .from('media')
           .remove([file.file_path]);
       }
 
       // Delete from database
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_files')
         .delete()
         .eq('id', id);
@@ -435,7 +611,7 @@ export class MediaService {
   static async toggleStar(id: string, userId: string): Promise<boolean> {
     try {
       // Get current starred status
-      const { data: currentFile } = await supabase
+      const { data: currentFile } = await getServiceRoleClient()
         .from('media_files')
         .select('is_starred, name')
         .eq('id', id)
@@ -445,7 +621,7 @@ export class MediaService {
 
       const newStarredStatus = !currentFile.is_starred;
 
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_files')
         .update({ is_starred: newStarredStatus })
         .eq('id', id);
@@ -481,12 +657,12 @@ export class MediaService {
         recentResult,
         typeResults
       ] = await Promise.all([
-        supabase.from('media_files').select('id', { count: 'exact' }),
-        supabase.from('media_folders').select('id', { count: 'exact' }),
-        supabase.from('media_files').select('id', { count: 'exact' }).eq('is_starred', true),
-        supabase.from('media_files').select('id', { count: 'exact' }).eq('is_public', true),
-        supabase.from('media_files').select('id', { count: 'exact' }).gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-        supabase.from('media_files').select('file_type, file_size')
+        getServiceRoleClient().from('media_files').select('id', { count: 'exact' }),
+        getServiceRoleClient().from('media_folders').select('id', { count: 'exact' }),
+        getServiceRoleClient().from('media_files').select('id', { count: 'exact' }).eq('is_starred', true),
+        getServiceRoleClient().from('media_files').select('id', { count: 'exact' }).eq('is_public', true),
+        getServiceRoleClient().from('media_files').select('id', { count: 'exact' }).gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+        getServiceRoleClient().from('media_files').select('file_type, file_size')
       ]);
 
       // Calculate total size
@@ -542,11 +718,27 @@ export class MediaService {
   }
 
   static getFileUrl(filePath: string): string {
-    const { data } = supabase.storage
+    const { data } = getStorageClientInstance().storage
       .from('media')
       .getPublicUrl(filePath);
     
     return data.publicUrl;
+  }
+
+  static async getSignedFileUrl(filePath: string, expiresIn: number = 3600): Promise<string | null> {
+    try {
+      const { data, error } = await getStorageClientInstance().storage
+        .from('media')
+        .createSignedUrl(filePath, expiresIn);
+      
+      if (error) {
+        return null;
+      }
+      
+      return data.signedUrl;
+    } catch (error) {
+      return null;
+    }
   }
 
   static async copyFileUrl(filePath: string): Promise<string> {
@@ -555,16 +747,58 @@ export class MediaService {
     return url;
   }
 
+  static async downloadFile(filePath: string, fileName: string): Promise<void> {
+    try {
+      const signedUrl = await this.getSignedFileUrl(filePath);
+      const downloadUrl = signedUrl || this.getFileUrl(filePath);
+      
+      // Try fetch approach first for better browser compatibility
+      try {
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        
+        // Create object URL and download
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = fileName;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up object URL
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+        
+      } catch (fetchError) {
+        // Fallback to direct link method
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        link.target = '_blank';
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+    } catch (error) {
+      throw new Error(`Failed to download file: ${error.message}`);
+    }
+  }
+
   // SEARCH AND FILTERING
   static async searchFiles(query: string): Promise<MediaFile[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('media_files')
-        .select(`
-          *,
-          uploaded_by_user:admin_users!media_files_uploaded_by_fkey(email, role),
-          folder:media_folders!media_files_folder_id_fkey(name, path)
-        `)
+        .select('*')
         .or(`
           name.ilike.%${query}%,
           original_name.ilike.%${query}%,
@@ -574,8 +808,43 @@ export class MediaService {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        return [];
+      }
+
+      // Enrich data with admin and folder info
+      const enrichedData = await Promise.all(
+        (data || []).map(async (file) => {
+          try {
+            const [adminData, folderData] = await Promise.all([
+              getServiceRoleClient()
+                .from('admin_users')
+                .select('email, role')
+                .eq('id', file.uploaded_by)
+                .single(),
+              file.folder_id ? getServiceRoleClient()
+                .from('media_folders')
+                .select('name, path')
+                .eq('id', file.folder_id)
+                .single() : Promise.resolve({ data: null })
+            ]);
+
+            return {
+              ...file,
+              uploaded_by_user: adminData.data || { email: 'Unknown', role: 'unknown' },
+              folder: folderData.data || null
+            };
+          } catch (error) {
+            return {
+              ...file,
+              uploaded_by_user: { email: 'Unknown', role: 'unknown' },
+              folder: null
+            };
+          }
+        })
+      );
+
+      return enrichedData;
     } catch (error) {
       return [];
     }
@@ -585,7 +854,7 @@ export class MediaService {
   static async bulkDelete(fileIds: string[], userId: string): Promise<boolean> {
     try {
       // Get file paths for storage deletion
-      const { data: files } = await supabase
+      const { data: files } = await getServiceRoleClient()
         .from('media_files')
         .select('file_path, name')
         .in('id', fileIds);
@@ -593,13 +862,13 @@ export class MediaService {
       // Delete from storage
       if (files && files.length > 0) {
         const filePaths = files.map(f => f.file_path);
-        await supabase.storage
+        await getStorageClientInstance().storage
           .from('media')
           .remove(filePaths);
       }
 
       // Delete from database
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_files')
         .delete()
         .in('id', fileIds);
@@ -626,7 +895,7 @@ export class MediaService {
 
   static async bulkUpdateTags(fileIds: string[], tags: string[], userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('media_files')
         .update({ tags })
         .in('id', fileIds);

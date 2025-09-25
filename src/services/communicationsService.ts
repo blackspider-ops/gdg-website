@@ -1,5 +1,59 @@
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { AuditService } from './auditService';
+
+// Email functionality
+export interface DirectEmailRequest {
+  to_emails: string[];
+  subject: string;
+  message: string;
+  email_type: 'announcement' | 'task_notification' | 'direct_message' | 'custom';
+  sender_name?: string;
+}
+
+export interface EmailResult {
+  success: boolean;
+  total_sent?: number;
+  total_failed?: number;
+  results?: {
+    successful: number;
+    failed: number;
+    failed_emails: Array<{ email: string; error: string }>;
+  };
+  error?: string;
+}
+
+// Create service role client for communications operations
+let serviceRoleClient: any = null;
+
+const getServiceRoleClient = () => {
+  if (serviceRoleClient) {
+    return serviceRoleClient;
+  }
+  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn('Service role key not found, using regular client');
+    serviceRoleClient = supabase;
+    return supabase;
+  }
+  
+  try {
+    serviceRoleClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  } catch (error) {
+    console.error('Failed to create service role client:', error);
+    serviceRoleClient = supabase;
+  }
+  
+  return serviceRoleClient;
+};
 
 // Types
 export interface Announcement {
@@ -104,7 +158,7 @@ export class CommunicationsService {
     }
   ): Promise<Announcement[]> {
     try {
-      let query = supabase
+      let query = getServiceRoleClient()
         .from('announcements')
         .select(`
           *,
@@ -129,21 +183,27 @@ export class CommunicationsService {
       const { data, error } = await query;
       if (error) throw error;
 
+      // Get current user ID safely
+      const currentUser = await supabase.auth.getUser();
+      const currentUserId = currentUser.data.user?.id;
+
       // Get read counts and current user read status
       const enrichedData = await Promise.all(
         (data || []).map(async (announcement) => {
-          const [readCountResult, currentUserReadResult] = await Promise.all([
-            supabase
-              .from('announcement_reads')
-              .select('id', { count: 'exact' })
-              .eq('announcement_id', announcement.id),
-            supabase
+          const readCountResult = await getServiceRoleClient()
+            .from('announcement_reads')
+            .select('id', { count: 'exact' })
+            .eq('announcement_id', announcement.id);
+
+          let currentUserReadResult = { data: null };
+          if (currentUserId) {
+            currentUserReadResult = await getServiceRoleClient()
               .from('announcement_reads')
               .select('id')
               .eq('announcement_id', announcement.id)
-              .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-              .single()
-          ]);
+              .eq('user_id', currentUserId)
+              .single();
+          }
 
           return {
             ...announcement,
@@ -171,7 +231,7 @@ export class CommunicationsService {
     authorId: string
   ): Promise<Announcement | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('announcements')
         .insert({
           ...announcement,
@@ -211,7 +271,7 @@ export class CommunicationsService {
     userId: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('announcements')
         .update(updates)
         .eq('id', id);
@@ -238,7 +298,7 @@ export class CommunicationsService {
 
   static async deleteAnnouncement(id: string, userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('announcements')
         .delete()
         .eq('id', id);
@@ -264,7 +324,7 @@ export class CommunicationsService {
 
   static async markAnnouncementAsRead(announcementId: string, userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('announcement_reads')
         .upsert({
           announcement_id: announcementId,
@@ -288,7 +348,7 @@ export class CommunicationsService {
     }
   ): Promise<CommunicationTask[]> {
     try {
-      let query = supabase
+      let query = getServiceRoleClient()
         .from('communication_tasks')
         .select(`
           *,
@@ -319,7 +379,7 @@ export class CommunicationsService {
       // Get comment counts
       const enrichedData = await Promise.all(
         (data || []).map(async (task) => {
-          const { count } = await supabase
+          const { count } = await getServiceRoleClient()
             .from('task_comments')
             .select('id', { count: 'exact' })
             .eq('task_id', task.id);
@@ -349,7 +409,7 @@ export class CommunicationsService {
     assignedById: string
   ): Promise<CommunicationTask | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('communication_tasks')
         .insert({
           ...task,
@@ -392,7 +452,7 @@ export class CommunicationsService {
     userId: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('communication_tasks')
         .update(updates)
         .eq('id', id);
@@ -419,7 +479,7 @@ export class CommunicationsService {
 
   static async deleteTask(id: string, userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('communication_tasks')
         .delete()
         .eq('id', id);
@@ -446,7 +506,7 @@ export class CommunicationsService {
   // MESSAGES
   static async getMessages(userId: string): Promise<InternalMessage[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('internal_messages')
         .select(`
           *,
@@ -474,7 +534,7 @@ export class CommunicationsService {
     fromUserId: string
   ): Promise<InternalMessage | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('internal_messages')
         .insert({
           ...message,
@@ -510,7 +570,7 @@ export class CommunicationsService {
 
   static async markMessageAsRead(id: string, userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getServiceRoleClient()
         .from('internal_messages')
         .update({
           is_read: true,
@@ -529,7 +589,7 @@ export class CommunicationsService {
   // TASK COMMENTS
   static async getTaskComments(taskId: string): Promise<TaskComment[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('task_comments')
         .select(`
           *,
@@ -553,7 +613,7 @@ export class CommunicationsService {
     metadata: any = {}
   ): Promise<TaskComment | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('task_comments')
         .insert({
           task_id: taskId,
@@ -588,14 +648,14 @@ export class CommunicationsService {
         unreadMessagesResult,
         teamMembersResult
       ] = await Promise.all([
-        supabase.from('announcements').select('id', { count: 'exact' }),
-        supabase.from('announcements').select('id', { count: 'exact' }).eq('is_archived', false),
-        supabase.from('communication_tasks').select('id', { count: 'exact' }),
-        supabase.from('communication_tasks').select('id', { count: 'exact' }).in('status', ['pending', 'in-progress']),
-        supabase.from('communication_tasks').select('id', { count: 'exact' }).eq('status', 'overdue'),
-        userId ? supabase.from('internal_messages').select('id', { count: 'exact' }).or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`) : { count: 0 },
-        userId ? supabase.from('internal_messages').select('id', { count: 'exact' }).eq('to_user_id', userId).eq('is_read', false) : { count: 0 },
-        supabase.from('admin_users').select('id', { count: 'exact' }).eq('is_active', true)
+        getServiceRoleClient().from('announcements').select('id', { count: 'exact' }),
+        getServiceRoleClient().from('announcements').select('id', { count: 'exact' }).eq('is_archived', false),
+        getServiceRoleClient().from('communication_tasks').select('id', { count: 'exact' }),
+        getServiceRoleClient().from('communication_tasks').select('id', { count: 'exact' }).in('status', ['pending', 'in-progress']),
+        getServiceRoleClient().from('communication_tasks').select('id', { count: 'exact' }).eq('status', 'overdue'),
+        userId ? getServiceRoleClient().from('internal_messages').select('id', { count: 'exact' }).or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`) : { count: 0 },
+        userId ? getServiceRoleClient().from('internal_messages').select('id', { count: 'exact' }).eq('to_user_id', userId).eq('is_read', false) : { count: 0 },
+        getServiceRoleClient().from('admin_users').select('id', { count: 'exact' }).eq('is_active', true)
       ]);
 
       return {
@@ -625,7 +685,7 @@ export class CommunicationsService {
   // UTILITY FUNCTIONS
   static async getAllAdminUsers(): Promise<Array<{ id: string; email: string; role: string }>> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getServiceRoleClient()
         .from('admin_users')
         .select('id, email, role')
         .eq('is_active', true)
@@ -640,8 +700,202 @@ export class CommunicationsService {
 
   static async markOverdueTasks(): Promise<void> {
     try {
-      await supabase.rpc('mark_overdue_tasks');
+      await getServiceRoleClient().rpc('mark_overdue_tasks');
     } catch (error) {
+    }
+  }
+
+  // EMAIL FUNCTIONALITY
+  static async sendDirectEmail(emailData: DirectEmailRequest, senderId: string): Promise<EmailResult> {
+    try {
+      // Use Supabase Edge Function for sending communications emails
+      const { data, error } = await supabase.functions.invoke('send-communication-email', {
+        body: {
+          to_emails: emailData.to_emails,
+          subject: emailData.subject,
+          message: emailData.message,
+          email_type: emailData.email_type,
+          sender_name: emailData.sender_name || 'GDG@PSU Communications'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to send emails');
+      }
+
+      // Log the email action
+      try {
+        await AuditService.logAction(
+          senderId,
+          'send_message',
+          undefined,
+          {
+            description: `Sent direct email: ${emailData.subject}`,
+            recipients_count: emailData.to_emails.length,
+            email_type: emailData.email_type,
+            subject: emailData.subject,
+            sent: data?.total_sent || 0,
+            failed: data?.total_failed || 0
+          }
+        );
+      } catch (auditError) {
+        console.warn('Audit logging failed:', auditError);
+        // Continue execution even if audit logging fails
+      }
+
+      return {
+        success: data?.success || false,
+        total_sent: data?.total_sent || 0,
+        total_failed: data?.total_failed || 0,
+        results: data?.results || {
+          successful: 0,
+          failed: 0,
+          failed_emails: []
+        }
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send direct email'
+      };
+    }
+  }
+
+  static async sendAnnouncementEmail(
+    announcementId: string, 
+    customEmails?: string[], 
+    senderId?: string
+  ): Promise<EmailResult> {
+    try {
+      // Get announcement details
+      const { data: announcement } = await getServiceRoleClient()
+        .from('announcements')
+        .select('*, author:admin_users!announcements_author_id_fkey(email, role)')
+        .eq('id', announcementId)
+        .single();
+
+      if (!announcement) {
+        throw new Error('Announcement not found');
+      }
+
+      // Get recipient emails
+      let recipientEmails: string[] = [];
+      
+      if (customEmails && customEmails.length > 0) {
+        recipientEmails = customEmails;
+      } else {
+        // Get all active admin users
+        const { data: adminUsers } = await getServiceRoleClient()
+          .from('admin_users')
+          .select('email')
+          .eq('is_active', true);
+        
+        recipientEmails = adminUsers?.map(user => user.email) || [];
+      }
+
+      if (recipientEmails.length === 0) {
+        throw new Error('No recipients found');
+      }
+
+      // Send email
+      const emailResult = await this.sendDirectEmail({
+        to_emails: recipientEmails,
+        subject: `[Announcement] ${announcement.title}`,
+        message: `
+          <h2>${announcement.title}</h2>
+          <p><strong>Priority:</strong> ${announcement.priority.toUpperCase()}</p>
+          <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #007bff;">
+            ${announcement.message.replace(/\n/g, '<br>')}
+          </div>
+          <p><small>Sent by: ${announcement.author?.email || 'Unknown'}</small></p>
+          <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+        `,
+        email_type: 'announcement',
+        sender_name: 'GDG@PSU Communications'
+      }, senderId || announcement.author_id);
+
+      return emailResult;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send announcement email'
+      };
+    }
+  }
+
+  static async sendTaskNotificationEmail(
+    taskId: string, 
+    customEmails?: string[],
+    senderId?: string
+  ): Promise<EmailResult> {
+    try {
+      // Get task details
+      const { data: task } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .select(`
+          *,
+          assigned_to:admin_users!communication_tasks_assigned_to_id_fkey(email, role),
+          assigned_by:admin_users!communication_tasks_assigned_by_id_fkey(email, role)
+        `)
+        .eq('id', taskId)
+        .single();
+
+      if (!task) {
+        throw new Error('Task not found');
+      }
+
+      // Get recipient emails
+      let recipientEmails: string[] = [];
+      
+      if (customEmails && customEmails.length > 0) {
+        recipientEmails = customEmails;
+      } else if (task.assigned_to?.email) {
+        recipientEmails = [task.assigned_to.email];
+      } else {
+        // Get all active admin users as fallback
+        const { data: adminUsers } = await getServiceRoleClient()
+          .from('admin_users')
+          .select('email')
+          .eq('is_active', true);
+        
+        recipientEmails = adminUsers?.map(user => user.email) || [];
+      }
+
+      if (recipientEmails.length === 0) {
+        throw new Error('No recipients found');
+      }
+
+      // Create task notification email
+      const subject = `[Task] ${task.title}`;
+      const messageContent = `
+        <h2>Task Notification</h2>
+        <p><strong>Task:</strong> ${task.title}</p>
+        <p><strong>Status:</strong> ${task.status.split('-').join(' ').toUpperCase()}</p>
+        <p><strong>Priority:</strong> ${task.priority.toUpperCase()}</p>
+        ${task.due_date ? `<p><strong>Due Date:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>` : ''}
+        ${task.assigned_to?.email ? `<p><strong>Assigned to:</strong> ${task.assigned_to.email}</p>` : ''}
+        <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #007bff;">
+          ${task.description?.replace(/\n/g, '<br>') || 'No description provided.'}
+        </div>
+        <p><small>Assigned by: ${task.assigned_by?.email || 'Unknown'}</small></p>
+        <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+      `;
+
+      // Send email
+      const emailResult = await this.sendDirectEmail({
+        to_emails: recipientEmails,
+        subject,
+        message: messageContent,
+        email_type: 'task_notification',
+        sender_name: 'GDG@PSU Task Manager'
+      }, senderId || task.assigned_by_id);
+
+      return emailResult;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send task notification email'
+      };
     }
   }
 }

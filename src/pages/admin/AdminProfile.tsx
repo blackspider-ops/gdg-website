@@ -68,10 +68,10 @@ const AdminProfile = () => {
   
 
   useEffect(() => {
-    if (canAccess && currentAdmin) {
+    if (isAuthenticated && currentAdmin) {
       loadProfileData();
     }
-  }, [canAccess, currentAdmin]);
+  }, [isAuthenticated, currentAdmin]);
 
   if (!isAuthenticated) {
     return <Navigate to="/admin" replace />;

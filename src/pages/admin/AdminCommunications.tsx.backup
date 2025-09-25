@@ -4,34 +4,34 @@ import { Navigate } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import {
     MessageSquare,
-    Bell,
-    CheckSquare,
     Plus,
-    RefreshCw,
-    Search,
-    Filter,
-    Pin,
-    User,
-    Clock,
-    Users,
-    Calendar,
-    MessageCircle,
-    Edit,
-    Trash2,
-    Eye,
-    EyeOff,
-    Mail,
     Send,
-    Reply,
+    Bell,
+    Users,
+    CheckSquare,
+    Clock,
+    User,
+    Calendar,
+    Filter,
+    Search,
+    Edit3,
+    Trash2,
+    Pin,
+    Archive,
     AlertCircle,
+    CheckCircle,
     XCircle,
+    RefreshCw,
+    Eye,
+    MessageCircle,
+    Mail,
     ExternalLink
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import {
-    CommunicationsService,
-    type Announcement,
-    type CommunicationTask,
+import { 
+    CommunicationsService, 
+    type Announcement, 
+    type CommunicationTask, 
     type InternalMessage,
     type CommunicationStats
 } from '@/services/communicationsService';
@@ -39,7 +39,7 @@ import { AuditService } from '@/services/auditService';
 
 const AdminCommunications: React.FC = () => {
     const { isAuthenticated, currentAdmin } = useAdmin();
-
+    
     // State management
     const [activeTab, setActiveTab] = useState('announcements');
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -49,19 +49,23 @@ const AdminCommunications: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
-
+    
     // Data state
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [tasks, setTasks] = useState<CommunicationTask[]>([]);
     const [messages, setMessages] = useState<InternalMessage[]>([]);
-    const [commStats, setCommStats] = useState([
-        { label: 'Total Announcements', value: '0', icon: Bell, color: 'text-blue-400' },
-        { label: 'Active Tasks', value: '0', icon: CheckSquare, color: 'text-green-400' },
-        { label: 'Unread Messages', value: '0', icon: MessageSquare, color: 'text-yellow-400' },
-        { label: 'Team Members', value: '0', icon: Users, color: 'text-purple-400' }
-    ]);
+    const [stats, setStats] = useState<CommunicationStats>({
+        total_announcements: 0,
+        active_announcements: 0,
+        total_tasks: 0,
+        pending_tasks: 0,
+        overdue_tasks: 0,
+        total_messages: 0,
+        unread_messages: 0,
+        team_members: 0
+    });
     const [adminUsers, setAdminUsers] = useState<Array<{ id: string; email: string; role: string }>>([]);
-
+    
     // Form state
     const [createForm, setCreateForm] = useState({
         title: '',
@@ -69,19 +73,18 @@ const AdminCommunications: React.FC = () => {
         description: '',
         subject: '',
         priority: 'medium' as 'low' | 'medium' | 'high',
-        status: 'pending' as 'pending' | 'in-progress' | 'completed' | 'overdue',
         is_pinned: false,
         assigned_to_id: '',
         to_user_id: '',
         due_date: ''
     });
-
+    
     const [selectedItem, setSelectedItem] = useState<Announcement | CommunicationTask | InternalMessage | null>(null);
-
+    
     // Filter state
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-
+    
     // Email state
     const [emailForm, setEmailForm] = useState({
         to_emails: '',
@@ -90,9 +93,11 @@ const AdminCommunications: React.FC = () => {
         email_type: 'custom' as 'announcement' | 'task_notification' | 'direct_message' | 'custom'
     });
     const [selectedItemForEmail, setSelectedItemForEmail] = useState<Announcement | CommunicationTask | null>(null);
-
+    
     // Lock body scroll when modal is open
     useBodyScrollLock(showCreateModal || showEditModal || showDeleteModal || showEmailModal);
+
+    
 
     // Load data on component mount
     useEffect(() => {
@@ -142,65 +147,30 @@ const AdminCommunications: React.FC = () => {
                     status: filterStatus === 'all' ? undefined : filterStatus,
                     search: searchTerm || undefined
                 }),
-                currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id) : Promise.resolve([]),
-                currentAdmin?.id ? CommunicationsService.getCommunicationStats(currentAdmin.id) : Promise.resolve(null),
+                CommunicationsService.getMessages(currentAdmin?.id || ''),
+                CommunicationsService.getCommunicationStats(currentAdmin?.id),
                 CommunicationsService.getAllAdminUsers()
             ]);
 
             setAnnouncements(announcementsData);
             setTasks(tasksData);
             setMessages(messagesData);
+            setStats(statsData);
             setAdminUsers(adminUsersData);
-
-            // Update stats with actual data - use statsData if available, otherwise calculate from loaded data
-            if (statsData && typeof statsData === 'object') {
-                setCommStats([
-                    { label: 'Total Announcements', value: statsData.total_announcements?.toString() || '0', icon: Bell, color: 'text-blue-400' },
-                    { label: 'Active Tasks', value: statsData.pending_tasks?.toString() || '0', icon: CheckSquare, color: 'text-green-400' },
-                    { label: 'Unread Messages', value: statsData.unread_messages?.toString() || '0', icon: MessageSquare, color: 'text-yellow-400' },
-                    { label: 'Team Members', value: statsData.team_members?.toString() || '0', icon: Users, color: 'text-purple-400' }
-                ]);
-            } else {
-                // Fallback to calculating from loaded data
-                setCommStats([
-                    { label: 'Total Announcements', value: (announcementsData || []).length.toString(), icon: Bell, color: 'text-blue-400' },
-                    { label: 'Active Tasks', value: (tasksData || []).filter(task => task.status !== 'completed').length.toString(), icon: CheckSquare, color: 'text-green-400' },
-                    { label: 'Unread Messages', value: (messagesData || []).filter(msg => !msg.is_read).length.toString(), icon: MessageSquare, color: 'text-yellow-400' },
-                    { label: 'Team Members', value: (adminUsersData || []).length.toString(), icon: Users, color: 'text-purple-400' }
-                ]);
-            }
 
             // Log viewing action
             if (currentAdmin?.id) {
-                try {
-                    await AuditService.logAction(
-                        currentAdmin.id,
-                        'view_communications',
-                        undefined,
-                        {
-                            description: 'Viewed communications hub',
-                            active_tab: activeTab
-                        }
-                    );
-                } catch (auditError) {
-                    console.warn('Audit logging failed:', auditError);
-                    // Continue execution even if audit logging fails
-                }
+                await AuditService.logAction(
+                    currentAdmin.id,
+                    'view_communications',
+                    undefined,
+                    {
+                        description: 'Viewed communications hub',
+                        active_tab: activeTab
+                    }
+                );
             }
         } catch (error) {
-            console.error('Error loading communications data:', error);
-            // Set default empty arrays to prevent crashes
-            setAnnouncements([]);
-            setTasks([]);
-            setMessages([]);
-            setAdminUsers([]);
-            // Keep default stats
-            setCommStats([
-                { label: 'Total Announcements', value: '0', icon: Bell, color: 'text-blue-400' },
-                { label: 'Active Tasks', value: '0', icon: CheckSquare, color: 'text-green-400' },
-                { label: 'Unread Messages', value: '0', icon: MessageSquare, color: 'text-yellow-400' },
-                { label: 'Team Members', value: '0', icon: Users, color: 'text-purple-400' }
-            ]);
         } finally {
             setIsLoading(false);
         }
@@ -213,12 +183,12 @@ const AdminCommunications: React.FC = () => {
     // CRUD Functions
     const handleCreate = async () => {
         if (!currentAdmin?.id) return;
-
+        
         setIsSaving(true);
         try {
             let success = false;
-
-            if (activeTab === 'announcements' && currentAdmin?.id) {
+            
+            if (activeTab === 'announcements') {
                 const result = await CommunicationsService.createAnnouncement({
                     title: createForm.title,
                     message: createForm.message,
@@ -226,16 +196,16 @@ const AdminCommunications: React.FC = () => {
                     is_pinned: createForm.is_pinned
                 }, currentAdmin.id);
                 success = !!result;
-            } else if (activeTab === 'tasks' && currentAdmin?.id) {
+            } else if (activeTab === 'tasks') {
                 const result = await CommunicationsService.createTask({
                     title: createForm.title,
                     description: createForm.description,
-                    assigned_to_id: createForm.assigned_to_id,
-                    due_date: createForm.due_date,
+                    assigned_to_id: createForm.assigned_to_id || undefined,
+                    due_date: createForm.due_date || undefined,
                     priority: createForm.priority
                 }, currentAdmin.id);
                 success = !!result;
-            } else if (activeTab === 'messages' && currentAdmin?.id) {
+            } else if (activeTab === 'messages') {
                 const result = await CommunicationsService.sendMessage({
                     to_user_id: createForm.to_user_id,
                     subject: createForm.subject,
@@ -243,22 +213,21 @@ const AdminCommunications: React.FC = () => {
                 }, currentAdmin.id);
                 success = !!result;
             }
-
+            
             if (success) {
                 setShowCreateModal(false);
                 resetCreateForm();
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error creating item:', error);
         } finally {
             setIsSaving(false);
         }
     };
 
-    const openEditModal = (item: Announcement | CommunicationTask | InternalMessage) => {
+    const handleEdit = (item: Announcement | CommunicationTask | InternalMessage) => {
         setSelectedItem(item);
-
+        
         if ('title' in item && 'message' in item) {
             // Announcement
             setCreateForm({
@@ -276,22 +245,21 @@ const AdminCommunications: React.FC = () => {
                 description: item.description || '',
                 assigned_to_id: item.assigned_to_id || '',
                 due_date: item.due_date || '',
-                status: item.status,
                 priority: item.priority
             });
         }
-
+        
         setShowEditModal(true);
     };
 
     const handleUpdate = async () => {
         if (!selectedItem || !currentAdmin?.id) return;
-
+        
         setIsSaving(true);
         try {
             let success = false;
-
-            if ('title' in selectedItem && 'message' in selectedItem && currentAdmin?.id) {
+            
+            if ('title' in selectedItem && 'message' in selectedItem) {
                 // Announcement
                 success = await CommunicationsService.updateAnnouncement(
                     selectedItem.id,
@@ -303,22 +271,21 @@ const AdminCommunications: React.FC = () => {
                     },
                     currentAdmin.id
                 );
-            } else if ('title' in selectedItem && 'description' in selectedItem && currentAdmin?.id) {
+            } else if ('title' in selectedItem && 'description' in selectedItem) {
                 // Task
                 success = await CommunicationsService.updateTask(
                     selectedItem.id,
                     {
                         title: createForm.title,
                         description: createForm.description,
-                        assigned_to_id: createForm.assigned_to_id,
-                        due_date: createForm.due_date,
-                        status: createForm.status,
+                        assigned_to_id: createForm.assigned_to_id || undefined,
+                        due_date: createForm.due_date || undefined,
                         priority: createForm.priority
                     },
                     currentAdmin.id
                 );
             }
-
+            
             if (success) {
                 setShowEditModal(false);
                 setSelectedItem(null);
@@ -326,59 +293,48 @@ const AdminCommunications: React.FC = () => {
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error updating item:', error);
         } finally {
             setIsSaving(false);
         }
     };
 
-    const openDeleteModal = (item: Announcement | CommunicationTask | InternalMessage) => {
-        setSelectedItem(item);
-        setShowDeleteModal(true);
-    };
-
     const handleDelete = async () => {
         if (!selectedItem || !currentAdmin?.id) return;
-
+        
         setIsSaving(true);
         try {
             let success = false;
-
+            
             if ('title' in selectedItem && 'message' in selectedItem) {
                 // Announcement
-                success = currentAdmin?.id ? await CommunicationsService.deleteAnnouncement(selectedItem.id, currentAdmin.id) : false;
+                success = await CommunicationsService.deleteAnnouncement(selectedItem.id, currentAdmin.id);
             } else if ('title' in selectedItem && 'description' in selectedItem) {
                 // Task
-                success = currentAdmin?.id ? await CommunicationsService.deleteTask(selectedItem.id, currentAdmin.id) : false;
+                success = await CommunicationsService.deleteTask(selectedItem.id, currentAdmin.id);
             }
-
+            
             if (success) {
                 setShowDeleteModal(false);
                 setSelectedItem(null);
                 await loadAllData();
             }
         } catch (error) {
-            console.error('Error deleting item:', error);
         } finally {
             setIsSaving(false);
         }
     };
 
-    const markAsRead = async (item: Announcement | InternalMessage) => {
+    const handleMarkAsRead = async (item: Announcement | InternalMessage) => {
         if (!currentAdmin?.id) return;
-
+        
         if ('title' in item && 'message' in item && 'author_id' in item) {
             // Announcement
-            if (currentAdmin?.id) {
-                await CommunicationsService.markAnnouncementAsRead(item.id, currentAdmin.id);
-            }
+            await CommunicationsService.markAnnouncementAsRead(item.id, currentAdmin.id);
         } else if ('subject' in item) {
             // Message
-            if (currentAdmin?.id) {
-                await CommunicationsService.markMessageAsRead(item.id, currentAdmin.id);
-            }
+            await CommunicationsService.markMessageAsRead(item.id, currentAdmin.id);
         }
-
+        
         await loadAllData();
     };
 
@@ -389,12 +345,16 @@ const AdminCommunications: React.FC = () => {
             description: '',
             subject: '',
             priority: 'medium',
-            status: 'pending',
             is_pinned: false,
             assigned_to_id: '',
             to_user_id: '',
             due_date: ''
         });
+    };
+
+    const openDeleteModal = (item: Announcement | CommunicationTask | InternalMessage) => {
+        setSelectedItem(item);
+        setShowDeleteModal(true);
     };
 
     // Email handlers
@@ -432,39 +392,44 @@ const AdminCommunications: React.FC = () => {
 
     const handleSendEmail = async () => {
         if (!currentAdmin?.id) return;
-
+        
         setIsSendingEmail(true);
         try {
-            const emailList = (emailForm.to_emails || '')
+            const emailList = emailForm.to_emails
                 .split(',')
                 .map(email => email.trim())
                 .filter(email => email.length > 0);
 
-            let result;
+            if (emailList.length === 0) {
+                alert('Please enter at least one email address');
+                return;
+            }
 
+            let result;
+            
             if (selectedItemForEmail && 'title' in selectedItemForEmail && 'message' in selectedItemForEmail) {
                 // Send announcement email
-                result = currentAdmin?.id ? await CommunicationsService.sendAnnouncementEmail(
+                result = await CommunicationsService.sendAnnouncementEmail(
                     selectedItemForEmail.id,
                     emailList,
                     currentAdmin.id
-                ) : { success: false, error: 'User not authenticated' };
+                );
             } else if (selectedItemForEmail && 'title' in selectedItemForEmail && 'description' in selectedItemForEmail) {
                 // Send task notification
-                result = currentAdmin?.id ? await CommunicationsService.sendTaskNotificationEmail(
+                result = await CommunicationsService.sendTaskNotificationEmail(
                     selectedItemForEmail.id,
-                    emailList,
+                    'assigned',
                     currentAdmin.id
-                ) : { success: false, error: 'User not authenticated' };
+                );
             } else {
                 // Send direct email
-                result = currentAdmin?.id ? await CommunicationsService.sendDirectEmail({
+                result = await CommunicationsService.sendDirectEmail({
                     to_emails: emailList,
                     subject: emailForm.subject,
                     message: emailForm.message,
                     email_type: emailForm.email_type,
                     sender_name: `${currentAdmin.email} (GDG@PSU)`
-                }, currentAdmin.id) : { success: false, error: 'User not authenticated' };
+                }, currentAdmin.id);
             }
 
             if (result.success) {
@@ -474,7 +439,7 @@ const AdminCommunications: React.FC = () => {
             } else {
                 alert(`Failed to send email: ${result.error}`);
             }
-        } catch (error: any) {
+        } catch (error) {
             alert(`Error sending email: ${error.message}`);
         } finally {
             setIsSendingEmail(false);
@@ -495,7 +460,7 @@ const AdminCommunications: React.FC = () => {
     const tabs = [
         { id: 'announcements', label: 'Announcements', icon: Bell },
         { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-        { id: 'messages', label: 'Messages', icon: MessageSquare }
+        { id: 'messages', label: 'Messages', icon: MessageSquare },
     ];
 
     const getPriorityColor = (priority: string) => {
@@ -517,12 +482,6 @@ const AdminCommunications: React.FC = () => {
         }
     };
 
-    const getItemTitle = (item: Announcement | CommunicationTask | InternalMessage): string => {
-        if ('title' in item) return item.title;
-        if ('subject' in item) return item.subject;
-        return 'Unknown';
-    };
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -532,6 +491,39 @@ const AdminCommunications: React.FC = () => {
             minute: '2-digit'
         });
     };
+
+    const getItemTitle = (item: Announcement | CommunicationTask | InternalMessage): string => {
+        if ('title' in item) return item.title;
+        if ('subject' in item) return item.subject;
+        return 'Unknown';
+    };
+
+    const commStats = [
+        { 
+            label: 'Active Announcements', 
+            value: stats.active_announcements.toString(), 
+            color: 'text-blue-500',
+            icon: Bell
+        },
+        { 
+            label: 'Pending Tasks', 
+            value: stats.pending_tasks.toString(), 
+            color: 'text-orange-500',
+            icon: CheckSquare
+        },
+        { 
+            label: 'Unread Messages', 
+            value: stats.unread_messages.toString(), 
+            color: 'text-red-500',
+            icon: MessageSquare
+        },
+        { 
+            label: 'Team Members', 
+            value: stats.team_members.toString(), 
+            color: 'text-green-500',
+            icon: Users
+        },
+    ];
 
     return (
         <AdminLayout
@@ -570,7 +562,7 @@ const AdminCommunications: React.FC = () => {
         >
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                {(commStats || []).map((stat, index) => {
+                {commStats.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
                         <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
@@ -617,7 +609,7 @@ const AdminCommunications: React.FC = () => {
                                 placeholder={`Search ${activeTab}...`}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                             />
                         </div>
                     </div>
@@ -627,12 +619,11 @@ const AdminCommunications: React.FC = () => {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                            className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground"
                         >
                             <option value="all">All Status</option>
                             <option value="high">High Priority</option>
-                            <option value="medium">Medium Priority</option>
-                            <option value="low">Low Priority</option>
+                            <option value="pending">Pending</option>
                         </select>
                     </div>
                 </div>
@@ -652,7 +643,7 @@ const AdminCommunications: React.FC = () => {
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-800">
-                                {(announcements || []).map((announcement) => (
+                                {announcements.map((announcement) => (
                                     <div key={announcement.id} className="p-6 hover:bg-muted transition-colors">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
@@ -687,29 +678,29 @@ const AdminCommunications: React.FC = () => {
 
                                             <div className="flex items-center space-x-2 ml-4">
                                                 {!announcement.is_read_by_current_user && (
-                                                    <button
-                                                        onClick={() => markAsRead(announcement)}
-                                                        className="p-2 hover:bg-blue-900/20 rounded-lg transition-colors text-blue-400"
+                                                    <button 
+                                                        onClick={() => handleMarkAsRead(announcement)}
+                                                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-blue-400"
                                                         title="Mark as read"
                                                     >
                                                         <Eye size={16} />
                                                     </button>
                                                 )}
-                                                <button
+                                                <button 
                                                     onClick={() => openEmailModal(announcement)}
-                                                    className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-green-400"
                                                     title="Send as email"
                                                 >
                                                     <Mail size={16} />
                                                 </button>
-                                                <button
-                                                    onClick={() => openEditModal(announcement)}
-                                                    className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                                                <button 
+                                                    onClick={() => handleEdit(announcement)}
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Edit announcement"
                                                 >
-                                                    <Edit size={16} />
+                                                    <Edit3 size={16} />
                                                 </button>
-                                                <button
+                                                <button 
                                                     onClick={() => openDeleteModal(announcement)}
                                                     className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
                                                     title="Delete announcement"
@@ -720,7 +711,7 @@ const AdminCommunications: React.FC = () => {
                                         </div>
                                     </div>
                                 ))}
-
+                                
                                 {announcements.length === 0 && (
                                     <div className="p-8 text-center">
                                         <Bell size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -745,14 +736,14 @@ const AdminCommunications: React.FC = () => {
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-800">
-                                {(tasks || []).map((task) => (
+                                {tasks.map((task) => (
                                     <div key={task.id} className="p-6 hover:bg-muted transition-colors">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-3 mb-2">
                                                     <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
                                                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(task.status)}`}>
-                                                        {task.status.split('-').join(' ')}
+                                                        {task.status.replace(/-/g, ' ')}
                                                     </span>
                                                     <span className={`px-2 py-1 text-xs rounded-full font-medium border ${getPriorityColor(task.priority)}`}>
                                                         {task.priority}
@@ -790,21 +781,21 @@ const AdminCommunications: React.FC = () => {
                                             </div>
 
                                             <div className="flex items-center space-x-2 ml-4">
-                                                <button
+                                                <button 
                                                     onClick={() => openEmailModal(task)}
-                                                    className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
-                                                    title="Send as email"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-green-400"
+                                                    title="Send notification email"
                                                 >
                                                     <Mail size={16} />
                                                 </button>
-                                                <button
-                                                    onClick={() => openEditModal(task)}
-                                                    className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                                                <button 
+                                                    onClick={() => handleEdit(task)}
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
                                                     title="Edit task"
                                                 >
-                                                    <Edit size={16} />
+                                                    <Edit3 size={16} />
                                                 </button>
-                                                <button
+                                                <button 
                                                     onClick={() => openDeleteModal(task)}
                                                     className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
                                                     title="Delete task"
@@ -815,7 +806,7 @@ const AdminCommunications: React.FC = () => {
                                         </div>
                                     </div>
                                 ))}
-
+                                
                                 {tasks.length === 0 && (
                                     <div className="p-8 text-center">
                                         <CheckSquare size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -840,7 +831,7 @@ const AdminCommunications: React.FC = () => {
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-800">
-                                {(messages || []).map((message) => (
+                                {messages.map((message) => (
                                     <div key={message.id} className={`p-6 hover:bg-muted transition-colors ${!message.is_read ? 'bg-muted/50' : ''}`}>
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
@@ -859,23 +850,33 @@ const AdminCommunications: React.FC = () => {
                                                         <span>From: {message.from_user?.email || 'Unknown'}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-1">
+                                                        <Users size={14} />
+                                                        <span>To: {message.to_user?.email || 'Unknown'}</span>
+                                                    </div>
+                                                    <div className="flex items-center space-x-1">
                                                         <Clock size={14} />
                                                         <span>{formatDate(message.created_at)}</span>
                                                     </div>
+                                                    {message.read_at && (
+                                                        <div className="flex items-center space-x-1">
+                                                            <CheckCircle size={14} />
+                                                            <span>Read: {formatDate(message.read_at)}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center space-x-2 ml-4">
-                                                {!message.is_read && (
-                                                    <button
-                                                        onClick={() => markAsRead(message)}
-                                                        className="p-2 hover:bg-blue-900/20 rounded-lg transition-colors text-blue-400"
+                                                {!message.is_read && message.to_user_id === currentAdmin?.id && (
+                                                    <button 
+                                                        onClick={() => handleMarkAsRead(message)}
+                                                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-blue-400"
                                                         title="Mark as read"
                                                     >
                                                         <Eye size={16} />
                                                     </button>
                                                 )}
-                                                <button
+                                                <button 
                                                     onClick={() => {
                                                         setCreateForm({
                                                             ...createForm,
@@ -885,16 +886,16 @@ const AdminCommunications: React.FC = () => {
                                                         });
                                                         setShowCreateModal(true);
                                                     }}
-                                                    className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
-                                                    title="Reply to message"
+                                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground"
+                                                    title="Reply"
                                                 >
-                                                    <Reply size={16} />
+                                                    <Send size={16} />
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
-
+                                
                                 {messages.length === 0 && (
                                     <div className="p-8 text-center">
                                         <MessageSquare size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -910,9 +911,9 @@ const AdminCommunications: React.FC = () => {
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div
+                <div 
                     className="fixed inset-0 z-50 bg-card bg-opacity-50 flex items-center justify-center p-4"
-                    style={{
+                    style={{ 
                         overflow: 'hidden',
                         position: 'fixed',
                         top: 0,
@@ -930,7 +931,7 @@ const AdminCommunications: React.FC = () => {
                     onTouchMove={(e) => e.preventDefault()}
                     onScroll={(e) => e.preventDefault()}
                 >
-                    <div
+                    <div 
                         className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                         onWheel={(e) => e.stopPropagation()}
@@ -939,12 +940,14 @@ const AdminCommunications: React.FC = () => {
                         {/* Fixed Header */}
                         <div className="flex-shrink-0 p-6 border-b border-border">
                             <h2 className="text-xl font-semibold text-foreground">
-                                Create {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}
+                                Create New {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}
                             </h2>
                         </div>
 
                         {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-6">
+
+                        <div className="p-6 space-y-6">
                             {/* Title/Subject Field */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -968,6 +971,7 @@ const AdminCommunications: React.FC = () => {
                                     {activeTab === 'tasks' ? 'Description' : 'Message'}
                                 </label>
                                 <textarea
+                                    rows={4}
                                     value={activeTab === 'tasks' ? createForm.description : createForm.message}
                                     onChange={(e) => setCreateForm(prev => ({
                                         ...prev,
@@ -975,37 +979,42 @@ const AdminCommunications: React.FC = () => {
                                     }))}
                                     className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     placeholder={`Enter ${activeTab === 'tasks' ? 'description' : 'message'}`}
-                                    rows={6}
                                 />
                             </div>
 
-                            {/* Priority Field (for announcements and tasks) */}
+                            {/* Priority Field (Announcements & Tasks) */}
                             {(activeTab === 'announcements' || activeTab === 'tasks') && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
                                     <select
                                         value={createForm.priority}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, priority: e.target.value as any }))}
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            priority: e.target.value as 'low' | 'medium' | 'high'
+                                        }))}
                                         className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     >
-                                        <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="high">High</option>
+                                        <option value="low">Low Priority</option>
+                                        <option value="medium">Medium Priority</option>
+                                        <option value="high">High Priority</option>
                                     </select>
                                 </div>
                             )}
 
                             {/* Pin Announcement */}
                             {activeTab === 'announcements' && (
-                                <div className="flex items-center space-x-3">
+                                <div className="flex items-center">
                                     <input
                                         type="checkbox"
                                         id="is_pinned"
                                         checked={createForm.is_pinned}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, is_pinned: e.target.checked }))}
-                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            is_pinned: e.target.checked
+                                        }))}
+                                        className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                     />
-                                    <label htmlFor="is_pinned" className="text-sm font-medium text-gray-300">
+                                    <label htmlFor="is_pinned" className="ml-2 block text-sm text-foreground">
                                         Pin this announcement
                                     </label>
                                 </div>
@@ -1018,12 +1027,17 @@ const AdminCommunications: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-300 mb-2">Assign To</label>
                                         <select
                                             value={createForm.assigned_to_id}
-                                            onChange={(e) => setCreateForm(prev => ({ ...prev, assigned_to_id: e.target.value }))}
+                                            onChange={(e) => setCreateForm(prev => ({
+                                                ...prev,
+                                                assigned_to_id: e.target.value
+                                            }))}
                                             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         >
-                                            <option value="">Select user...</option>
-                                            {(adminUsers || []).map(user => (
-                                                <option key={user.id} value={user.id}>{user.email}</option>
+                                            <option value="">Unassigned</option>
+                                            {adminUsers.map(user => (
+                                                <option key={user.id} value={user.id}>
+                                                    {user.email} ({user.role})
+                                                </option>
                                             ))}
                                         </select>
                                     </div>
@@ -1031,9 +1045,12 @@ const AdminCommunications: React.FC = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
                                         <input
-                                            type="datetime-local"
+                                            type="date"
                                             value={createForm.due_date}
-                                            onChange={(e) => setCreateForm(prev => ({ ...prev, due_date: e.target.value }))}
+                                            onChange={(e) => setCreateForm(prev => ({
+                                                ...prev,
+                                                due_date: e.target.value
+                                            }))}
                                             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         />
                                     </div>
@@ -1046,21 +1063,24 @@ const AdminCommunications: React.FC = () => {
                                     <label className="block text-sm font-medium text-gray-300 mb-2">Send To</label>
                                     <select
                                         value={createForm.to_user_id}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, to_user_id: e.target.value }))}
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            to_user_id: e.target.value
+                                        }))}
                                         className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                     >
-                                        <option value="">Select user...</option>
-                                        {(adminUsers || []).map(user => (
-                                            <option key={user.id} value={user.id}>{user.email}</option>
+                                        <option value="">Select recipient</option>
+                                        {adminUsers.filter(user => user.id !== currentAdmin?.id).map(user => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.email} ({user.role})
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                             )}
                         </div>
 
-                        {/* Fixed Footer */}
-                        <div className="flex-shrink-0 p-6 border-t border-border">
-                            <div className="flex space-x-3">
+                            <div className="flex space-x-3 pt-6">
                                 <button
                                     onClick={() => {
                                         setShowCreateModal(false);
@@ -1071,9 +1091,9 @@ const AdminCommunications: React.FC = () => {
                                 >
                                     Cancel
                                 </button>
-                                <button
+                                <button 
                                     onClick={handleCreate}
-                                    disabled={isSaving}
+                                    disabled={isSaving || (activeTab === 'messages' && !createForm.to_user_id)}
                                     className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                                 >
                                     {isSaving ? (
@@ -1093,9 +1113,9 @@ const AdminCommunications: React.FC = () => {
 
             {/* Edit Modal */}
             {showEditModal && selectedItem && (
-                <div
+                <div 
                     className="fixed inset-0 z-50 bg-card bg-opacity-50 flex items-center justify-center p-4"
-                    style={{
+                    style={{ 
                         overflow: 'hidden',
                         position: 'fixed',
                         top: 0,
@@ -1114,7 +1134,7 @@ const AdminCommunications: React.FC = () => {
                     onTouchMove={(e) => e.preventDefault()}
                     onScroll={(e) => e.preventDefault()}
                 >
-                    <div
+                    <div 
                         className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                         onWheel={(e) => e.stopPropagation()}
@@ -1122,98 +1142,100 @@ const AdminCommunications: React.FC = () => {
                     >
                         {/* Fixed Header */}
                         <div className="flex-shrink-0 p-6 border-b border-border">
-                            <h2 className="text-xl font-semibold text-foreground">Edit {getItemTitle(selectedItem)}</h2>
+                            <h2 className="text-xl font-semibold text-foreground">
+                                Edit {getItemTitle(selectedItem)}
+                            </h2>
                         </div>
 
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             {/* Same form fields as create modal */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    {'subject' in selectedItem ? 'Subject' : 'Title'}
+                                </label>
                                 <input
                                     type="text"
-                                    value={createForm.title}
-                                    onChange={(e) => setCreateForm(prev => ({ ...prev, title: e.target.value }))}
+                                    value={'subject' in selectedItem ? createForm.subject : createForm.title}
+                                    onChange={(e) => setCreateForm(prev => ({
+                                        ...prev,
+                                        ['subject' in selectedItem ? 'subject' : 'title']: e.target.value
+                                    }))}
                                     className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                 />
                             </div>
 
-                            {'message' in selectedItem ? (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    {'description' in selectedItem ? 'Description' : 'Message'}
+                                </label>
+                                <textarea
+                                    rows={4}
+                                    value={'description' in selectedItem ? createForm.description : createForm.message}
+                                    onChange={(e) => setCreateForm(prev => ({
+                                        ...prev,
+                                        ['description' in selectedItem ? 'description' : 'message']: e.target.value
+                                    }))}
+                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                />
+                            </div>
+
+                            {/* Priority for announcements and tasks */}
+                            {('priority' in selectedItem) && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                                    <textarea
-                                        value={createForm.message}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, message: e.target.value }))}
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                                    <select
+                                        value={createForm.priority}
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            priority: e.target.value as 'low' | 'medium' | 'high'
+                                        }))}
                                         className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                        rows={6}
-                                    />
-                                </div>
-                            ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                                    <textarea
-                                        value={createForm.description}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
-                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                        rows={6}
-                                    />
+                                    >
+                                        <option value="low">Low Priority</option>
+                                        <option value="medium">Medium Priority</option>
+                                        <option value="high">High Priority</option>
+                                    </select>
                                 </div>
                             )}
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
-                                <select
-                                    value={createForm.priority}
-                                    onChange={(e) => setCreateForm(prev => ({ ...prev, priority: e.target.value as any }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                >
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                </select>
-                            </div>
-
-                            {'message' in selectedItem && (
-                                <div className="flex items-center space-x-3">
+                            {/* Pin for announcements */}
+                            {('is_pinned' in selectedItem) && (
+                                <div className="flex items-center">
                                     <input
                                         type="checkbox"
                                         id="edit_is_pinned"
                                         checked={createForm.is_pinned}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, is_pinned: e.target.checked }))}
-                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            is_pinned: e.target.checked
+                                        }))}
+                                        className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
                                     />
-                                    <label htmlFor="edit_is_pinned" className="text-sm font-medium text-gray-300">
+                                    <label htmlFor="edit_is_pinned" className="ml-2 block text-sm text-foreground">
                                         Pin this announcement
                                     </label>
                                 </div>
                             )}
 
-                            {'description' in selectedItem && (
+                            {/* Task-specific fields */}
+                            {('assigned_to_id' in selectedItem) && (
                                 <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
-                                        <select
-                                            value={createForm.status}
-                                            onChange={(e) => setCreateForm(prev => ({ ...prev, status: e.target.value as any }))}
-                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="in-progress">In Progress</option>
-                                            <option value="completed">Completed</option>
-                                            <option value="overdue">Overdue</option>
-                                        </select>
-                                    </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">Assign To</label>
                                         <select
                                             value={createForm.assigned_to_id}
-                                            onChange={(e) => setCreateForm(prev => ({ ...prev, assigned_to_id: e.target.value }))}
+                                            onChange={(e) => setCreateForm(prev => ({
+                                                ...prev,
+                                                assigned_to_id: e.target.value
+                                            }))}
                                             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                                         >
-                                            <option value="">Select user...</option>
-                                            {(adminUsers || []).map(user => (
-                                                <option key={user.id} value={user.id}>{user.email}</option>
+                                            <option value="">Unassigned</option>
+                                            {adminUsers.map(user => (
+                                                <option key={user.id} value={user.id}>
+                                                    {user.email} ({user.role})
+                                                </option>
                                             ))}
                                         </select>
                                     </div>
@@ -1221,7 +1243,7 @@ const AdminCommunications: React.FC = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
                                         <input
-                                            type="datetime-local"
+                                            type="date"
                                             value={createForm.due_date}
                                             onChange={(e) => setCreateForm(prev => ({
                                                 ...prev,
@@ -1232,6 +1254,7 @@ const AdminCommunications: React.FC = () => {
                                     </div>
                                 </>
                             )}
+                        </div>
                         </div>
 
                         {/* Fixed Footer */}
@@ -1248,7 +1271,7 @@ const AdminCommunications: React.FC = () => {
                                 >
                                     Cancel
                                 </button>
-                                <button
+                                <button 
                                     onClick={handleUpdate}
                                     disabled={isSaving}
                                     className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
@@ -1260,204 +1283,6 @@ const AdminCommunications: React.FC = () => {
                                         </>
                                     ) : (
                                         'Update'
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteModal && selectedItem && (
-                <div className="fixed inset-0 z-50 bg-card bg-opacity-50 flex items-center justify-center p-4">
-                    <div className="bg-card rounded-xl shadow-xl border border-border w-full max-w-md">
-                        <div className="p-6 border-b border-border">
-                            <div className="flex items-center space-x-3">
-                                <AlertCircle size={24} className="text-red-600" />
-                                <h2 className="text-xl font-semibold text-foreground">Confirm Delete</h2>
-                            </div>
-                        </div>
-
-                        <div className="p-6">
-                            <p className="text-muted-foreground">
-                                Are you sure you want to delete "{getItemTitle(selectedItem)}"?
-                                This action cannot be undone.
-                            </p>
-
-                            <div className="flex space-x-3 pt-6">
-                                <button
-                                    onClick={() => {
-                                        setShowDeleteModal(false);
-                                        setSelectedItem(null);
-                                    }}
-                                    disabled={isSaving}
-                                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300 disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={isSaving}
-                                    className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                                >
-                                    {isSaving ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Deleting...
-                                        </>
-                                    ) : (
-                                        'Delete'
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Email Modal */}
-            {showEmailModal && (
-                <div
-                    className="fixed inset-0 z-50 bg-card bg-opacity-50 flex items-center justify-center p-4"
-                    style={{
-                        overflow: 'hidden',
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0
-                    }}
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setShowEmailModal(false);
-                            resetEmailForm();
-                        }
-                    }}
-                    onWheel={(e) => e.preventDefault()}
-                    onTouchMove={(e) => e.preventDefault()}
-                    onScroll={(e) => e.preventDefault()}
-                >
-                    <div
-                        className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
-                        onClick={(e) => e.stopPropagation()}
-                        onWheel={(e) => e.stopPropagation()}
-                        onTouchMove={(e) => e.stopPropagation()}
-                    >
-                        {/* Fixed Header */}
-                        <div className="flex-shrink-0 p-6 border-b border-border">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-foreground">
-                                    {selectedItemForEmail ? 'Send Item as Email' : 'Send Direct Email'}
-                                </h2>
-                                <button
-                                    onClick={() => {
-                                        setShowEmailModal(false);
-                                        resetEmailForm();
-                                    }}
-                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                                >
-                                    <XCircle size={20} className="text-muted-foreground" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* Email Type */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Email Type</label>
-                                <select
-                                    value={emailForm.email_type}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, email_type: e.target.value as any }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                >
-                                    <option value="custom">Custom Email</option>
-                                    <option value="announcement">Announcement</option>
-                                    <option value="task_notification">Task Notification</option>
-                                    <option value="direct_message">Direct Message</option>
-                                </select>
-                            </div>
-
-                            {/* Recipients */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Recipients (comma-separated emails)
-                                </label>
-                                <textarea
-                                    value={emailForm.to_emails}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, to_emails: e.target.value }))}
-                                    placeholder="user1@example.com, user2@example.com"
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                    rows={3}
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Leave empty to send to all active admin users
-                                </p>
-                            </div>
-
-                            {/* Subject */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
-                                <input
-                                    type="text"
-                                    value={emailForm.subject}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
-                                    placeholder="Email subject"
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                />
-                            </div>
-
-                            {/* Message */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                                <textarea
-                                    value={emailForm.message}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
-                                    placeholder="Email message content"
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                    rows={8}
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    HTML formatting is supported
-                                </p>
-                            </div>
-
-                            {isSendingEmail && (
-                                <div className="p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
-                                    <div className="flex items-center space-x-2">
-                                        <RefreshCw size={16} className="animate-spin text-blue-400" />
-                                        <span className="text-blue-400">Sending email...</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Fixed Footer */}
-                        <div className="flex-shrink-0 p-6 border-t border-border">
-                            <div className="flex space-x-3">
-                                <button
-                                    onClick={() => {
-                                        setShowEmailModal(false);
-                                        resetEmailForm();
-                                    }}
-                                    disabled={isSendingEmail}
-                                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300 disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSendEmail}
-                                    disabled={isSendingEmail || !emailForm.subject || !emailForm.message}
-                                    className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                                >
-                                    {isSendingEmail ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        'Send Email'
                                     )}
                                 </button>
                             </div>

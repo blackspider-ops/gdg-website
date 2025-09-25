@@ -77,22 +77,27 @@ export class AuditService {
     userAgent?: string
   ): Promise<boolean> {
     try {
+      // Use only the basic columns that definitely exist
+      const basicData = {
+        admin_id: adminId,
+        action,
+        target_email: targetEmail,
+        details: details || {},
+        created_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('admin_actions')
-        .insert({
-          admin_id: adminId,
-          action,
-          target_email: targetEmail,
-          target_id: targetId,
-          target_type: targetType,
-          details: details || {},
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          created_at: new Date().toISOString()
-        });
+        .insert(basicData);
 
-      return !error;
+      if (error) {
+        console.error('Audit log error:', error);
+        return false;
+      }
+
+      return true;
     } catch (error) {
+      console.error('Audit log exception:', error);
       return false;
     }
   }
@@ -106,22 +111,22 @@ export class AuditService {
     offset: number = 0
   ): Promise<AuditLogEntry[]> {
     try {
-      // First, try to get admin actions with join
+      // Build the select query with only the columns that definitely exist
+      const selectColumns = [
+        'id',
+        'admin_id', 
+        'action',
+        'target_email',
+        'details',
+        'created_at'
+      ];
+
+      // Add optional columns if they exist (from newer migrations)
+      const optionalColumns = ['target_id', 'target_type', 'ip_address', 'user_agent'];
+      
       let query = supabase
         .from('admin_actions')
-        .select(`
-          id,
-          action,
-          admin_id,
-          target_email,
-          target_id,
-          target_type,
-          details,
-          ip_address,
-          user_agent,
-          created_at,
-          admin_users(email, role)
-        `)
+        .select(selectColumns.join(','))
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -142,47 +147,49 @@ export class AuditService {
         query = query.lte('created_at', filters.dateTo);
       }
       
-      if (filters?.search) {
-        query = query.or(`
-          target_email.ilike.%${filters.search}%,
-          details->>description.ilike.%${filters.search}%
-        `);
+      if (filters?.search && filters.search.trim()) {
+        // Simple search in target_email and action
+        query = query.or(`target_email.ilike.%${filters.search}%,action.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query;
 
       if (error) {
-        
-        // Fallback to simple query without join
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('admin_actions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        if (simpleError) throw simpleError;
-        
-        // Manually fetch admin info for each entry
-        const enrichedData = await Promise.all(
-          (simpleData || []).map(async (entry) => {
-            const { data: adminData } = await supabase
-              .from('admin_users')
-              .select('email, role')
-              .eq('id', entry.admin_id)
-              .single();
-
-            return {
-              ...entry,
-              admin_users: adminData
-            };
-          })
-        );
-
-        return enrichedData;
+        console.error('Error fetching audit log:', error);
+        return [];
       }
 
-      return data || [];
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Get unique admin IDs to batch fetch admin info
+      const adminIds = [...new Set(data.map(entry => entry.admin_id))];
+      const adminMap: Record<string, { email: string; role: string }> = {};
+
+      // Batch fetch admin info
+      if (adminIds.length > 0) {
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('id, email, role')
+          .in('id', adminIds);
+
+        if (adminData) {
+          adminData.forEach(admin => {
+            adminMap[admin.id] = { email: admin.email, role: admin.role };
+          });
+        }
+      }
+
+      // Enrich data with admin info
+      const enrichedData = data.map(entry => ({
+        ...entry,
+        admin_users: adminMap[entry.admin_id] || { email: 'Unknown', role: 'unknown' }
+      }));
+
+      return enrichedData;
     } catch (error) {
+      console.error('Error in getAuditLog:', error);
       return [];
     }
   }
@@ -197,23 +204,27 @@ export class AuditService {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [totalResult, todayResult, weekResult, monthResult, actionsResult, adminsResult] = await Promise.all([
+      // Use simpler queries to avoid potential issues
+      const [totalResult, todayResult, weekResult, monthResult] = await Promise.all([
         // Total actions
-        supabase.from('admin_actions').select('id', { count: 'exact' }),
+        supabase.from('admin_actions').select('*', { count: 'exact', head: true }),
         // Today's actions
-        supabase.from('admin_actions').select('id', { count: 'exact' }).gte('created_at', today),
+        supabase.from('admin_actions').select('*', { count: 'exact', head: true }).gte('created_at', today),
         // Week's actions
-        supabase.from('admin_actions').select('id', { count: 'exact' }).gte('created_at', weekAgo),
+        supabase.from('admin_actions').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
         // Month's actions
-        supabase.from('admin_actions').select('id', { count: 'exact' }).gte('created_at', monthAgo),
-        // Top actions
-        supabase.from('admin_actions').select('action').gte('created_at', monthAgo),
-        // Top admins
-        supabase.from('admin_actions').select('admin_id, admin_users!inner(email)').gte('created_at', monthAgo)
+        supabase.from('admin_actions').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo)
       ]);
 
+      // Get recent actions for top actions and admins analysis
+      const { data: recentActions } = await supabase
+        .from('admin_actions')
+        .select('action, admin_id')
+        .gte('created_at', monthAgo)
+        .limit(1000);
+
       // Calculate top actions
-      const actionCounts = actionsResult.data?.reduce((acc, item) => {
+      const actionCounts = recentActions?.reduce((acc, item) => {
         acc[item.action] = (acc[item.action] || 0) + 1;
         return acc;
       }, {} as Record<string, number>) || {};
@@ -224,16 +235,38 @@ export class AuditService {
         .map(([action, count]) => ({ action, count }));
 
       // Calculate top admins
-      const adminCounts = adminsResult.data?.reduce((acc, item) => {
-        const email = item.admin_users?.email || 'Unknown';
-        acc[email] = (acc[email] || 0) + 1;
+      const adminCounts = recentActions?.reduce((acc, item) => {
+        acc[item.admin_id] = (acc[item.admin_id] || 0) + 1;
         return acc;
       }, {} as Record<string, number>) || {};
 
-      const topAdmins = Object.entries(adminCounts)
+      // Get admin emails for top admins
+      const topAdminIds = Object.entries(adminCounts)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 5)
-        .map(([admin, count]) => ({ admin, count }));
+        .map(([adminId]) => adminId);
+
+      const topAdmins: { admin: string; count: number }[] = [];
+      
+      for (const adminId of topAdminIds) {
+        try {
+          const { data: adminData } = await supabase
+            .from('admin_users')
+            .select('email')
+            .eq('id', adminId)
+            .single();
+          
+          topAdmins.push({
+            admin: adminData?.email || 'Unknown',
+            count: adminCounts[adminId]
+          });
+        } catch (error) {
+          topAdmins.push({
+            admin: 'Unknown',
+            count: adminCounts[adminId]
+          });
+        }
+      }
 
       return {
         totalActions: totalResult.count || 0,
@@ -244,6 +277,7 @@ export class AuditService {
         topAdmins
       };
     } catch (error) {
+      console.error('Error getting audit stats:', error);
       return {
         totalActions: 0,
         todayActions: 0,

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminService } from '@/services/adminService';
+import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/lib/supabase';
 
 interface AdminContextType {
   isAuthenticated: boolean;
   currentAdmin: AdminUser | null;
   login: (credentials: { username: string; password: string }) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -94,7 +95,15 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Sign out from Supabase Auth as well
+    try {
+      await supabase.auth.signOut();
+      console.log('Signed out from Supabase Auth');
+    } catch (authError) {
+      console.warn('Could not sign out from Supabase Auth:', authError);
+    }
+    
     localStorage.removeItem('gdg-admin-session');
     setIsAuthenticated(false);
     setCurrentAdmin(null);

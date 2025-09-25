@@ -47,6 +47,7 @@ const AdminUsers = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showPromoteSuccessModal, setShowPromoteSuccessModal] = useState(false);
+  const [showCreateDirectAdminModal, setShowCreateDirectAdminModal] = useState(false);
   const [promotedAdminInfo, setPromotedAdminInfo] = useState<{
     name: string;
     email: string;
@@ -59,7 +60,7 @@ const AdminUsers = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'team' | 'audit' | 'security'>('users');
 
   // Lock body scroll when any modal is open
-  useBodyScrollLock(showCreateModal || showEditModal || showDeleteModal || showPasswordModal || showPromoteModal || showPromoteSuccessModal);
+  useBodyScrollLock(showCreateModal || showEditModal || showDeleteModal || showPasswordModal || showPromoteModal || showPromoteSuccessModal || showCreateDirectAdminModal);
 
   // Form states
   const [createForm, setCreateForm] = useState({
@@ -83,9 +84,17 @@ const AdminUsers = () => {
     useTemporaryPassword: true,
     temporaryPassword: ''
   });
+  const [directAdminForm, setDirectAdminForm] = useState({
+    email: '',
+    password: '',
+    role: 'admin' as 'admin' | 'super_admin',
+    useTemporaryPassword: true,
+    temporaryPassword: ''
+  });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showDirectAdminPassword, setShowDirectAdminPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Check if current user is super admin
@@ -327,6 +336,59 @@ const AdminUsers = () => {
     }
   };
 
+  const handleCreateDirectAdmin = async () => {
+    if (!directAdminForm.email || !directAdminForm.password) return;
+    
+    setIsSaving(true);
+    try {
+      const newAdmin = await AdminService.createAdmin(
+        directAdminForm.email,
+        directAdminForm.password,
+        directAdminForm.role,
+        directAdminForm.useTemporaryPassword
+      );
+
+      if (newAdmin) {
+        await AuditService.logAction(
+          currentAdmin!.id,
+          'create_admin',
+          directAdminForm.email,
+          { 
+            description: `Created new ${directAdminForm.role} account directly`,
+            admin_email: directAdminForm.email,
+            admin_role: directAdminForm.role,
+            temporary_password: directAdminForm.useTemporaryPassword,
+            password_must_change: directAdminForm.useTemporaryPassword,
+            created_from: 'team_members_section'
+          }
+        );
+        
+        // Show success modal with password info
+        setPromotedAdminInfo({
+          name: 'New Admin',
+          email: directAdminForm.email,
+          role: directAdminForm.role,
+          temporaryPassword: directAdminForm.password,
+          isTemporary: directAdminForm.useTemporaryPassword
+        });
+        
+        setShowCreateDirectAdminModal(false);
+        setShowPromoteSuccessModal(true);
+        setDirectAdminForm({ 
+          email: '', 
+          password: '', 
+          role: 'admin', 
+          useTemporaryPassword: true, 
+          temporaryPassword: '' 
+        });
+        await loadData();
+      }
+    } catch (error) {
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const openEditModal = (admin: AdminUser) => {
     setSelectedAdmin(admin);
     setEditForm({
@@ -369,6 +431,18 @@ const AdminUsers = () => {
       temporaryPassword: tempPassword
     });
     setShowPromoteModal(true);
+  };
+
+  const openCreateDirectAdminModal = () => {
+    const tempPassword = generateTemporaryPassword();
+    setDirectAdminForm({ 
+      email: '', 
+      password: tempPassword, 
+      role: 'admin',
+      useTemporaryPassword: true,
+      temporaryPassword: tempPassword
+    });
+    setShowCreateDirectAdminModal(true);
   };
 
   // Check if team member is already an admin
@@ -591,10 +665,19 @@ const AdminUsers = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Team Members</h3>
-                <p className="text-muted-foreground mt-1">Promote team members to admin status</p>
+                <p className="text-muted-foreground mt-1">Promote team members to admin status or create new admin accounts</p>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {teamMembers.length} total members • {teamMembers.filter(m => m.is_active).length} active
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-muted-foreground">
+                  {teamMembers.length} total members • {teamMembers.filter(m => m.is_active).length} active
+                </div>
+                <button
+                  onClick={openCreateDirectAdminModal}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  <Plus size={16} />
+                  <span>Create Admin Account</span>
+                </button>
               </div>
             </div>
 
@@ -1129,9 +1212,14 @@ const AdminUsers = () => {
                   <ShieldCheck size={20} className="text-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Team Member Promoted Successfully!</h3>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {promotedAdminInfo.name === 'New Admin' ? 'Admin Account Created Successfully!' : 'Team Member Promoted Successfully!'}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    {promotedAdminInfo.name} has been promoted to {promotedAdminInfo.role}
+                    {promotedAdminInfo.name === 'New Admin' 
+                      ? `New ${promotedAdminInfo.role} account has been created`
+                      : `${promotedAdminInfo.name} has been promoted to ${promotedAdminInfo.role}`
+                    }
                   </p>
                 </div>
               </div>
@@ -1194,7 +1282,7 @@ const AdminUsers = () => {
               <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                 <h4 className="font-medium text-blue-300 mb-2">Next Steps</h4>
                 <div className="text-sm text-blue-200 space-y-1">
-                  <p>1. Share the login credentials with {promotedAdminInfo.name}</p>
+                  <p>1. Share the login credentials with {promotedAdminInfo.name === 'New Admin' ? 'the new admin' : promotedAdminInfo.name}</p>
                   <p>2. Direct them to the admin login page</p>
                   {promotedAdminInfo.isTemporary && (
                     <p>3. They will be prompted to change their password on first login</p>
@@ -1213,6 +1301,168 @@ const AdminUsers = () => {
                 className="px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Direct Admin Modal */}
+      {showCreateDirectAdminModal && (
+        <div className="fixed inset-0 bg-card bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Create New Admin Account</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create a new admin account that can login directly to the admin panel
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-200">
+                    <p className="font-medium mb-1">Direct Admin Creation</p>
+                    <p>This will create an admin account that can login immediately without being associated with a team member.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Admin Email</label>
+                <input
+                  type="email"
+                  value={directAdminForm.email}
+                  onChange={(e) => setDirectAdminForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                  placeholder="Enter admin email address"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will be the email used to log into the admin panel
+                </p>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-300">Password Setup</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="useDirectTemporaryPassword"
+                      checked={directAdminForm.useTemporaryPassword}
+                      onChange={(e) => {
+                        const useTemp = e.target.checked;
+                        setDirectAdminForm(prev => ({ 
+                          ...prev, 
+                          useTemporaryPassword: useTemp,
+                          password: useTemp ? prev.temporaryPassword : ''
+                        }));
+                      }}
+                      className="w-4 h-4 text-primary bg-card border border-border rounded focus:ring-blue-400 focus:ring-2"
+                    />
+                    <label htmlFor="useDirectTemporaryPassword" className="text-sm text-gray-300">
+                      Use temporary password
+                    </label>
+                  </div>
+                </div>
+                
+                {directAdminForm.useTemporaryPassword ? (
+                  <div className="space-y-3">
+                    <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
+                      <div className="flex items-start space-x-2">
+                        <Key size={16} className="text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-yellow-200">
+                          <p className="font-medium mb-1">Temporary Password Generated</p>
+                          <p>The user will be required to change this password on their first login.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showDirectAdminPassword ? 'text' : 'password'}
+                        value={directAdminForm.temporaryPassword}
+                        readOnly
+                        className="w-full px-4 py-3 pr-24 border border-border rounded-lg bg-muted text-foreground font-mono text-sm"
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPassword = generateTemporaryPassword();
+                            setDirectAdminForm(prev => ({ 
+                              ...prev, 
+                              temporaryPassword: newPassword,
+                              password: newPassword
+                            }));
+                          }}
+                          className="text-blue-400 hover:text-blue-300 text-xs"
+                          title="Generate new password"
+                        >
+                          ↻
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowDirectAdminPassword(!showDirectAdminPassword)}
+                          className="text-muted-foreground hover:text-gray-300"
+                        >
+                          {showDirectAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Copy this password and share it securely with the new admin. They must change it on first login.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type={showDirectAdminPassword ? 'text' : 'password'}
+                      value={directAdminForm.password}
+                      onChange={(e) => setDirectAdminForm(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                      placeholder="Enter permanent password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDirectAdminPassword(!showDirectAdminPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-gray-300"
+                    >
+                      {showDirectAdminPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Admin Role</label>
+                <select
+                  value={directAdminForm.role}
+                  onChange={(e) => setDirectAdminForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Super admins have full access to all admin functions
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-border flex items-center justify-end space-x-3">
+              <button
+                onClick={() => setShowCreateDirectAdminModal(false)}
+                className="px-4 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateDirectAdmin}
+                disabled={isSaving || !directAdminForm.email || !directAdminForm.password}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
+              >
+                <ShieldCheck size={16} />
+                <span>{isSaving ? 'Creating...' : 'Create Admin'}</span>
               </button>
             </div>
           </div>
