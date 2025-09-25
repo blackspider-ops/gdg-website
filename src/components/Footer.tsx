@@ -11,7 +11,7 @@ import { NewsletterService } from '@/services/newsletterService';
 const Footer = () => {
   const [email, setEmail] = React.useState('');
   const [showAdminModal, setShowAdminModal] = React.useState(false);
-  const [adminSecretCode, setAdminSecretCode] = React.useState('gdg-secret@mail.com');
+  const [adminSecretCode, setAdminSecretCode] = React.useState('');
   const [isSubscribing, setIsSubscribing] = React.useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = React.useState('');
   const { login, isLoading, error } = useAdmin();

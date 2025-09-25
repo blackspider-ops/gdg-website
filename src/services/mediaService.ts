@@ -11,7 +11,9 @@ const getServiceRoleClient = () => {
   }
   
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  // SECURITY FIX: Service role key should only be used server-side
+  // Use anon key for client-side operations
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   clientInitialized = true;
   

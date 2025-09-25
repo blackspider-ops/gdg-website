@@ -1,9 +1,51 @@
 // Vercel serverless function for sending emails
 // Deploy this to Vercel by putting it in /api/send-email.js
 
+// Simple in-memory rate limiting (use Redis in production)
+const rateLimitMap = new Map();
+
+function isRateLimited(ip, limit = 10, windowMs = 60000) {
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    if (!rateLimitMap.has(ip)) {
+        rateLimitMap.set(ip, []);
+    }
+    
+    const requests = rateLimitMap.get(ip);
+    // Remove old requests outside the window
+    const validRequests = requests.filter(time => time > windowStart);
+    rateLimitMap.set(ip, validRequests);
+    
+    if (validRequests.length >= limit) {
+        return true;
+    }
+    
+    validRequests.push(now);
+    return false;
+}
+
 export default async function handler(req, res) {
-    // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Rate limiting
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    if (isRateLimited(clientIP)) {
+        return res.status(429).json({ 
+            success: false, 
+            error: 'Too many requests. Please try again later.' 
+        });
+    }
+
+    // Enable CORS - restrict to your domain in production
+    const allowedOrigins = [
+        'https://decryptpsu.me',
+        'https://gdg-website-six.vercel.app',
+        'http://localhost:5173', // for development
+        'http://localhost:3000'  // for development
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
