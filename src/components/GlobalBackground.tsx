@@ -141,7 +141,7 @@ const GlobalScene = () => {
   const parallaxZ = useRef(0);
 
   // GDG Colors
-  const gdgColors = ['#52A5FF', '#FF5A52', '#34D399', '#FBBF24'];
+  const gdgColors = useMemo(() => ['#52A5FF', '#FF5A52', '#34D399', '#FBBF24'], []);
   const gdgOpacities = [0.55, 0.50, 0.60, 0.45];
 
   // Check for reduced motion preference
@@ -205,7 +205,7 @@ const GlobalScene = () => {
     geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
 
     return geometry;
-  }, []);
+  }, [deviceConfig.particleCount, gdgColors]);
 
   const particleMaterial = useMemo(() => {
     return new THREE.PointsMaterial({

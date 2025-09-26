@@ -8,11 +8,9 @@ const HeroScene = React.lazy(() => import('@/components/HeroScene'));
 const Contact = () => {
   const { getPageSection, getSiteSetting, getLink } = useContent();
   
-  // Get dynamic content from admin panel
-  const rawContactContent = getPageSection('contact', 'main') || {};
-  
   // Parse contact links and social links if they exist
   const contactContent = React.useMemo(() => {
+    const rawContactContent = getPageSection('contact', 'main') || {};
     const content = { ...rawContactContent };
     
     // Parse contact_links if it's a JSON string
@@ -38,7 +36,7 @@ const Contact = () => {
     }
     
     return content;
-  }, [rawContactContent]);
+  }, [getPageSection]);
   
 
   

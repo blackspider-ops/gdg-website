@@ -150,7 +150,7 @@ const CyberTechScene = () => {
   const noise = useMemo(() => new SimplexNoise(), []);
 
   // GDG Colors with proper opacity for better contrast
-  const gdgColors = ['#52A5FF', '#FF5A52', '#34D399', '#FBBF24'];
+  const gdgColors = useMemo(() => ['#52A5FF', '#FF5A52', '#34D399', '#FBBF24'], []);
   const gdgOpacities = [0.55, 0.50, 0.60, 0.45];
 
   // Check for reduced motion preference

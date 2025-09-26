@@ -1,7 +1,12 @@
 // Request deduplication and batching service
+type QueueItem = {
+  resolve: (value: any) => void;
+  reject: (reason?: any) => void;
+};
+
 class RequestService {
   private pendingRequests = new Map<string, Promise<any>>();
-  private requestQueue = new Map<string, Array<{ resolve: Function; reject: Function }>>();
+  private requestQueue = new Map<string, Array<QueueItem>>();
   private batchTimeout: NodeJS.Timeout | null = null;
   private readonly BATCH_DELAY = 50; // 50ms batching window
 

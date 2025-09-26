@@ -49,8 +49,6 @@ const Footer = () => {
   // Get dynamic content - using the correct keys that match the admin panel
   const footerDescription = getFooterSection('description');
   const footerCopyright = getFooterSection('copyright');
-  const quickLinksContent = getFooterSection('quick_links') || {};
-  const resourcesContent = getFooterSection('resources') || {};
   // Parse contact info with fallbacks
   const contactContent = React.useMemo(() => {
     try {
@@ -111,6 +109,7 @@ const Footer = () => {
   // Parse dynamic content from admin panel with fallbacks
   const quickLinksData = React.useMemo(() => {
     try {
+      const quickLinksContent = getFooterSection('quick_links') || {};
       if (quickLinksContent.links) {
         return quickLinksContent.links;
       }
@@ -123,10 +122,11 @@ const Footer = () => {
     } catch (error) {
       return [];
     }
-  }, [quickLinksContent]);
+  }, [getFooterSection]);
 
   const resourcesData = React.useMemo(() => {
     try {
+      const resourcesContent = getFooterSection('resources') || {};
       if (resourcesContent.links) {
         return resourcesContent.links;
       }
@@ -139,7 +139,7 @@ const Footer = () => {
     } catch (error) {
       return [];
     }
-  }, [resourcesContent]);
+  }, [getFooterSection]);
 
   // Use only dynamic content from admin panel
   const quickLinks = quickLinksData;

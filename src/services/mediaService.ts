@@ -477,7 +477,7 @@ export class MediaService {
       }
 
       // Enrich data with admin and folder info
-      let enrichedData = { ...data };
+      const enrichedData = { ...data };
       
       try {
         // Get admin user info

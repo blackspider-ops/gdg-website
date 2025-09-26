@@ -66,9 +66,9 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
       }
       return;
     }
-    
+
     setCheckingRegistration(true);
-    
+
     // Add a timeout to prevent multiple rapid calls
     const timeout = setTimeout(async () => {
       try {
@@ -87,7 +87,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
         setCheckingRegistration(false);
       }
     }, 800);
-    
+
     setCheckTimeout(timeout);
   };
 
@@ -133,7 +133,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
 
     try {
       setError(null); // Clear any previous errors
-      
+
       const result = await AttendanceService.addAttendee(event.id, {
         attendee_name: formData.name,
         attendee_email: formData.email,
@@ -151,7 +151,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
       }
     } catch (error: any) {
       // Silently handle errors
-      
+
       // Handle specific error cases
       if (error?.message?.includes('already registered')) {
         setError('You are already registered for this event.');
@@ -316,13 +316,12 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
                         onChange={(e) => {
                           const email = e.target.value;
                           setFormData(prev => ({ ...prev, email }));
-                          
+
                           // Use the debounced check function
                           checkRegistrationStatus(email);
                         }}
-                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                          isAlreadyRegistered ? 'border-red-300 bg-red-50' : 'border-border'
-                        }`}
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${isAlreadyRegistered ? 'border-red-300 bg-red-50' : 'border-border'
+                          }`}
                         placeholder="Enter your email address"
                       />
                       {checkingRegistration && (
@@ -419,7 +418,7 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
-            
+
             <div className="flex space-x-3">
               <button
                 type="button"
