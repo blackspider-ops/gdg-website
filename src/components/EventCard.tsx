@@ -90,8 +90,22 @@ const EventCard: React.FC<EventCardProps> = ({
     }
     if (eventId) {
       setShowRegistrationModal(true);
-    } else {
+            return;
     }
+    
+    // If we have external registration URLs, handle them
+    if (registrationUrl) {
+      window.open(registrationUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
+    if (googleFormUrl) {
+      window.open(googleFormUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
+    // Fallback: show registration modal even without eventId
+    setShowRegistrationModal(true);
   };
 
   const handleViewDetails = () => {
@@ -225,12 +239,12 @@ const EventCard: React.FC<EventCardProps> = ({
       </div>
 
       {/* Registration Modal */}
-      {showRegistrationModal && eventId && (
+      {showRegistrationModal && (
         <EventRegistrationModal
           isOpen={showRegistrationModal}
           onClose={() => setShowRegistrationModal(false)}
           event={{
-            id: eventId,
+            id: eventId || `temp-${title.replace(/\s+/g, '-').toLowerCase()}`,
             title,
             date,
             time,

@@ -167,22 +167,18 @@ const EventRegistrationModal: React.FC<EventRegistrationModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      style={{
-        overflow: 'hidden',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
-      onWheel={(e) => e.preventDefault()}
-      onTouchMove={(e) => e.preventDefault()}
+      onWheel={(e) => {
+        // Only prevent wheel events on the overlay, not the modal content
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
       onScroll={(e) => e.preventDefault()}
     >
       <div

@@ -216,17 +216,17 @@ const Home = () => {
 
       {/* Upcoming Events Section */}
       {(eventsContent.title || upcomingEvents.length > 0) && (
-        <section className="py-24 bg-card/20">
+        <section className="py-16 sm:py-20 lg:py-24 bg-card/20">
           <div className="editorial-grid">
-            <div className="col-span-12 lg:col-span-8">
+            <div className="col-span-12">
               {eventsContent.title && (
-                <div className="flex items-center justify-between mb-12">
-                  <div>
-                    <h2 className="font-display text-4xl font-bold mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-12">
+                  <div className="mb-4 sm:mb-0">
+                    <h2 className="font-display text-responsive-2xl font-bold mb-2 sm:mb-4">
                       {eventsContent.title}
                     </h2>
                     {eventsContent.description && (
-                      <p className="text-xl text-muted-foreground">
+                      <p className="text-responsive-base text-muted-foreground max-w-2xl">
                         {eventsContent.description}
                       </p>
                     )}
@@ -245,19 +245,40 @@ const Home = () => {
             </div>
 
             {isLoadingEvents ? (
-              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <LoadingSkeleton variant="event" count={3} />
               </div>
             ) : upcomingEvents.length > 0 ? (
               <>
-                <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {upcomingEvents.map((event, index) => (
-                    <EventCard key={event.id || index} {...event} />
-                  ))}
+                <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {upcomingEvents.map((event, index) => {
+                    const eventDate = new Date(event.date);
+                    const dateStr = eventDate.toLocaleDateString();
+                    const timeStr = eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    return (
+                      <EventCard 
+                        key={event.id || index} 
+                        title={event.title}
+                        description={event.description}
+                        date={dateStr}
+                        time={timeStr}
+                        location={event.location}
+                        eventId={event.id}
+                        registrationUrl={event.registration_url}
+                        googleFormUrl={event.google_form_url}
+                        registrationType={event.registration_type}
+                        maxParticipants={event.max_participants}
+                        registrationEnabled={event.registration_enabled}
+                        imageUrl={event.image_url}
+                        isUpcoming={true}
+                      />
+                    );
+                  })}
                 </div>
 
                 {eventsContent.cta_text && eventsContent.cta_link && (
-                  <div className="col-span-12 text-center mt-8 sm:hidden">
+                  <div className="col-span-12 text-center mt-6 sm:mt-8 sm:hidden">
                     <Link 
                       to={eventsContent.cta_link}
                       className="magnetic-button px-6 py-3 bg-primary text-primary-foreground rounded-lg inline-flex items-center focus-ring"
@@ -269,8 +290,8 @@ const Home = () => {
                 )}
               </>
             ) : (
-              <div className="col-span-12 text-center py-12">
-                <div className="max-w-md mx-auto">
+              <div className="col-span-12 text-center py-8 sm:py-12">
+                <div className="max-w-md mx-auto px-4">
                   <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No Upcoming Events</h3>
                   <p className="text-muted-foreground mb-6">
