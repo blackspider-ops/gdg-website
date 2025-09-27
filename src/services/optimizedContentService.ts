@@ -159,6 +159,55 @@ export class OptimizedContentService {
     );
   }
 
+  // Clear projects cache (for admin updates)
+  static clearProjectsCache() {
+    // Clear all project-related cache entries
+    cacheService.clearContentType('projects');
+    
+    // Also clear specific cache keys
+    const projectCacheKeys = [
+      'projects_all',
+      'projects_featured',
+      'projects_web',
+      'projects_mobile',
+      'projects_ai',
+      'projects_data'
+    ];
+    
+    projectCacheKeys.forEach(key => {
+      cacheService.delete(key);
+    });
+    
+    // Force a complete cache refresh for projects
+    console.log('Cleared all project caches for fresh data');
+  }
+
+  // Clear content cache (for admin content updates)
+  static clearContentCache() {
+    // Clear all content-related cache entries
+    const contentCacheKeys = [
+      'siteSettings_all',
+      'navigationItems_all', 
+      'footerContent_all',
+      'pageContent_home',
+      'pageContent_about',
+      'pageContent_contact',
+      'pageContent_all'
+    ];
+    
+    contentCacheKeys.forEach(key => {
+      cacheService.delete(key);
+    });
+    
+    // Clear by content type
+    cacheService.clearContentType('siteSettings');
+    cacheService.clearContentType('navigationItems');
+    cacheService.clearContentType('footerContent');
+    cacheService.clearContentType('pageContent');
+    
+    console.log('Cleared all content caches for fresh data');
+  }
+
   // Sponsors with caching
   static async getSponsors() {
     const cacheKey = 'sponsors_all';

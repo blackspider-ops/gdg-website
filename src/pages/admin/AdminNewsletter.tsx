@@ -120,6 +120,63 @@ const AdminNewsletter = () => {
     }
   };
 
+  const handleRemoveAllPending = async () => {
+    if (window.confirm('Are you sure you want to remove all pending (unconfirmed) subscribers? This action cannot be undone.')) {
+      try {
+        setIsLoading(true);
+        const result = await NewsletterService.removePendingSubscribers();
+        if (result) {
+          await loadNewsletterData();
+          setSuccess('All pending subscribers have been removed successfully.');
+          setTimeout(() => setSuccess(null), 5000);
+        } else {
+          setError('Failed to remove pending subscribers. Please try again.');
+        }
+      } catch (error) {
+        setError('An error occurred while removing pending subscribers.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleRemoveAllRegistered = async () => {
+    const firstConfirm = window.confirm('⚠️ DANGER: Are you sure you want to remove ALL subscribers? This will delete all confirmed and pending subscribers. This action cannot be undone!');
+    if (!firstConfirm) return;
+
+    const secondConfirm = window.confirm('This is your final warning. Click OK to proceed with deleting ALL subscribers.');
+    if (!secondConfirm) return;
+
+    const confirmation = window.prompt('Type "DELETE ALL" to confirm (case sensitive):');
+    if (confirmation !== 'DELETE ALL') {
+      setError('Confirmation text did not match. Operation cancelled.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log('Starting remove all subscribers operation...');
+      
+      const result = await NewsletterService.removeAllSubscribers();
+      console.log('Remove all result:', result);
+      
+      if (result) {
+        await loadNewsletterData();
+        setSuccess('All subscribers have been removed successfully.');
+        setTimeout(() => setSuccess(null), 5000);
+      } else {
+        setError('Failed to remove all subscribers. Please check the console for details.');
+      }
+    } catch (error) {
+      console.error('Remove all subscribers error:', error);
+      setError(`An error occurred while removing all subscribers: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -633,13 +690,31 @@ const AdminNewsletter = () => {
                   <h2 className="font-semibold text-lg text-foreground">Subscribers ({subscribers.length})</h2>
                   <p className="text-sm text-muted-foreground mt-1">Manage newsletter subscribers</p>
                 </div>
-                <button 
-                  onClick={handleExportSubscribers}
-                  className="flex items-center space-x-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
-                >
-                  <Download size={16} />
-                  <span>Export CSV</span>
-                </button>
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={handleRemoveAllPending}
+                    className="flex items-center space-x-2 px-4 py-2 border border-yellow-600 text-yellow-400 rounded-lg hover:bg-yellow-600/10 transition-colors font-medium"
+                    disabled={isLoading}
+                  >
+                    <X size={16} />
+                    <span>Remove Pending</span>
+                  </button>
+                  <button 
+                    onClick={handleRemoveAllRegistered}
+                    className="flex items-center space-x-2 px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-600/10 transition-colors font-medium"
+                    disabled={isLoading}
+                  >
+                    <Trash2 size={16} />
+                    <span>Remove All</span>
+                  </button>
+                  <button 
+                    onClick={handleExportSubscribers}
+                    className="flex items-center space-x-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+                  >
+                    <Download size={16} />
+                    <span>Export CSV</span>
+                  </button>
+                </div>
               </div>
               
               {isLoading ? (

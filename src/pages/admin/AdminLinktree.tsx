@@ -104,17 +104,22 @@ const AdminLinktree = () => {
     }
 
     try {
+      console.log('Starting profile deletion for ID:', id);
       const success = await linktreeService.deleteProfile(id);
+      console.log('Profile deletion result:', success);
+      
       if (success) {
         await fetchProfiles();
         if (selectedProfile?.id === id) {
           setSelectedProfile(profiles.length > 1 ? profiles.find(p => p.id !== id) || null : null);
         }
         toast.success('Profile deleted successfully');
+      } else {
+        toast.error('Failed to delete profile - check console for details');
       }
     } catch (error) {
-      // Silently handle errors
-      toast.error('Failed to delete profile');
+      console.error('Profile deletion error:', error);
+      toast.error(`Failed to delete profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

@@ -14,7 +14,7 @@ interface EventCardProps {
   capacity?: number;
   image?: string;
   description: string;
-  level?: 'Beginner' | 'Intermediate' | 'Advanced';
+  level?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Open for All';
   type?: 'Workshop' | 'Talk' | 'Networking' | 'Study Jam' | 'Featured';
   isUpcoming?: boolean;
   registrationUrl?: string;
@@ -63,10 +63,11 @@ const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const getLevelColor = (level?: string) => {
     switch (level) {
-      case 'Beginner': return 'bg-gdg-green text-primary-foreground';
-      case 'Intermediate': return 'bg-gdg-yellow text-primary';
-      case 'Advanced': return 'bg-gdg-red text-primary-foreground';
-      default: return 'bg-secondary text-foreground';
+      case 'Beginner': return 'bg-green-600 text-white';
+      case 'Intermediate': return 'bg-yellow-500 text-black';
+      case 'Advanced': return 'bg-red-600 text-white';
+      case 'Open for All': return 'bg-blue-600 text-white';
+      default: return 'bg-gray-600 text-white';
     }
   };
 

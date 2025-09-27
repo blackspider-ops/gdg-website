@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import {
     FileText,
     Download,
@@ -10,7 +10,8 @@ import {
     File,
     Calendar,
     User,
-    AlertCircle
+    AlertCircle,
+    ArrowLeft
 } from 'lucide-react';
 import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import { 
@@ -122,27 +123,41 @@ const BlogEditorMedia: React.FC = () => {
             <div className="min-h-screen bg-background pt-20">
                 <div className="editorial-grid py-8">
                     {/* Header */}
-                    <div className="col-span-12 flex items-center justify-between mb-8">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                                <FileText size={20} className="text-primary-foreground" />
-                            </div>
-                            <div>
-                                <h1 className="font-display text-2xl font-bold text-foreground">Blog Submissions</h1>
-                                <p className="text-muted-foreground text-sm">
-                                    Files submitted through the contact form for blog posts
-                                </p>
-                            </div>
+                    <div className="col-span-12 mb-8">
+                        {/* Back Button */}
+                        <div className="mb-4">
+                            <Link
+                                to="/admin/blog-editor"
+                                className="inline-flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <ArrowLeft size={16} />
+                                <span className="text-sm">Back to Dashboard</span>
+                            </Link>
                         </div>
                         
-                        <button
-                            onClick={loadBlogSubmissions}
-                            disabled={isLoading}
-                            className="flex items-center space-x-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground disabled:opacity-50"
-                        >
-                            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                            <span>Refresh</span>
-                        </button>
+                        {/* Header Content */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                                    <FileText size={20} className="text-primary-foreground" />
+                                </div>
+                                <div>
+                                    <h1 className="font-display text-2xl font-bold text-foreground">Blog Submissions</h1>
+                                    <p className="text-muted-foreground text-sm">
+                                        Files submitted through the contact form for blog posts
+                                    </p>
+                                </div>
+                            </div>
+                        
+                            <button
+                                onClick={loadBlogSubmissions}
+                                disabled={isLoading}
+                                className="flex items-center space-x-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground disabled:opacity-50"
+                            >
+                                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                                <span>Refresh</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Search */}

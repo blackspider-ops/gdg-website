@@ -21,7 +21,7 @@ const Team = () => {
         social: {
             github: member.github_url,
             linkedin: member.linkedin_url,
-            email: `${member.name.toLowerCase().replace(' ', '.')}@gdgpsu.org`
+            email: member.email || `${member.name.toLowerCase().replace(' ', '.')}@gdgpsu.org`
         }
     }));
 

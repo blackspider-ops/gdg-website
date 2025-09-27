@@ -18,15 +18,16 @@ import {
   RefreshCw,
   BookOpen,
   PenTool,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Clock
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
 import { MembersService } from '@/services/membersService';
+import { BlogService } from '@/services/blogService';
 import { ProjectsService } from '@/services/projectsService';
 import { SponsorsService } from '@/services/sponsorsService';
 import { NewsletterService } from '@/services/newsletterService';
-import { BlogService } from '@/services/blogService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -46,21 +47,6 @@ const AdminDashboard = () => {
     color: string;
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Load dashboard statistics
-  useEffect(() => {
-    loadDashboardStats();
-  }, []);
-
-  // Authentication check after all hooks
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  // Redirect blog editors to their restricted dashboard
-  if (currentAdmin?.role === 'blog_editor') {
-    return <Navigate to="/admin/blog-editor" replace />;
-  }
 
   const loadDashboardStats = async () => {
     setIsLoading(true);
@@ -86,13 +72,17 @@ const AdminDashboard = () => {
         BlogService.getBlogStats()
       ]);
 
+      // Get pending approvals count
+      const pendingApprovals = await BlogService.getPendingApprovalsCount();
+
       setDashboardStats({
         totalMembers: memberStats.total,
         upcomingEvents: eventStats.upcoming,
         newsletterSubscribers: newsletterStats.active, // Now using real data
         activeProjects: projectStats.total,
         totalSponsors: sponsorStats.active,
-        blogPosts: blogStats.publishedPosts
+        blogPosts: blogStats.publishedPosts,
+        pendingApprovals: pendingApprovals
       });
 
       // Generate recent activity based on real data
@@ -165,18 +155,35 @@ const AdminDashboard = () => {
     }
   };
 
+  // Load dashboard statistics on mount
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
+
+  // Authentication check after all hooks
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Redirect blog editors to their restricted dashboard
+  if (currentAdmin?.role === 'blog_editor') {
+    return <Navigate to="/admin/blog-editor" replace />;
+  }
+
   const stats = [
     { label: 'Total Members', value: dashboardStats.totalMembers.toString(), icon: Users, color: 'text-blue-500' },
     { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toString(), icon: Calendar, color: 'text-green-500' },
     { label: 'Newsletter Subscribers', value: dashboardStats.newsletterSubscribers.toString(), icon: Mail, color: 'text-purple-500' },
     { label: 'Active Projects', value: dashboardStats.activeProjects.toString(), icon: FileText, color: 'text-orange-500' },
     { label: 'Blog Posts', value: dashboardStats.blogPosts.toString(), icon: PenTool, color: 'text-pink-500' },
+    { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500' },
   ];
 
   const quickActions = [
     { label: 'Site & Content', icon: FileText, href: '/admin/content' },
     { label: 'Manage Events', icon: Calendar, href: '/admin/events' },
     { label: 'Team Management', icon: Users, href: '/admin/team' },
+    { label: 'Manage Projects', icon: FolderOpen, href: '/admin/projects' },
     { label: 'View Members', icon: Users, href: '/admin/members' },
     { label: 'Resources', icon: FileText, href: '/admin/resources' },
     { label: 'Newsletter', icon: Mail, href: '/admin/newsletter' },

@@ -104,15 +104,21 @@ class LinktreeService {
   }
 
   async deleteProfile(id: string): Promise<boolean> {
-    const { error } = await supabase
+    console.log('Attempting to delete profile with ID:', id);
+    
+    const { error, count } = await supabase
       .from('linktree_profiles')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id);
 
+    console.log('Delete profile result:', { error, count });
+
     if (error) {
+      console.error('Delete profile error:', error);
       return false;
     }
 
+    console.log(`Successfully deleted ${count} profile(s)`);
     return true;
   }
 

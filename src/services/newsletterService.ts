@@ -82,6 +82,8 @@ export class NewsletterService {
 
   static async sendConfirmationEmail(email: string, name?: string, confirmationToken?: string): Promise<void> {
     try {
+      console.log('Sending newsletter confirmation email to:', email);
+      
       if (!confirmationToken) {
         throw new Error('Confirmation token is required');
       }
@@ -89,18 +91,22 @@ export class NewsletterService {
       // Use Resend for newsletter confirmation emails
       const { ResendService } = await import('@/services/resendService');
       
+      console.log('Calling ResendService.sendNewsletterConfirmation...');
       const success = await ResendService.sendNewsletterConfirmation(
         email, 
         name || 'Subscriber', 
         confirmationToken
       );
 
+      console.log('Newsletter confirmation email result:', success);
+
       if (!success) {
         throw new Error('Failed to send confirmation email via Resend');
       }
-
-
+      
+      console.log('Newsletter confirmation email sent successfully');
     } catch (error) {
+      console.error('Newsletter confirmation email error:', error);
       throw error;
     }
   }
@@ -455,6 +461,96 @@ export class NewsletterService {
       if (error) throw error;
       return true;
     } catch (error) {
+      return false;
+    }
+  }
+
+  // Bulk removal methods
+  static async removePendingSubscribers(): Promise<boolean> {
+    try {
+      console.log('Starting to remove pending subscribers...');
+      
+      // First get all pending subscribers
+      const { data: pendingSubscribers, error: fetchError } = await supabase
+        .from('newsletter_subscribers')
+        .select('id, email, confirmed_at, is_active')
+        .is('confirmed_at', null)
+        .eq('is_active', true);
+
+      console.log('Fetch result:', { pendingSubscribers, fetchError });
+
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      if (!pendingSubscribers || pendingSubscribers.length === 0) {
+        console.log('No pending subscribers found');
+        return true; // No pending subscribers to remove
+      }
+
+      console.log(`Found ${pendingSubscribers.length} pending subscribers to remove`);
+
+      // Delete the pending subscribers
+      const { error: deleteError, count } = await supabase
+        .from('newsletter_subscribers')
+        .delete({ count: 'exact' })
+        .in('id', pendingSubscribers.map(sub => sub.id));
+
+      console.log('Delete result:', { deleteError, count });
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw deleteError;
+      }
+
+      console.log(`Successfully removed ${count} pending subscribers`);
+      return true;
+    } catch (error) {
+      console.error('Error removing pending subscribers:', error);
+      return false;
+    }
+  }
+
+  static async removeAllSubscribers(): Promise<boolean> {
+    try {
+      console.log('Starting to remove all subscribers...');
+      
+      // First check how many subscribers exist
+      const { data: allSubscribers, error: fetchError } = await supabase
+        .from('newsletter_subscribers')
+        .select('id, email')
+        .limit(1000); // Safety limit
+
+      console.log('Current subscribers:', { count: allSubscribers?.length, fetchError });
+
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      if (!allSubscribers || allSubscribers.length === 0) {
+        console.log('No subscribers found to remove');
+        return true;
+      }
+
+      // Delete all subscribers
+      const { error: deleteError, count } = await supabase
+        .from('newsletter_subscribers')
+        .delete({ count: 'exact' })
+        .in('id', allSubscribers.map(sub => sub.id));
+
+      console.log('Delete all result:', { deleteError, count });
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw deleteError;
+      }
+
+      console.log(`Successfully removed ${count} subscribers`);
+      return true;
+    } catch (error) {
+      console.error('Error removing all subscribers:', error);
       return false;
     }
   }

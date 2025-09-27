@@ -1,13 +1,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminService } from '@/services/adminService';
+import { ProfileMergingService, type MergedProfile } from '@/services/profileMergingService';
 import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/lib/supabase';
 
 interface AdminContextType {
   isAuthenticated: boolean;
   currentAdmin: AdminUser | null;
+  mergedProfile: MergedProfile | null;
   login: (credentials: { username: string; password: string }) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  updateTeamProfile: (teamData: {
+    name: string;
+    role: string;
+    bio?: string;
+    imageUrl?: string;
+    linkedinUrl?: string;
+    githubUrl?: string;
+  }) => Promise<boolean>;
   isLoading: boolean;
   error: string | null;
 }
@@ -29,6 +40,7 @@ interface AdminProviderProps {
 export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
+  const [mergedProfile, setMergedProfile] = useState<MergedProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +59,10 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
             if (admin) {
               setCurrentAdmin(admin);
               setIsAuthenticated(true);
+              
+              // Get merged profile with team member data
+              const profile = await ProfileMergingService.autoMergeOnLogin(admin);
+              setMergedProfile(profile);
             } else {
               localStorage.removeItem('gdg-admin-session');
             }
@@ -82,6 +98,11 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         localStorage.setItem('gdg-admin-session', JSON.stringify(session));
         setCurrentAdmin(admin);
         setIsAuthenticated(true);
+        
+        // Get merged profile with team member data
+        const profile = await ProfileMergingService.autoMergeOnLogin(admin);
+        setMergedProfile(profile);
+        
         return true;
       } else {
         setError('Invalid email or password');
@@ -107,14 +128,47 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     localStorage.removeItem('gdg-admin-session');
     setIsAuthenticated(false);
     setCurrentAdmin(null);
+    setMergedProfile(null);
     setError(null);
+  };
+
+  const refreshProfile = async () => {
+    if (currentAdmin) {
+      const profile = await ProfileMergingService.getMergedProfile(currentAdmin);
+      setMergedProfile(profile);
+    }
+  };
+
+  const updateTeamProfile = async (teamData: {
+    name: string;
+    role: string;
+    bio?: string;
+    imageUrl?: string;
+    linkedinUrl?: string;
+    githubUrl?: string;
+  }): Promise<boolean> => {
+    if (!currentAdmin) return false;
+    
+    const success = await ProfileMergingService.createOrUpdateTeamProfile(
+      currentAdmin.id,
+      teamData
+    );
+    
+    if (success) {
+      await refreshProfile();
+    }
+    
+    return success;
   };
 
   const value = {
     isAuthenticated,
     currentAdmin,
+    mergedProfile,
     login,
     logout,
+    refreshProfile,
+    updateTeamProfile,
     isLoading,
     error
   };

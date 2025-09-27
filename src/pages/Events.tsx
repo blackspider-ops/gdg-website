@@ -7,6 +7,7 @@ import { useContent } from '@/contexts/ContentContext';
 const Events = () => {
   const { events, isLoadingEvents, loadEvents } = useContent();
   const [selectedFilter, setSelectedFilter] = React.useState('All');
+  const [selectedLevel, setSelectedLevel] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
 
   // Load events when component mounts - force reload to get accurate attendee counts
@@ -38,7 +39,12 @@ const Events = () => {
       attendees: event.accurate_attendee_count || 0,
       capacity: event.max_participants || undefined,
       description: event.description,
-      level: (event as any).level as 'Beginner' | 'Intermediate' | 'Advanced' || undefined,
+      level: (event as any).level ? 
+        (event as any).level === 'beginner' ? 'Beginner' :
+        (event as any).level === 'intermediate' ? 'Intermediate' :
+        (event as any).level === 'advanced' ? 'Advanced' :
+        (event as any).level === 'open_for_all' ? 'Open for All' :
+        undefined : undefined,
       type: (event as any).type || (event.is_featured ? 'Featured' : 'Workshop'),
       isUpcoming,
       registrationUrl: event.registration_url,
@@ -58,12 +64,14 @@ const Events = () => {
   });
 
   const filters = ['All', 'Workshop', 'Featured', 'Talk', 'Networking', 'Study Jam'];
+  const levelFilters = ['All', 'Beginner', 'Intermediate', 'Advanced', 'Open for All'];
 
   const filteredEvents = allEvents.filter(event => {
     const matchesFilter = selectedFilter === 'All' || event.type === selectedFilter;
+    const matchesLevel = selectedLevel === 'All' || event.level === selectedLevel;
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesLevel && matchesSearch;
   });
 
   const upcomingEvents = filteredEvents.filter(event => event.isUpcoming);
@@ -91,7 +99,7 @@ const Events = () => {
       <section className="py-6 sm:py-8 sticky top-16 bg-background/95 backdrop-blur-sm border-b border-border z-40">
         <div className="editorial-grid">
           <div className="col-span-12">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
+            <div className="flex flex-col lg:flex-row items-start justify-between space-y-4 lg:space-y-0">
               {/* Search */}
               <div className="relative flex-1 max-w-md w-full lg:w-auto">
                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground sm:w-[18px] sm:h-[18px]" />
@@ -104,23 +112,51 @@ const Events = () => {
                 />
               </div>
 
-              {/* Filters */}
-              <div className="flex items-center space-x-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
-                <Filter size={16} className="text-muted-foreground flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
-                <div className="flex space-x-2 min-w-max">
-                  {filters.map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setSelectedFilter(filter)}
-                      className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border transition-colors whitespace-nowrap ${
-                        selectedFilter === filter
-                          ? 'bg-gdg-blue text-foreground border-gdg-blue'
-                          : 'bg-background border-border hover:border-gdg-blue hover:text-gdg-blue'
-                      }`}
-                    >
-                      {filter}
-                    </button>
-                  ))}
+              {/* Filters in Two Rows */}
+              <div className="flex flex-col space-y-2 w-full lg:w-auto">
+                {/* Type Filters Row */}
+                <div className="flex items-center space-x-2 overflow-x-auto pb-2 lg:pb-0">
+                  <Filter size={16} className="text-muted-foreground flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
+                  <div className="flex space-x-2 min-w-max">
+                    {filters.map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setSelectedFilter(filter)}
+                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border transition-colors whitespace-nowrap ${
+                          selectedFilter === filter
+                            ? 'bg-gdg-blue text-foreground border-gdg-blue'
+                            : 'bg-background border-border hover:border-gdg-blue hover:text-gdg-blue'
+                        }`}
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Level Filters Row */}
+                <div className="flex items-center space-x-2 overflow-x-auto pb-2 lg:pb-0">
+                  <div className="w-4 flex-shrink-0"></div> {/* Spacer to align with filter icon above */}
+                  <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0 font-medium">Level:</span>
+                  <div className="flex space-x-2 min-w-max">
+                    {levelFilters.map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setSelectedLevel(level)}
+                        className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-full border transition-colors whitespace-nowrap ${
+                          selectedLevel === level
+                            ? level === 'Beginner' ? 'bg-green-600 text-white border-green-600'
+                            : level === 'Intermediate' ? 'bg-yellow-500 text-black border-yellow-500'
+                            : level === 'Advanced' ? 'bg-red-600 text-white border-red-600'
+                            : level === 'Open for All' ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-gdg-blue text-foreground border-gdg-blue'
+                            : 'bg-background border-border hover:border-gdg-blue hover:text-gdg-blue'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

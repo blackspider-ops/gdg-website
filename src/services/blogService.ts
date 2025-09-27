@@ -36,10 +36,9 @@ export interface BlogPost {
   created_by?: string;
   updated_by?: string;
   requires_approval?: boolean;
-  approved_by?: string;
-  approved_at?: string;
-  rejected_by?: string;
-  rejected_at?: string;
+  approval_status?: 'pending' | 'approved' | 'rejected';
+  pending_changes?: string;
+  change_summary?: string;
   rejection_reason?: string;
 }
 
@@ -263,16 +262,17 @@ export class BlogService {
   /**
    * Create a new blog post
    */
-  static async createPost(post: Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'category'>): Promise<BlogPost | null> {
+  static async createPost(post: Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'category'>, adminRole?: string): Promise<BlogPost | null> {
     try {
-      // If created by blog_editor, set status to draft and requires_approval
+      // Use the post data as-is since BlogPostModal already sets approval status correctly
       const postData = {
         ...post,
-        // Blog editors' posts should be drafts by default and require approval
-        status: post.created_by && post.created_by.includes('blog_editor') ? 'draft' : post.status,
-        requires_approval: post.created_by && post.created_by.includes('blog_editor') ? true : false
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
+      console.log('Creating post with data:', postData);
+      
       const { data, error } = await supabase
         .from('blog_posts')
         .insert(postData)
@@ -280,6 +280,7 @@ export class BlogService {
         .single();
 
       if (error) {
+        console.error('Database insert error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
@@ -292,21 +293,41 @@ export class BlogService {
   /**
    * Update a blog post
    */
-  static async updatePost(id: string, updates: Partial<BlogPost>): Promise<boolean> {
+  static async updatePost(id: string, updates: Partial<BlogPost>, adminRole?: string, adminId?: string): Promise<boolean> {
     try {
-      // If updated by blog_editor, set requires_approval to true unless it's just a draft save
+      // Get original post for change tracking
+      const { data: originalPost } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      const isBlogEditor = adminRole === 'blog_editor';
+      
       const updateData = {
         ...updates,
-        // Blog editors' updates require approval unless saving as draft
-        requires_approval: updates.updated_by && updates.updated_by.includes('blog_editor') && updates.status !== 'draft' ? true : updates.requires_approval
+        updated_at: new Date().toISOString(),
+        // Blog editors: all updates require approval
+        requires_approval: isBlogEditor ? true : updates.requires_approval,
+        approval_status: isBlogEditor ? 'pending' : updates.approval_status || 'approved'
       };
 
+      // Track changes for blog editors
+      if (isBlogEditor && originalPost) {
+        const changes = this.trackChanges(originalPost, updateData);
+        updateData.pending_changes = JSON.stringify(changes);
+        updateData.change_summary = this.generateChangeSummary(changes);
+      }
+
+      console.log('Updating post with data:', updateData);
+      
       const { error } = await supabase
         .from('blog_posts')
         .update(updateData)
         .eq('id', id);
 
       if (error) {
+        console.error('Database update error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
@@ -314,6 +335,41 @@ export class BlogService {
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Track changes between original and updated post
+   */
+  private static trackChanges(original: any, updated: any): any {
+    const changes: any = {};
+    const fieldsToTrack = ['title', 'content', 'excerpt', 'category_id', 'tags', 'featured_image_url'];
+    
+    fieldsToTrack.forEach(field => {
+      if (JSON.stringify(original[field]) !== JSON.stringify(updated[field])) {
+        changes[field] = {
+          from: original[field],
+          to: updated[field]
+        };
+      }
+    });
+    
+    return changes;
+  }
+
+  /**
+   * Generate human-readable change summary
+   */
+  private static generateChangeSummary(changes: any): string {
+    const summaries = [];
+    
+    if (changes.title) summaries.push('Title changed');
+    if (changes.content) summaries.push('Content modified');
+    if (changes.excerpt) summaries.push('Excerpt updated');
+    if (changes.category_id) summaries.push('Category changed');
+    if (changes.tags) summaries.push('Tags modified');
+    if (changes.featured_image_url) summaries.push('Featured image changed');
+    
+    return summaries.join(', ') || 'Post updated';
   }
 
   /**
@@ -436,6 +492,57 @@ export class BlogService {
         totalLikes: 0,
         totalCategories: 0
       };
+    }
+  }
+
+  /**
+   * Get count of blog posts pending approval
+   */
+  static async getPendingApprovalsCount(): Promise<number> {
+    try {
+      const { count } = await supabase
+        .from('blog_posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('requires_approval', true)
+        .eq('approval_status', 'pending');
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error getting pending approvals count:', error);
+      return 0;
+    }
+  }
+
+
+
+  /**
+   * Reject a blog post (admin only)
+   */
+  static async rejectPost(id: string, reason?: string): Promise<boolean> {
+    try {
+      const updateData = {
+        approval_status: 'rejected' as const,
+        rejection_reason: reason || null,
+        requires_approval: false, // Clear the approval requirement
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Rejecting post with data:', updateData);
+      
+      const { error } = await supabase
+        .from('blog_posts')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Database rejection error:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error rejecting post:', error);
+      return false;
     }
   }
 
@@ -601,56 +708,143 @@ export class BlogService {
   }
 
   /**
-   * Approve a blog post (admin only)
+   * Get posts by editor (for blog editor dashboard)
    */
-  static async approvePost(id: string, adminId: string): Promise<boolean> {
+  static async getPostsByEditor(editorEmail: string): Promise<BlogPost[]> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('blog_posts')
-        .update({ 
-          requires_approval: false,
-          status: 'published',
-          published_at: new Date().toISOString(),
-          approved_by: adminId,
-          approved_at: new Date().toISOString()
-        })
-        .eq('id', id);
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .eq('author_email', editorEmail)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        return false;
+        return [];
       }
 
-      return true;
+      return data || [];
     } catch (error) {
-      return false;
+      return [];
     }
   }
 
   /**
-   * Reject a blog post (admin only)
+   * Get pending requests by editor
    */
-  static async rejectPost(id: string, adminId: string, reason?: string): Promise<boolean> {
+  static async getPendingRequestsByEditor(editorEmail: string): Promise<BlogPost[]> {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .eq('author_email', editorEmail)
+        .eq('requires_approval', true)
+        .in('approval_status', ['pending', 'rejected'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Get completed requests by editor (approved posts)
+   */
+  static async getCompletedRequestsByEditor(editorEmail: string): Promise<BlogPost[]> {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .eq('author_email', editorEmail)
+        .eq('approval_status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Get requests by editor with filter
+   */
+  static async getRequestsByEditor(editorEmail: string, filter: 'pending' | 'rejected' | 'completed' | 'all' = 'pending'): Promise<BlogPost[]> {
+    try {
+      let query = supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .eq('author_email', editorEmail);
+
+      if (filter === 'pending') {
+        query = query.eq('requires_approval', true).eq('approval_status', 'pending');
+      } else if (filter === 'rejected') {
+        query = query.eq('approval_status', 'rejected');
+      } else if (filter === 'completed') {
+        query = query.eq('approval_status', 'approved');
+      }
+      // For 'all', no additional filters needed
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Approve a blog post (admin only)
+   */
+  static async approvePost(id: string, adminId?: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('blog_posts')
         .update({ 
           requires_approval: false,
-          status: 'draft',
-          rejected_by: adminId,
-          rejected_at: new Date().toISOString(),
-          rejection_reason: reason
+          approval_status: 'approved' as const,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('id', id);
 
       if (error) {
+        console.error('Error approving post:', error);
         return false;
       }
 
       return true;
     } catch (error) {
+      console.error('Error approving post:', error);
       return false;
     }
   }
+
+
 
   /**
    * Sync blog post like counts with the blog_likes table

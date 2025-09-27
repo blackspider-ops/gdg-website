@@ -188,11 +188,16 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   }, [teamMembers.length]);
 
   // Lazy load projects with caching
-  const loadProjects = useCallback(async () => {
-    if (projects.length > 0) return; // Already loaded
+  const loadProjects = useCallback(async (forceReload = false) => {
+    if (projects.length > 0 && !forceReload) return; // Already loaded
     
     try {
       setIsLoadingProjects(true);
+      
+      if (forceReload) {
+        OptimizedContentService.invalidateCache('projects');
+      }
+      
       const projectsData = await OptimizedContentService.getProjects();
       setProjects(projectsData);
     } catch (error) {
@@ -253,6 +258,20 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         .on('postgres_changes', { event: '*', schema: 'public', table: 'footer_content' }, () => {
           setTimeout(() => loadEssentialContent(), 500);
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'page_content' }, () => {
+          // Smart update: only refresh if no one is currently editing
+          setTimeout(() => {
+            // Check if any editing is happening by looking for edit buttons or forms
+            const editingElements = document.querySelectorAll('[data-editing="true"], .editing-active');
+            const savingElements = document.querySelectorAll('[data-saving="true"]');
+            
+            // Only update if no editing or saving is happening
+            if (editingElements.length === 0 && savingElements.length === 0) {
+              OptimizedContentService.invalidateCache('pageContent');
+              loadEssentialContent();
+            }
+          }, 2000); // 2 second delay for safety
+        })
         .subscribe(),
 
       // Specific subscriptions for dynamic content (only reload specific sections)
@@ -272,13 +291,22 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
             loadTeamMembers();
           }
         })
+        .subscribe(),
+
+      supabase
+        .channel('projects_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+          if (projects.length > 0) {
+            loadProjects(true); // Force reload when projects change
+          }
+        })
         .subscribe()
     ];
 
     return () => {
       subscriptions.forEach(sub => sub.unsubscribe());
     };
-  }, [events.length, teamMembers.length, loadEvents, loadTeamMembers]);
+  }, [events.length, teamMembers.length, projects.length, loadEvents, loadTeamMembers, loadProjects]);
 
   const refreshContent = async () => {
     // Clear all caches and reload essential content

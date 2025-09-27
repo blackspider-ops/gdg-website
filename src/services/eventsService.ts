@@ -13,6 +13,7 @@ export interface Event {
   max_participants?: number;
   registration_enabled?: boolean;
   is_featured: boolean;
+  level?: 'beginner' | 'intermediate' | 'advanced' | 'open_for_all';
   external_attendees?: number;
   created_at: string;
   updated_at: string;

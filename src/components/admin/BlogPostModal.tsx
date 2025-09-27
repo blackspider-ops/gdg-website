@@ -147,6 +147,11 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
       // Generate slug if empty
       const slug = formData.slug.trim() || BlogService.generateSlug(formData.title);
       
+      // Blog editors: all posts (new or edited) require approval
+      const isBlogEditor = currentAdmin?.role === 'blog_editor';
+      const finalStatus = isBlogEditor ? 'draft' : formData.status;
+      const requiresApproval = isBlogEditor; // All blog editor actions require approval
+
       const postData = {
         title: formData.title.trim(),
         slug: slug,
@@ -157,24 +162,26 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
         author_email: formData.author_email.trim() || null,
         category_id: formData.category_id || null,
         tags: formData.tags,
-        status: formData.status,
-        is_featured: formData.is_featured,
+        status: finalStatus,
+        is_featured: isBlogEditor ? false : formData.is_featured, // Blog editors can't feature posts
         read_time_minutes: BlogService.calculateReadTime(formData.content),
-        published_at: formData.status === 'published' && formData.published_at
+        published_at: finalStatus === 'published' && formData.published_at
           ? new Date(formData.published_at).toISOString()
-          : formData.status === 'published'
+          : finalStatus === 'published'
             ? new Date().toISOString()
             : null,
-        created_by: currentAdmin?.id || null,
+        created_by: post?.created_by || currentAdmin?.id || null,
         updated_by: currentAdmin?.id || null,
         views_count: post?.views_count || 0,
-        likes_count: post?.likes_count || 0
+        likes_count: post?.likes_count || 0,
+        requires_approval: requiresApproval,
+        approval_status: isBlogEditor ? 'pending' : (post?.approval_status || 'approved')
       };
 
       if (post) {
-        await BlogService.updatePost(post.id, postData);
+        await BlogService.updatePost(post.id, postData, currentAdmin?.role, currentAdmin?.id);
       } else {
-        await BlogService.createPost(postData);
+        await BlogService.createPost(postData, currentAdmin?.role);
       }
       onSave(); // Refresh the parent component
       onClose(); // Close the modal
@@ -364,11 +371,11 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
                     required
                   >
                     <option value="">Select a category (required)</option>
-                    {categories.filter(cat => cat.is_active).map(category => (
+                    {(categories || []).filter(cat => cat.is_active).map(category => (
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
-                  {categories.length === 0 ? (
+                  {(categories || []).length === 0 ? (
                     <p className="text-xs text-red-400 mt-1">
                       No categories available. Please create a category first in the Categories tab.
                     </p>
@@ -378,18 +385,34 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
                     </p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-foreground">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
-                    className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                </div>
+                {/* Hide status field from blog editors */}
+                {currentAdmin?.role !== 'blog_editor' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Status</label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
+                      className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
+                )}
+                
+                {/* Show approval notice for blog editors */}
+                {currentAdmin?.role === 'blog_editor' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Status</label>
+                    <div className="w-full px-4 py-3 bg-yellow-900/20 border border-yellow-800 rounded-lg">
+                      <p className="text-sm text-yellow-400">Draft - Pending Approval</p>
+                      <p className="text-xs text-yellow-300 mt-1">
+                        {post ? 'Your changes will be reviewed by an admin before publishing' : 'Your post will be reviewed by an admin before publishing'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tags */}
@@ -443,18 +466,21 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
               )}
 
               {/* Featured Toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="block text-sm font-medium text-foreground">Featured Post</label>
-                  <p className="text-xs text-muted-foreground">Show this post prominently on the blog page</p>
+              {/* Hide featured post option from blog editors */}
+              {currentAdmin?.role !== 'blog_editor' && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Featured Post</label>
+                    <p className="text-xs text-muted-foreground">Show this post prominently on the blog page</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.is_featured}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_featured: e.target.checked }))}
+                    className="w-4 h-4 text-primary bg-background border border-border rounded focus:ring-2 focus:ring-primary"
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={formData.is_featured}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_featured: e.target.checked }))}
-                  className="w-4 h-4 text-primary bg-background border border-border rounded focus:ring-2 focus:ring-primary"
-                />
-              </div>
+              )}
             </div>
           )}
         </div>

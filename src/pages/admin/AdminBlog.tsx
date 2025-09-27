@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link, useSearchParams } from 'react-router-dom';
 import {
   FileText,
   Plus,
@@ -22,7 +22,8 @@ import {
   Upload,
   Download,
   Check,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
@@ -35,7 +36,8 @@ import BlogAnalytics from '@/components/admin/BlogAnalytics';
 
 const AdminBlog = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = useState('posts');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [submissions, setSubmissions] = useState<BlogSubmission[]>([]);
@@ -49,6 +51,7 @@ const AdminBlog = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [editingCategory, setEditingCategory] = useState<BlogCategory | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<BlogSubmission | null>(null);
+  const [showChanges, setShowChanges] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [blogStats, setBlogStats] = useState({
     totalPosts: 0,
@@ -119,6 +122,25 @@ const AdminBlog = () => {
   const handleDeletePost = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this blog post?')) {
       const success = await BlogService.deletePost(id);
+      if (success) {
+        await loadBlogData();
+      }
+    }
+  };
+
+  const handleApprovePost = async (id: string) => {
+    if (window.confirm('Approve and publish this blog post?')) {
+      const success = await BlogService.approvePost(id);
+      if (success) {
+        await loadBlogData();
+      }
+    }
+  };
+
+  const handleRejectPost = async (id: string) => {
+    const reason = window.prompt('Reason for rejection (optional):');
+    if (reason !== null) { // User didn't cancel
+      const success = await BlogService.rejectPost(id, reason);
       if (success) {
         await loadBlogData();
       }
@@ -299,6 +321,17 @@ const AdminBlog = () => {
       icon={FileText}
       actions={
         <div className="flex items-center space-x-3">
+          {/* Back button for blog editors */}
+          {currentAdmin?.role === 'blog_editor' && (
+            <Link
+              to="/admin/blog-editor"
+              className="flex items-center space-x-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-muted-foreground"
+            >
+              <ArrowLeft size={16} />
+              <span>Back to Dashboard</span>
+            </Link>
+          )}
+          
           {activeTab === 'posts' && (
             <button
               onClick={handleCreatePost}
@@ -387,8 +420,11 @@ const AdminBlog = () => {
         <nav className="flex space-x-8">
           {[
             { id: 'posts', label: 'Blog Posts', icon: FileText },
-            { id: 'categories', label: 'Categories', icon: Tag },
-            { id: 'submissions', label: 'Submissions', icon: Upload },
+            ...(currentAdmin?.role !== 'blog_editor' ? [
+              { id: 'categories', label: 'Categories', icon: Tag },
+              { id: 'submissions', label: 'Submissions', icon: Upload },
+              { id: 'approvals', label: 'Approvals', icon: Clock }
+            ] : []),
             { id: 'analytics', label: 'Analytics', icon: BarChart3 }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -554,20 +590,32 @@ const AdminBlog = () => {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-2">
+                            {/* Blog editors can edit any post, but changes go to approval */}
                             <button
                               onClick={() => handleEditPost(post)}
                               className="p-2 text-muted-foreground hover:text-primary transition-colors"
-                              title="Edit post"
+                              title={currentAdmin?.role === 'blog_editor' ? 'Edit post (requires approval)' : 'Edit post'}
                             >
                               <Edit3 size={16} />
                             </button>
-                            <button
-                              onClick={() => handleDeletePost(post.id)}
-                              className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
-                              title="Delete post"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            
+                            {/* Blog editors cannot delete posts */}
+                            {currentAdmin?.role !== 'blog_editor' && (
+                              <button
+                                onClick={() => handleDeletePost(post.id)}
+                                className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
+                                title="Delete post"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                            
+                            {/* Show approval status for blog editor posts */}
+                            {currentAdmin?.role !== 'blog_editor' && post.created_by !== currentAdmin?.id && post.requires_approval && (
+                              <span className="px-2 py-1 text-xs bg-yellow-900/20 text-yellow-400 rounded">
+                                Needs Approval
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -837,6 +885,103 @@ const AdminBlog = () => {
         </div>
       )}
 
+      {/* Approvals Tab */}
+      {activeTab === 'approvals' && currentAdmin?.role !== 'blog_editor' && (
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-lg">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">Pending Approvals</h3>
+              <p className="text-muted-foreground text-sm mt-1">
+                Review and approve blog posts from blog editors
+              </p>
+            </div>
+            
+            <div className="p-6">
+              {posts.filter(post => post.requires_approval && post.approval_status === 'pending').length === 0 ? (
+                <div className="text-center py-12">
+                  <Check size={48} className="mx-auto text-green-400 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
+                  <p className="text-muted-foreground">No blog posts pending approval.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {posts
+                    .filter(post => post.requires_approval && post.approval_status === 'pending')
+                    .map((post) => (
+                      <div key={post.id} className="border border-border rounded-lg p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-foreground mb-2">{post.title}</h4>
+                            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{post.excerpt}</p>
+                            
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
+                              <span>By: {post.author_name}</span>
+                              <span>•</span>
+                              <span>Created: {new Date(post.created_at).toLocaleDateString()}</span>
+                              {post.updated_at !== post.created_at && (
+                                <>
+                                  <span>•</span>
+                                  <span>Modified: {new Date(post.updated_at).toLocaleDateString()}</span>
+                                </>
+                              )}
+                              <span>•</span>
+                              <span className="px-2 py-1 bg-yellow-900/20 text-yellow-400 rounded">
+                                Pending Approval
+                              </span>
+                            </div>
+                            
+                            {/* Show change summary for edited posts */}
+                            {post.change_summary && (
+                              <div className="mb-4 p-3 bg-blue-900/20 border border-blue-800 rounded-lg">
+                                <h5 className="text-sm font-medium text-blue-400 mb-2">Changes Made:</h5>
+                                <p className="text-sm text-blue-300">{post.change_summary}</p>
+                                {post.pending_changes && (
+                                  <button
+                                    onClick={() => setShowChanges(post.id)}
+                                    className="text-xs text-blue-400 hover:text-blue-300 mt-2 underline"
+                                  >
+                                    View detailed changes
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center space-x-3">
+                              <button
+                                onClick={() => handleApprovePost(post.id)}
+                                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                              >
+                                <Check size={16} />
+                                <span>Approve & Publish</span>
+                              </button>
+                              
+                              <button
+                                onClick={() => handleEditPost(post)}
+                                className="flex items-center space-x-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                              >
+                                <Edit3 size={16} />
+                                <span>Edit</span>
+                              </button>
+                              
+                              <button
+                                onClick={() => handleRejectPost(post.id)}
+                                className="flex items-center space-x-2 px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-600/10 transition-colors"
+                              >
+                                <X size={16} />
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Analytics Tab */}
       {activeTab === 'analytics' && (
         <BlogAnalytics />
@@ -859,6 +1004,58 @@ const AdminBlog = () => {
           onClose={() => setShowCategoryModal(false)}
           onSave={loadBlogData}
         />
+      )}
+
+      {/* Change Details Modal */}
+      {showChanges && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-lg max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Detailed Changes</h3>
+              <button
+                onClick={() => setShowChanges(null)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {(() => {
+                const post = posts.find(p => p.id === showChanges);
+                if (!post?.pending_changes) return <p>No changes tracked</p>;
+                
+                try {
+                  const changes = JSON.parse(post.pending_changes);
+                  return (
+                    <div className="space-y-4">
+                      {Object.entries(changes).map(([field, change]: [string, any]) => (
+                        <div key={field} className="border border-border rounded-lg p-4">
+                          <h4 className="font-medium text-foreground mb-2 capitalize">{field.replace('_', ' ')}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-red-400 font-medium mb-1">Before:</p>
+                              <div className="p-2 bg-red-900/20 border border-red-800 rounded text-sm">
+                                {typeof change.from === 'object' ? JSON.stringify(change.from) : change.from || 'Empty'}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm text-green-400 font-medium mb-1">After:</p>
+                              <div className="p-2 bg-green-900/20 border border-green-800 rounded text-sm">
+                                {typeof change.to === 'object' ? JSON.stringify(change.to) : change.to || 'Empty'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                } catch (error) {
+                  return <p>Error parsing changes</p>;
+                }
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </AdminLayout>
   );

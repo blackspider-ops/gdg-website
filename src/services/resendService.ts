@@ -11,58 +11,49 @@ export interface ResendEmailData {
 }
 
 export class ResendService {
-  private static readonly EMAIL_API_URL = import.meta.env.VITE_EMAIL_API_URL || 'https://gdg-website-six.vercel.app/api/send-email';
   private static readonly FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'newsletter@decryptpsu.me';
   private static readonly FROM_NAME = import.meta.env.VITE_FROM_NAME || 'GDG@PSU Newsletter';
   private static readonly DOMAIN = import.meta.env.VITE_DOMAIN || 'decryptpsu.me';
 
   static async sendEmail(emailData: ResendEmailData): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
-
+      // Import supabase client
+      const { supabase } = await import('@/lib/supabase');
       
-      // Use backend API endpoint to send email (avoids CORS issues)
-      const response = await fetch(this.EMAIL_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
+      // Use Supabase Edge Function to send email
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: emailData.to,
+          subject: emailData.subject,
+          content: emailData.content,
+          html_content: emailData.html_content,
+          from_email: this.FROM_EMAIL,
+          from_name: this.FROM_NAME
+        }
       });
 
-      if (!response.ok) {
-        // In development, return a mock success to avoid blocking the UI
-        if (import.meta.env.DEV) {
-          return { 
-            success: true, 
-            id: `mock-${Date.now()}`,
-            error: 'Development mode - email not actually sent' 
-          };
-        }
-        
+      if (error) {
+        console.error('Email sending error:', error);
         return { 
           success: false, 
-          error: `API Error: ${response.status} ${response.statusText}` 
+          error: error.message || 'Failed to send email' 
         };
       }
 
-      const result = await response.json();
-
-      if (result.success) {
-        return { success: true, id: result.id };
+      if (data && data.success) {
+        return { success: true, id: data.id };
       } else {
-        return { success: false, error: result.error || 'Unknown error' };
+        return { 
+          success: false, 
+          error: data?.error || 'Unknown error from email service' 
+        };
       }
     } catch (error) {
-      // In development, return a mock success to avoid blocking the UI
-      if (import.meta.env.DEV) {
-        return { 
-          success: true, 
-          id: `mock-error-${Date.now()}`,
-          error: 'Development mode - email not actually sent due to error' 
-        };
-      }
-      
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      console.error('Email service error:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   }
 

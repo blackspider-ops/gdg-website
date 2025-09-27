@@ -3,7 +3,7 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { useContent } from '@/contexts/ContentContext';
 import { Navigate } from 'react-router-dom';
 import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
-import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff, Mail } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Users, MapPin, ExternalLink, UserCheck, X, Save, Search, Filter, Eye, EyeOff, Mail, Star } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { EventsService, type Event } from '@/services/eventsService';
 import { AttendanceService, type Attendee } from '@/services/attendanceService';
@@ -62,7 +62,8 @@ const AdminEvents = () => {
     max_participants: '',
     external_attendees: '',
     registration_enabled: true,
-    is_featured: false
+    is_featured: false,
+    level: 'open_for_all' as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all'
   });
 
   // Load events and stats
@@ -121,7 +122,8 @@ const AdminEvents = () => {
       max_participants: '',
       external_attendees: '',
       registration_enabled: true,
-      is_featured: false
+      is_featured: false,
+      level: 'open_for_all'
     });
     setError(null);
     setSuccess(null);
@@ -145,7 +147,8 @@ const AdminEvents = () => {
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
         external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
         registration_enabled: formData.registration_enabled,
-        is_featured: formData.is_featured
+        is_featured: formData.is_featured,
+        level: formData.level
       };
       
       const created = await EventsService.createEvent(eventData);
@@ -181,7 +184,8 @@ const AdminEvents = () => {
       max_participants: event.max_participants?.toString() || '',
       external_attendees: event.external_attendees?.toString() || '0',
       registration_enabled: event.registration_enabled !== false,
-      is_featured: event.is_featured
+      is_featured: event.is_featured,
+      level: event.level || 'open_for_all'
     });
     setEditingEvent(event);
     setError(null);
@@ -208,7 +212,8 @@ const AdminEvents = () => {
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
         external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
         registration_enabled: formData.registration_enabled,
-        is_featured: formData.is_featured
+        is_featured: formData.is_featured,
+        level: formData.level
       };
       
       const updatedEvent = await EventsService.updateEvent(editingEvent.id, eventData);
@@ -252,18 +257,27 @@ const AdminEvents = () => {
 
   const handleToggleFeatured = async (event: Event) => {
     try {
+      const newFeaturedStatus = !event.is_featured;
       const updated = await EventsService.updateEvent(event.id, {
-        is_featured: !event.is_featured
+        is_featured: newFeaturedStatus
       });
       if (updated) {
-        await loadEvents();
+        // Update the local state immediately for better UX
+        setEvents(prevEvents => 
+          prevEvents.map(e => 
+            e.id === event.id 
+              ? { ...e, is_featured: newFeaturedStatus }
+              : e
+          )
+        );
         await loadEventStats();
         await refreshContent();
-        setSuccess(`Event ${event.is_featured ? 'unfeatured' : 'featured'} successfully!`);
+        setSuccess(`Event ${newFeaturedStatus ? 'featured' : 'unfeatured'} successfully!`);
         setTimeout(() => setSuccess(null), 3000);
       }
     } catch (error) {
       setError('Failed to update event status.');
+      console.error('Toggle featured error:', error);
     }
   };
 
@@ -581,6 +595,21 @@ The GDG@PSU Team`
                             Featured
                           </span>
                         )}
+                        {event.level && (
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium border ${
+                            event.level === 'beginner' ? 'bg-green-900 text-green-300 border-green-600' :
+                            event.level === 'intermediate' ? 'bg-yellow-900 text-yellow-300 border-yellow-600' :
+                            event.level === 'advanced' ? 'bg-red-900 text-red-300 border-red-600' :
+                            event.level === 'open_for_all' ? 'bg-blue-900 text-blue-300 border-blue-600' :
+                            'bg-gray-700 text-gray-300 border-gray-600'
+                          }`}>
+                            {event.level === 'open_for_all' ? 'Open for All' : 
+                             event.level === 'beginner' ? 'Beginner' :
+                             event.level === 'intermediate' ? 'Intermediate' :
+                             event.level === 'advanced' ? 'Advanced' :
+                             event.level}
+                          </span>
+                        )}
                       </div>
                       <p className="text-muted-foreground mb-4">{event.description}</p>
                       
@@ -620,7 +649,10 @@ The GDG@PSU Team`
                         }`}
                         title={event.is_featured ? 'Remove from featured' : 'Mark as featured'}
                       >
-                        <span className={event.is_featured ? 'text-yellow-400' : 'text-gray-400'}>⭐</span>
+                        <Star 
+                          size={18} 
+                          className={event.is_featured ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} 
+                        />
                       </button>
                       <button 
                         onClick={() => handleEditEvent(event)}
@@ -647,9 +679,34 @@ The GDG@PSU Team`
 
       {/* Create Event Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
-          <div className="bg-card rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
-            <div className="p-6 border-b border-border">
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCreateForm(false);
+              resetForm();
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-foreground">Create New Event</h2>
                 <button
@@ -663,8 +720,10 @@ The GDG@PSU Team`
                 </button>
               </div>
             </div>
-              
-            <form onSubmit={handleCreateEvent} className="p-6 space-y-6">
+            
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-auto p-6">
+              <form onSubmit={handleCreateEvent} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Event Title</label>
                 <input
@@ -744,6 +803,23 @@ The GDG@PSU Team`
                     Manual count for external registrations
                   </p>
                 </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Level</label>
+                <select
+                  value={formData.level}
+                  onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all' }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                >
+                  <option value="open_for_all">Open for All</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Select the appropriate skill level for this event
+                </p>
               </div>
 
               {error && (
@@ -782,16 +858,42 @@ The GDG@PSU Team`
                   )}
                 </button>
               </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Edit Event Modal */}
       {editingEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-card/50">
-          <div className="bg-card rounded-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto shadow-xl border border-border">
-            <div className="p-6 border-b border-border">
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setEditingEvent(null);
+              resetForm();
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-foreground">Edit Event</h2>
                 <button
@@ -806,7 +908,9 @@ The GDG@PSU Team`
               </div>
             </div>
             
-            <form onSubmit={handleUpdateEvent} className="p-6 space-y-6">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-auto p-6">
+              <form onSubmit={handleUpdateEvent} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Event Title</label>
                 <input
@@ -888,6 +992,23 @@ The GDG@PSU Team`
                 </div>
               </div>
 
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Level</label>
+                <select
+                  value={formData.level}
+                  onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all' }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                >
+                  <option value="open_for_all">Open for All</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Select the appropriate skill level for this event
+                </p>
+              </div>
+
               {error && (
                 <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
                   {error}
@@ -924,7 +1045,8 @@ The GDG@PSU Team`
                   )}
                 </button>
               </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}

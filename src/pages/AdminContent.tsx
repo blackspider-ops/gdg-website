@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { ContentService } from '@/services/contentService';
+import { OptimizedContentService } from '@/services/optimizedContentService';
+import { supabase } from '@/lib/supabase';
 
 const AdminContent = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
@@ -259,10 +261,10 @@ const AdminContent = () => {
 
       await Promise.all(promises);
 
-      // Force immediate refresh to make changes visible instantly
-      await refreshContent();
-
       setIsEditing(false);
+      
+      // Show success message
+      console.log('Site settings saved successfully');
 
       // Show success feedback
     } catch (error) {
@@ -272,65 +274,83 @@ const AdminContent = () => {
     }
   };
 
+  // Simple save function that bypasses all cache systems
+  const savePageContentDirect = async (pageSlug: string, sectionKey: string, content: any) => {
+    const { error } = await supabase
+      .from('page_content')
+      .upsert({
+        page_slug: pageSlug,
+        section_key: sectionKey,
+        content,
+        is_active: true,
+        order_index: 0,
+        updated_by: currentAdmin?.id,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'page_slug,section_key'
+      });
+    
+    if (error) throw error;
+    return true;
+  };
+
   const handleSaveHomePage = async () => {
     setIsSaving(true);
     try {
-      // Save each section separately
-      const heroData = {
-        badge_text: homePageForm.hero_badge_text,
-        title: homePageForm.hero_title,
-        subtitle: homePageForm.hero_subtitle,
-        description: homePageForm.hero_description,
-        primary_cta_text: homePageForm.hero_primary_cta_text,
-        primary_cta_link: homePageForm.hero_primary_cta_link,
-        secondary_cta_text: homePageForm.hero_secondary_cta_text,
-        secondary_cta_link: homePageForm.hero_secondary_cta_link
-      };
-
-      const tracksData = {
-        title: homePageForm.tracks_title,
-        description: homePageForm.tracks_description,
-        items: homePageForm.tracks_items
-      };
-
-      const eventsData = {
-        title: homePageForm.events_title,
-        description: homePageForm.events_description,
-        cta_text: homePageForm.events_cta_text,
-        cta_link: homePageForm.events_cta_link
-      };
-
-      const projectsData = {
-        title: homePageForm.projects_title,
-        description: homePageForm.projects_description,
-        cta_text: homePageForm.projects_cta_text,
-        cta_link: homePageForm.projects_cta_link
-      };
-
-      const communityData = {
-        title: homePageForm.community_title,
-        description: homePageForm.community_description,
-        cta_text: homePageForm.community_cta_text,
-        cta_link: homePageForm.community_cta_link,
-        feature_1: homePageForm.community_feature_1,
-        feature_2: homePageForm.community_feature_2,
-        feature_3: homePageForm.community_feature_3
-      };
-
-      // Save all sections
       await Promise.all([
-        ContentService.updatePageContent('home', 'hero', heroData, currentAdmin?.id),
-        ContentService.updatePageContent('home', 'tracks', tracksData, currentAdmin?.id),
-        ContentService.updatePageContent('home', 'events', eventsData, currentAdmin?.id),
-        ContentService.updatePageContent('home', 'projects', projectsData, currentAdmin?.id),
-        ContentService.updatePageContent('home', 'community', communityData, currentAdmin?.id)
+        savePageContentDirect('home', 'hero', {
+          badge_text: homePageForm.hero_badge_text,
+          title: homePageForm.hero_title,
+          subtitle: homePageForm.hero_subtitle,
+          description: homePageForm.hero_description,
+          primary_cta_text: homePageForm.hero_primary_cta_text,
+          primary_cta_link: homePageForm.hero_primary_cta_link,
+          secondary_cta_text: homePageForm.hero_secondary_cta_text,
+          secondary_cta_link: homePageForm.hero_secondary_cta_link
+        }),
+        savePageContentDirect('home', 'tracks', {
+          title: homePageForm.tracks_title,
+          description: homePageForm.tracks_description,
+          items: homePageForm.tracks_items
+        }),
+        savePageContentDirect('home', 'events', {
+          title: homePageForm.events_title,
+          description: homePageForm.events_description,
+          cta_text: homePageForm.events_cta_text,
+          cta_link: homePageForm.events_cta_link
+        }),
+        savePageContentDirect('home', 'projects', {
+          title: homePageForm.projects_title,
+          description: homePageForm.projects_description,
+          cta_text: homePageForm.projects_cta_text,
+          cta_link: homePageForm.projects_cta_link
+        }),
+        savePageContentDirect('home', 'community', {
+          title: homePageForm.community_title,
+          description: homePageForm.community_description,
+          cta_text: homePageForm.community_cta_text,
+          cta_link: homePageForm.community_cta_link,
+          feature_1: homePageForm.community_feature_1,
+          feature_2: homePageForm.community_feature_2,
+          feature_3: homePageForm.community_feature_3
+        })
       ]);
 
-      await refreshContent();
       setIsEditing(false);
+      
+      // Safe cache invalidation after successful save
+      setTimeout(() => {
+        // Clear page content cache so public site gets fresh data
+        OptimizedContentService.invalidateCache('pageContent');
+        OptimizedContentService.clearAllCaches();
+        
+        // Show success feedback
+        console.log('✅ Content saved and cache updated');
+      }, 500);
+      
     } catch (error) {
-    // Silently handle errors
-  } finally {
+      console.error('Error saving home page:', error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -346,8 +366,8 @@ const AdminContent = () => {
 
       const result = await ContentService.updatePageContent('contact', 'main', contactPageData, currentAdmin?.id);
 
-      await refreshContent();
       setIsEditing(false);
+      console.log('Contact page content saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -365,8 +385,8 @@ const AdminContent = () => {
         currentAdmin?.id
       );
 
-      await refreshContent();
       setIsEditing(false);
+      console.log('Links & URLs saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -488,8 +508,9 @@ const AdminContent = () => {
 
       // Execute all operations
       await Promise.all([...deletePromises, ...updatePromises]);
-      await refreshContent();
+      
       setIsEditing(false);
+      console.log('Navigation saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -520,8 +541,8 @@ const AdminContent = () => {
       // Save Newsletter Settings
       await ContentService.updateFooterContent('newsletter', JSON.stringify(footerForm.newsletter), currentAdmin?.id);
 
-      await refreshContent();
       setIsEditing(false);
+      console.log('Footer content saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -786,6 +807,7 @@ const AdminContent = () => {
                 if (activeTab === 'footer') handleSaveFooter();
               }}
               disabled={isSaving}
+              data-saving={isSaving}
               className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
             >
               <Save size={16} />
@@ -822,7 +844,7 @@ const AdminContent = () => {
 
       {/* Site Settings */}
       {activeTab === 'site-settings' && (
-        <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="bg-card rounded-xl shadow-sm border border-border" data-editing={isEditing}>
           <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-foreground">Site Settings</h2>
@@ -943,7 +965,7 @@ const AdminContent = () => {
 
       {/* Home Page */}
       {activeTab === 'home-page' && (
-        <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="bg-card rounded-xl shadow-sm border border-border" data-editing={isEditing}>
           <div className="p-6 border-b border-border flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-foreground">Home Page Content</h2>
