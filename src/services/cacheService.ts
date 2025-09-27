@@ -148,6 +148,38 @@ class CacheService {
     }
   }
 
+  // Clear cache for specific content types (for admin updates)
+  clearContentType(contentType: string): void {
+    // Clear from all storage types
+    ['memory', 'localStorage', 'sessionStorage'].forEach(storageType => {
+      if (storageType === 'memory') {
+        const keysToDelete = Array.from(this.memoryCache.keys()).filter(key => 
+          key.includes(contentType)
+        );
+        keysToDelete.forEach(key => this.memoryCache.delete(key));
+      } else {
+        const storage = this.getStorage(storageType as any);
+        if (storage) {
+          const keys = Object.keys(storage).filter(key => 
+            key.startsWith('gdg_cache_') && key.includes(contentType)
+          );
+          keys.forEach(key => storage.removeItem(key));
+        }
+      }
+    });
+  }
+
+  // Force refresh by clearing all caches and adding timestamp
+  forceRefresh(): void {
+    this.clear();
+    // Also clear service worker cache if available
+    if ('serviceWorker' in navigator && 'caches' in window) {
+      import('../utils/serviceWorker').then(({ clearContentCache }) => {
+        clearContentCache();
+      });
+    }
+  }
+
   // Preload data in the background
   async preload<T>(
     key: string,

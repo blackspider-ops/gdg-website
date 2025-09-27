@@ -183,7 +183,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-card/30 border-t border-border">
+    <footer className="bg-card/60 border-t border-border">
       <div className="editorial-grid py-20 max-w-7xl mx-auto">
         {/* Main Footer Content */}
         <div className="col-span-12 md:col-span-6 lg:col-span-4">

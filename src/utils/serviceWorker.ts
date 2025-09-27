@@ -127,3 +127,61 @@ export function initServiceWorker() {
     });
   }
 }
+
+// Cache invalidation functions
+export async function clearContentCache() {
+  if ('serviceWorker' in navigator && 'caches' in window) {
+    try {
+      const cacheNames = await caches.keys();
+      const dynamicCaches = cacheNames.filter(name => 
+        name.includes('dynamic') || name.includes('gdg-website')
+      );
+      
+      await Promise.all(
+        dynamicCaches.map(cacheName => caches.delete(cacheName))
+      );
+      
+      // Also send message to service worker to clear specific patterns
+      const registration = await navigator.serviceWorker.ready;
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'CLEAR_ADMIN_CONTENT_CACHE'
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      return false;
+    }
+  }
+  return false;
+}
+
+export async function clearSpecificCache(pattern: string) {
+  if ('serviceWorker' in navigator && 'caches' in window) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'CLEAR_SPECIFIC_CACHE',
+          pattern: pattern
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to clear specific cache:', error);
+      return false;
+    }
+  }
+  return false;
+}
+
+// Force refresh content by adding cache-busting parameter
+export function forceRefreshContent() {
+  const timestamp = Date.now();
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set('_refresh', timestamp.toString());
+  window.history.replaceState({}, '', currentUrl.toString());
+  window.location.reload();
+}

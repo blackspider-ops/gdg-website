@@ -14,7 +14,7 @@ export interface AdminUser {
   id: string;
   email: string;
   password_hash: string;
-  role: 'super_admin' | 'admin';
+  role: 'super_admin' | 'admin' | 'blog_editor';
   is_active: boolean;
   created_at: string;
   last_login?: string;

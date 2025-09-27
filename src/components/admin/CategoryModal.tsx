@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Palette } from 'lucide-react';
 import { BlogService, BlogCategory } from '@/services/blogService';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface CategoryModalProps {
   category: BlogCategory | null;
@@ -27,6 +28,9 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   // Refs for focus management
   const modalRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  
+  // Lock body scroll when modal is open
+  useBodyScrollLock(true);
 
   const colorOptions = [
     '#3B82F6', // Blue
@@ -54,12 +58,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     }
   }, [category]);
 
-  // Handle scroll lock and focus management
+  // Handle focus management and keyboard events
   useEffect(() => {
-    // Lock body scroll
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = 'hidden';
-    
     // Focus the first input after a short delay
     const focusTimer = setTimeout(() => {
       if (nameInputRef.current) {
@@ -74,37 +74,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
       }
     };
 
-    // Handle tab trapping
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusableElements = modalRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement.focus();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
-        }
-      }
-    };
-
     document.addEventListener('keydown', handleEscape);
-    document.addEventListener('keydown', handleTabKey);
 
     // Cleanup
     return () => {
-      document.body.style.overflow = originalStyle;
       document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('keydown', handleTabKey);
       clearTimeout(focusTimer);
     };
   }, [onClose]);
@@ -145,20 +119,33 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      style={{ 
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
+      onWheel={(e) => e.preventDefault()}
+      onTouchMove={(e) => e.preventDefault()}
+      onScroll={(e) => e.preventDefault()}
     >
       <div 
         ref={modalRef}
-        className="bg-card border border-border rounded-lg w-full max-w-md"
+        className="bg-card border border-border rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">
             {category ? 'Edit Category' : 'Create New Category'}
           </h2>
@@ -170,8 +157,9 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto overflow-auto p-6">
+          <div className="space-y-6">
           {/* Name */}
           <div>
             <label className="block text-sm font-medium mb-2 text-foreground">Name *</label>
@@ -260,10 +248,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
               className="w-4 h-4 text-primary bg-background border border-border rounded focus:ring-2 focus:ring-primary"
             />
           </div>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border">
+        {/* Fixed Footer */}
+        <div className="flex-shrink-0 flex items-center justify-end space-x-3 p-6 border-t border-border">
           <button
             onClick={onClose}
             className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"

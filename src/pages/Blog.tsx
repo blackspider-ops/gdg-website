@@ -1,18 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, Tag, ArrowRight } from 'lucide-react';
+import { Calendar, User, Tag, ArrowRight, ExternalLink, Filter, Grid, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BlogService, BlogPost } from '@/services/blogService';
+import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import BlogPostModal from '@/components/BlogPostModal';
+import BlogLikeButton from '@/components/BlogLikeButton';
 
 const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAllPosts, setShowAllPosts] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'views' | 'likes'>('date');
 
   useEffect(() => {
     loadBlogPosts();
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      const blogCategories = await BlogService.getCategories();
+      setCategories(blogCategories);
+    } catch (error) {
+      // Silently handle loading errors
+    }
+  };
+
+  // Reload categories periodically to catch updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadCategories();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadBlogPosts = async () => {
@@ -54,9 +78,31 @@ const Blog = () => {
     setSelectedPost(null);
   };
 
-  // Use only real posts from database
-  const featuredPost = posts.find(post => post.is_featured);
-  const regularPosts = posts.filter(post => !post.is_featured);
+  // Filter and sort posts
+  const filteredPosts = posts.filter(post => {
+    if (selectedCategory === 'all') return true;
+    return post.category_id === selectedCategory;
+  });
+
+  const sortedPosts = [...filteredPosts].sort((a, b) => {
+    switch (sortBy) {
+      case 'views':
+        return (b.views_count || 0) - (a.views_count || 0);
+      case 'likes':
+        return (b.likes_count || 0) - (a.likes_count || 0);
+      case 'date':
+      default:
+        return new Date(b.published_at || b.created_at).getTime() - new Date(a.published_at || a.created_at).getTime();
+    }
+  });
+
+  // Use filtered and sorted posts
+  const featuredPost = showAllPosts ? null : sortedPosts.find(post => post.is_featured);
+  const regularPosts = showAllPosts 
+    ? sortedPosts 
+    : sortedPosts.filter(post => !post.is_featured);
+
+  const displayPosts = showAllPosts ? sortedPosts : regularPosts;
 
   return (
     <div className="min-h-screen bg-background pt-16">
@@ -71,6 +117,53 @@ const Blog = () => {
               Insights, tutorials, and updates from our community. Learn about the latest 
               technologies, workshop recaps, and member spotlights.
             </p>
+          </div>
+          
+          {/* Controls */}
+          <div className="col-span-12 mt-8">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setShowAllPosts(!showAllPosts)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
+                    showAllPosts 
+                      ? 'bg-gdg-blue text-white border-gdg-blue' 
+                      : 'border-border hover:bg-muted'
+                  }`}
+                >
+                  {showAllPosts ? <List size={16} /> : <Grid size={16} />}
+                  <span>{showAllPosts ? 'Featured View' : 'All Posts'}</span>
+                </button>
+
+                {/* Category Filter */}
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-gdg-blue"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Options */}
+              <div className="flex items-center space-x-2">
+                <Filter size={16} className="text-muted-foreground" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'date' | 'views' | 'likes')}
+                  className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-gdg-blue text-sm"
+                >
+                  <option value="date">Latest</option>
+                  <option value="views">Most Viewed</option>
+                  <option value="likes">Most Liked</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -98,10 +191,7 @@ const Blog = () => {
             </div>
 
             <div className="col-span-12 gdg-accent-bar pl-6">
-              <article 
-                className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => openPostModal(featuredPost)}
-              >
+              <article className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="p-8">
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center space-x-2">
@@ -135,30 +225,50 @@ const Blog = () => {
                       ))}
                     </div>
 
-                    <button 
-                      onClick={() => openPostModal(featuredPost)}
-                      className="inline-flex items-center text-gdg-blue hover:text-gdg-blue/80 transition-colors group"
-                    >
-                      Read More
-                      <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    <div className="flex items-center space-x-4">
+                      <button 
+                        onClick={() => openPostModal(featuredPost)}
+                        className="inline-flex items-center text-gdg-blue hover:text-gdg-blue/80 transition-colors group"
+                      >
+                        Read More
+                        <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      
+                      <BlogLikeButton 
+                        postId={featuredPost.id} 
+                        initialLikeCount={featuredPost.likes_count || 0}
+                      />
+                      
+                      <Link
+                        to={`/blog/${featuredPost.slug}`}
+                        className="inline-flex items-center px-3 py-1 text-sm border border-border rounded-lg hover:bg-muted transition-colors group"
+                      >
+                        <ExternalLink size={14} className="mr-1" />
+                        Open Page
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </article>
             </div>
-
-
           </div>
         </section>
       )}
 
-      {/* Recent Posts */}
+      {/* Posts Grid */}
       {!isLoading && (
         <section className="py-16 bg-muted/20">
           <div className="editorial-grid">
             {posts.length > 0 && (
               <div className="col-span-12">
-                <h2 className="text-display text-2xl font-semibold mb-8">Recent Posts</h2>
+                <h2 className="text-display text-2xl font-semibold mb-8">
+                  {showAllPosts ? 'All Posts' : 'Recent Posts'}
+                  {selectedCategory !== 'all' && (
+                    <span className="text-lg text-muted-foreground ml-2">
+                      in {categories.find(c => c.id === selectedCategory)?.name}
+                    </span>
+                  )}
+                </h2>
               </div>
             )}
 
@@ -167,59 +277,105 @@ const Blog = () => {
                 <h3 className="text-lg font-semibold mb-2">No blog posts yet</h3>
                 <p className="text-muted-foreground">Check back soon for updates from our community!</p>
               </div>
-            ) : regularPosts.length > 0 ? (
+            ) : displayPosts.length > 0 ? (
               <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {regularPosts.map((post, index) => (
-              <article 
-                key={index} 
-                className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow group cursor-pointer"
-                onClick={() => openPostModal(post)}
-              >
-                <div className="p-6">
-                  <div className="flex items-center space-x-4 text-xs text-muted-foreground mb-3">
-                    <div className="flex items-center space-x-1">
-                      <User size={14} />
-                      <span>{post.author_name}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar size={14} />
-                      <span>{post.published_at ? new Date(post.published_at).toLocaleDateString() : 'No date'}</span>
-                    </div>
-                  </div>
-
-                  <h3 
-                    className="font-display font-semibold text-lg mb-3 group-hover:text-gdg-blue transition-colors cursor-pointer"
-                    onClick={() => openPostModal(post)}
+                {displayPosts.map((post, index) => (
+                  <article 
+                    key={post.id || index} 
+                    className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow group"
                   >
-                    {post.title}
-                  </h3>
-                  
-                  <p className="text-muted-foreground text-sm mb-4">
-                    {post.excerpt}
-                  </p>
+                    <div className="p-6">
+                      {/* Category Badge */}
+                      {post.category && (
+                        <div className="mb-3">
+                          <span 
+                            className="px-2 py-1 text-xs rounded-full"
+                            style={{ 
+                              backgroundColor: `${post.category.color}20`,
+                              color: post.category.color 
+                            }}
+                          >
+                            {post.category.name}
+                          </span>
+                        </div>
+                      )}
 
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <div className="flex flex-wrap gap-1">
-                      {(post.tags || []).slice(0, 2).map((tag) => (
-                        <span key={tag} className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
-                          {tag}
+                      <div className="flex items-center space-x-4 text-xs text-muted-foreground mb-3">
+                        <div className="flex items-center space-x-1">
+                          <User size={14} />
+                          <span>{post.author_name}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Calendar size={14} />
+                          <span>{post.published_at ? new Date(post.published_at).toLocaleDateString() : 'No date'}</span>
+                        </div>
+                      </div>
+
+                      <h3 
+                        className="font-display font-semibold text-lg mb-3 group-hover:text-gdg-blue transition-colors cursor-pointer"
+                        onClick={() => openPostModal(post)}
+                      >
+                        {post.title}
+                      </h3>
+                      
+                      <p className="text-muted-foreground text-sm mb-4">
+                        {post.excerpt}
+                      </p>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-border">
+                        <div className="flex flex-wrap gap-1">
+                          {(post.tags || []).slice(0, 2).map((tag) => (
+                            <span key={tag} className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {post.read_time_minutes ? `${post.read_time_minutes} min read` : '5 min read'}
                         </span>
-                      ))}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                        <div className="flex items-center space-x-4">
+                          <button 
+                            onClick={() => openPostModal(post)}
+                            className="inline-flex items-center text-gdg-blue hover:text-gdg-blue/80 transition-colors group text-sm"
+                          >
+                            Read More
+                            <ArrowRight size={14} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                          
+                          <BlogLikeButton 
+                            postId={post.id} 
+                            initialLikeCount={post.likes_count || 0}
+                            className="text-xs"
+                          />
+                        </div>
+                        
+                        <Link
+                          to={`/blog/${post.slug}`}
+                          className="inline-flex items-center px-3 py-1 text-xs border border-border rounded-lg hover:bg-muted transition-colors group"
+                        >
+                          <ExternalLink size={12} className="mr-1" />
+                          Open Page
+                        </Link>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {post.read_time_minutes ? `${post.read_time_minutes} min read` : '5 min read'}
-                    </span>
-                  </div>
-                </div>
-              </article>
+                  </article>
                 ))}
               </div>
-            ) : posts.length > 0 && regularPosts.length === 0 ? (
+            ) : (
               <div className="col-span-12 text-center py-12">
-                <h3 className="text-lg font-semibold mb-2">Only featured posts available</h3>
-                <p className="text-muted-foreground">More posts coming soon!</p>
+                <h3 className="text-lg font-semibold mb-2">No posts found</h3>
+                <p className="text-muted-foreground">
+                  {selectedCategory !== 'all' 
+                    ? 'No posts in this category yet.' 
+                    : 'No posts match your current filters.'
+                  }
+                </p>
               </div>
-            ) : null}
+            )}
           </div>
         </section>
       )}

@@ -18,26 +18,38 @@ import {
   Image,
   Globe,
   Clock,
-  Heart
+  Heart,
+  Upload,
+  Download,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
+import { BlogSubmissionService, type BlogSubmission } from '@/services/blogSubmissionService';
+import { AuditService } from '@/services/auditService';
+import { supabase } from '@/lib/supabase';
 import BlogPostModal from '@/components/admin/BlogPostModal';
 import CategoryModal from '@/components/admin/CategoryModal';
+import BlogAnalytics from '@/components/admin/BlogAnalytics';
 
 const AdminBlog = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
   const [activeTab, setActiveTab] = useState('posts');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
+  const [submissions, setSubmissions] = useState<BlogSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showPostModal, setShowPostModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [editingCategory, setEditingCategory] = useState<BlogCategory | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<BlogSubmission | null>(null);
+  const [adminNotes, setAdminNotes] = useState('');
   const [blogStats, setBlogStats] = useState({
     totalPosts: 0,
     publishedPosts: 0,
@@ -52,6 +64,11 @@ const AdminBlog = () => {
     return <Navigate to="/" replace />;
   }
 
+  // Allow both admins and blog editors to access this page
+  if (currentAdmin?.role !== 'admin' && currentAdmin?.role !== 'super_admin' && currentAdmin?.role !== 'blog_editor') {
+    return <Navigate to="/" replace />;
+  }
+
   // Load blog data
   useEffect(() => {
     loadBlogData();
@@ -60,17 +77,19 @@ const AdminBlog = () => {
   const loadBlogData = async () => {
     setIsLoading(true);
     try {
-      const [postsData, categoriesData, statsData] = await Promise.all([
+      const [postsData, categoriesData, statsData, submissionsData] = await Promise.all([
         BlogService.getAllPosts(),
         BlogService.getAllCategories(),
-        BlogService.getBlogStats()
+        BlogService.getBlogStats(),
+        BlogSubmissionService.getAllSubmissions()
       ]);
-
+      
       setPosts(postsData);
       setCategories(categoriesData);
       setBlogStats(statsData);
+      setSubmissions(submissionsData);
     } catch (error) {
-      // Silently handle errors
+      // Handle error silently
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +144,130 @@ const AdminBlog = () => {
     }
   };
 
+  // Submission handlers
+  const handleEditNotes = (submission: BlogSubmission) => {
+    setSelectedSubmission(submission);
+    setAdminNotes(submission.admin_notes || '');
+    setShowSubmissionModal(true);
+  };
+
+  const handleSaveNotes = async (id: string) => {
+    if (!currentAdmin?.id || !selectedSubmission) return;
+    
+    try {
+      const success = await BlogSubmissionService.updateSubmissionStatus(id, selectedSubmission.status, adminNotes);
+      
+      if (success) {
+        // Log the action in audit trail
+        await AuditService.logAction(
+          currentAdmin.id,
+          'update_blog_submission',
+          undefined,
+          {
+            description: `Updated notes for blog submission: ${selectedSubmission.original_name}`,
+            submission_id: id,
+            submitter_name: selectedSubmission.submitter_name,
+            submitter_email: selectedSubmission.submitter_email,
+            admin_notes: adminNotes
+          }
+        );
+        
+        await loadBlogData();
+        setShowSubmissionModal(false);
+        setSelectedSubmission(null);
+        setAdminNotes('');
+      }
+    } catch (error) {
+      // Handle error silently
+    }
+  };
+
+  const handleDeleteSubmission = async (id: string) => {
+    if (!currentAdmin?.id) return;
+    
+    const submission = submissions.find(s => s.id === id);
+    if (!submission) return;
+    
+    if (window.confirm(`Are you sure you want to delete "${submission.original_name}"? This will permanently delete the file and cannot be undone.`)) {
+      try {
+        const success = await BlogSubmissionService.deleteSubmission(id);
+        
+        if (success) {
+          // Log the action in audit trail
+          await AuditService.logAction(
+            currentAdmin.id,
+            'delete_blog_submission',
+            undefined,
+            {
+              description: `Deleted blog submission: ${submission.original_name}`,
+              submission_id: id,
+              submitter_name: submission.submitter_name,
+              submitter_email: submission.submitter_email,
+              file_name: submission.original_name
+            }
+          );
+          
+          await loadBlogData();
+        }
+      } catch (error) {
+        // Handle error silently
+      }
+    }
+  };
+
+  const handleDownloadFile = async (submission: BlogSubmission) => {
+    if (!currentAdmin?.id) return;
+    
+    try {
+      // Get signed URL for secure download
+      const { data, error } = await supabase.storage
+        .from('blog-submissions')
+        .createSignedUrl(submission.file_path, 3600); // 1 hour expiry
+
+      if (error) throw error;
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.download = submission.original_name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Log the download action in audit trail
+      await AuditService.logAction(
+        currentAdmin.id,
+        'download_blog_submission',
+        undefined,
+        {
+          description: `Downloaded blog submission: ${submission.original_name}`,
+          submission_id: submission.id,
+          submitter_name: submission.submitter_name,
+          submitter_email: submission.submitter_email,
+          file_name: submission.original_name
+        }
+      );
+    } catch (error) {
+      // Fallback to public URL
+      try {
+        const { data } = supabase.storage
+          .from('blog-submissions')
+          .getPublicUrl(submission.file_path);
+
+        const link = document.createElement('a');
+        link.href = data.publicUrl;
+        link.download = submission.original_name;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (fallbackError) {
+        // Handle error silently
+      }
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'published': return 'bg-green-500/20 text-green-400';
@@ -140,6 +283,14 @@ const AdminBlog = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };  return (
 
     <AdminLayout
@@ -237,6 +388,7 @@ const AdminBlog = () => {
           {[
             { id: 'posts', label: 'Blog Posts', icon: FileText },
             { id: 'categories', label: 'Categories', icon: Tag },
+            { id: 'submissions', label: 'Submissions', icon: Upload },
             { id: 'analytics', label: 'Analytics', icon: BarChart3 }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -531,6 +683,163 @@ const AdminBlog = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Submissions Tab */}
+      {activeTab === 'submissions' && (
+        <div className="space-y-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : submissions.length === 0 ? (
+            <div className="text-center py-12">
+              <Upload size={48} className="mx-auto text-gray-600 mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No submissions yet</h3>
+              <p className="text-muted-foreground">Blog submissions will appear here when users submit them through the contact form.</p>
+            </div>
+          ) : (
+            <div className="bg-card rounded-xl shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h3 className="text-lg font-semibold text-foreground">Blog Submissions ({submissions.length})</h3>
+                <p className="text-sm text-muted-foreground mt-1">Manage files submitted through the contact form</p>
+              </div>
+              
+              <div className="divide-y divide-border">
+                {submissions.map((submission) => (
+                  <div key={submission.id} className="p-6 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 flex-1">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <FileText size={20} className="text-primary" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3 mb-1">
+                            <h4 className="font-medium text-foreground truncate">{submission.original_name}</h4>
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                              {formatFileSize(submission.file_size)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span>From: {submission.submitter_name}</span>
+                            <span>•</span>
+                            <span>{submission.submitter_email}</span>
+                            <span>•</span>
+                            <span>{formatDate(submission.created_at)}</span>
+                          </div>
+                          
+                          {submission.admin_notes && (
+                            <div className="mt-2 p-2 bg-blue-900/10 border border-blue-500/20 rounded text-sm">
+                              <span className="text-blue-400 font-medium">Notes: </span>
+                              <span className="text-foreground">{submission.admin_notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          onClick={() => handleDownloadFile(submission)}
+                          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                          title="Download file"
+                        >
+                          <Download size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleEditNotes(submission)}
+                          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                          title="Edit notes"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSubmission(submission.id)}
+                          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Delete submission"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Notes Modal */}
+      {showSubmissionModal && selectedSubmission && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-xl shadow-xl border border-border p-6 w-full max-w-md">
+            <div className="flex items-center space-x-3 mb-4">
+              <FileText size={20} className="text-primary" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Edit Notes</h3>
+                <p className="text-sm text-muted-foreground">{selectedSubmission.original_name}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Notes (Visible to all team members)
+                </label>
+                <textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Add notes about this submission..."
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-card text-foreground"
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  These notes help team members collaborate and track the status of submissions.
+                </p>
+              </div>
+              
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                  <span>Submitter:</span>
+                  <span className="text-foreground">{selectedSubmission.submitter_name}</span>
+                  <span>Email:</span>
+                  <span className="text-foreground">{selectedSubmission.submitter_email}</span>
+                  <span>Size:</span>
+                  <span className="text-foreground">{formatFileSize(selectedSubmission.file_size)}</span>
+                  <span>Submitted:</span>
+                  <span className="text-foreground">{formatDate(selectedSubmission.created_at)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowSubmissionModal(false);
+                  setSelectedSubmission(null);
+                  setAdminNotes('');
+                }}
+                className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSaveNotes(selectedSubmission.id)}
+                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <Save size={16} />
+                <span>Save Notes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (
+        <BlogAnalytics />
       )}
 
       {/* Modals would go here - BlogPostModal and CategoryModal components */}

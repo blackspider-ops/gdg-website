@@ -173,6 +173,11 @@ const AdminMedia: React.FC = () => {
         return <Navigate to="/" replace />;
     }
 
+    // Redirect blog editors to their restricted media view
+    if (currentAdmin?.role === 'blog_editor') {
+        return <Navigate to="/admin/blog-media" replace />;
+    }
+
     // Data loading functions
     const loadAllData = async () => {
         setIsLoading(true);

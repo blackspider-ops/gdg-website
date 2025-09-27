@@ -57,6 +57,11 @@ const AdminDashboard = () => {
     return <Navigate to="/" replace />;
   }
 
+  // Redirect blog editors to their restricted dashboard
+  if (currentAdmin?.role === 'blog_editor') {
+    return <Navigate to="/admin/blog-editor" replace />;
+  }
+
   const loadDashboardStats = async () => {
     setIsLoading(true);
     try {
@@ -183,6 +188,7 @@ const AdminDashboard = () => {
     { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors' },
     { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications' },
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media' },
+
   ];
 
   // Add admin user management for super admins

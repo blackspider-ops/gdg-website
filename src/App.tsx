@@ -35,6 +35,10 @@ import AdminCommunications from "./pages/admin/AdminCommunications";
 import AdminMedia from "./pages/admin/AdminMedia";
 import AdminGuide from "./pages/admin/AdminGuide";
 import AdminLinktree from "./pages/admin/AdminLinktree";
+import BlogEditorDashboard from "./pages/admin/BlogEditorDashboard";
+import BlogEditorMedia from "./pages/admin/BlogEditorMedia";
+
+import BlogPost from "./pages/BlogPost";
 import Linktree from "./pages/Linktree";
 import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NotFound from "./pages/NotFound";
@@ -112,6 +116,7 @@ const App = () => (
                       <Route path="/" element={<Home />} />
                       <Route path="/events" element={<Events />} />
                       <Route path="/blog" element={<Blog />} />
+                      <Route path="/blog/:slug" element={<BlogPost />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/projects" element={<Projects />} />
                       <Route path="/team" element={<Team />} />
@@ -132,6 +137,9 @@ const App = () => (
                       <Route path="/admin/media" element={<AdminMedia />} />
                       <Route path="/admin/guide" element={<AdminGuide />} />
                       <Route path="/admin/linktree" element={<AdminLinktree />} />
+
+                      <Route path="/admin/blog-editor" element={<BlogEditorDashboard />} />
+                      <Route path="/admin/blog-media" element={<BlogEditorMedia />} />
                       <Route path="/l/:username" element={<Linktree />} />
                       <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

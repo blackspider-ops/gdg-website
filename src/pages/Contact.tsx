@@ -1,7 +1,9 @@
 import React, { Suspense } from 'react';
-import { Mail, MessageSquare, Users, Calendar, Github, Twitter, Instagram } from 'lucide-react';
+import { Mail, MessageSquare, Users, Calendar, Github, Twitter, Instagram, Upload, X, FileText } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
 import { ContactService, type ContactFormData } from '@/services/contactService';
+import { BlogSubmissionService } from '@/services/blogSubmissionService';
+import { supabase } from '@/lib/supabase';
 
 const HeroScene = React.lazy(() => import('@/components/HeroScene'));
 
@@ -46,6 +48,7 @@ const Contact = () => {
     type: 'general',
     message: '',
     interests: [] as string[],
+    blogSubmissionFile: null as File | null,
   });
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -53,6 +56,7 @@ const Contact = () => {
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
+  const [fileUploadError, setFileUploadError] = React.useState<string>('');
 
   const contactTypes = [
     { value: 'general', label: 'General Inquiry' },
@@ -60,6 +64,7 @@ const Contact = () => {
     { value: 'volunteer', label: 'Volunteer Opportunity' },
     { value: 'sponsor', label: 'Partnership/Sponsorship' },
     { value: 'speaker', label: 'Speaking Opportunity' },
+    { value: 'blog_submission', label: 'Blog Submission' },
   ];
 
   const interestAreas = [
@@ -82,18 +87,100 @@ const Contact = () => {
     }));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileUploadError('');
+    
+    if (!file) {
+      setFormData(prev => ({ ...prev, blogSubmissionFile: null }));
+      return;
+    }
+
+    // Validate file type (PDF only)
+    if (file.type !== 'application/pdf') {
+      setFileUploadError('Please upload a PDF file only.');
+      e.target.value = '';
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setFileUploadError('File size must be less than 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, blogSubmissionFile: file }));
+  };
+
+  const removeFile = () => {
+    setFormData(prev => ({ ...prev, blogSubmissionFile: null }));
+    setFileUploadError('');
+    // Reset file input
+    const fileInput = document.getElementById('blog-file') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus({ type: null, message: '' });
 
     try {
-      const result = await ContactService.submitContactForm(formData);
+      let fileUploadResult = null;
+
+      // Handle file upload for blog submissions
+      if (formData.type === 'blog_submission' && formData.blogSubmissionFile) {
+  
+        
+
+        // Use secure BlogSubmissionService
+        try {
+          const uploadResult = await BlogSubmissionService.uploadBlogSubmission(
+            formData.blogSubmissionFile,
+            formData.name,
+            formData.email
+          );
+          
+          if (uploadResult) {
+            fileUploadResult = {
+              id: uploadResult.id,
+              original_name: uploadResult.original_name,
+              file_path: uploadResult.file_path
+            };
+          } else {
+            throw new Error('Blog submission upload failed');
+          }
+        } catch (uploadError) {
+          setSubmitStatus({
+            type: 'error',
+            message: 'File upload failed, but we can still process your submission. Please mention the file in your message or try again later.'
+          });
+        }
+      }
+
+      // Submit the contact form with file info (exclude the file object)
+      const submissionData = {
+        name: formData.name,
+        email: formData.email,
+        type: formData.type,
+        message: formData.message,
+        interests: formData.interests,
+        fileUploadId: fileUploadResult?.id,
+        fileName: fileUploadResult?.original_name
+      };
+
+
+
+      const result = await ContactService.submitContactForm(submissionData);
 
       if (result.success) {
         setSubmitStatus({
           type: 'success',
-          message: 'Thank you for your message! We\'ll get back to you soon.'
+          message: formData.type === 'blog_submission' && formData.blogSubmissionFile
+            ? 'Thank you for your blog submission! We\'ve received your file and will review it soon.'
+            : 'Thank you for your message! We\'ll get back to you soon.'
         });
         // Reset form
         setFormData({
@@ -102,7 +189,12 @@ const Contact = () => {
           type: 'general',
           message: '',
           interests: [],
+          blogSubmissionFile: null,
         });
+        setFileUploadError('');
+        // Reset file input
+        const fileInput = document.getElementById('blog-file') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
       } else {
         setSubmitStatus({
           type: 'error',
@@ -231,6 +323,72 @@ const Contact = () => {
                         <span className="text-sm">{interest}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* File Upload (show only for blog submission) */}
+              {formData.type === 'blog_submission' && (
+                <div>
+                  <label htmlFor="blog-file" className="block text-sm font-medium mb-2">
+                    Blog Post File (PDF only, max 5MB)
+                  </label>
+                  
+                  {!formData.blogSubmissionFile ? (
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="blog-file"
+                        accept=".pdf,application/pdf"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="blog-file"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors"
+                      >
+                        <Upload size={24} className="text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground text-center">
+                          Click to upload your blog post PDF<br />
+                          <span className="text-xs">Maximum file size: 5MB</span>
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <FileText size={20} className="text-gdg-blue" />
+                        <div>
+                          <div className="text-sm font-medium">{formData.blogSubmissionFile.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {(formData.blogSubmissionFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeFile}
+                        className="p-1 hover:bg-muted rounded-full transition-colors"
+                      >
+                        <X size={16} className="text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </div>
+                  )}
+
+                  {fileUploadError && (
+                    <div className="mt-2 text-sm text-red-500">
+                      {fileUploadError}
+                    </div>
+                  )}
+
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <strong>Blog Submission Guidelines:</strong><br />
+                      • Submit your blog post as a PDF file<br />
+                      • Include your name and contact information in the document<br />
+                      • Our team will review your submission and get back to you<br />
+                      • Accepted posts may be edited for style and formatting
+                    </p>
                   </div>
                 </div>
               )}

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Github, Linkedin, Twitter, Mail } from 'lucide-react';
+import { Github, Linkedin, Twitter, Mail, ChevronDown, ChevronUp } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Team = () => {
@@ -41,63 +41,94 @@ const Team = () => {
         !leadership.includes(member) && !advisors.includes(member)
     );
 
-    const TeamMember = ({ member, isLeadership = false }) => (
-        <div className="bg-card border border-border rounded-lg p-6 text-center hover:shadow-lg transition-shadow">
-            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted overflow-hidden">
-                <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-full h-full object-cover"
-                />
+    const TeamMember = ({ member, isLeadership = false }) => {
+        const [isExpanded, setIsExpanded] = useState(false);
+        const maxBioLength = 120; // Characters to show before "read more"
+        const shouldTruncate = member.bio && member.bio.length > maxBioLength;
+        const displayBio = shouldTruncate && !isExpanded 
+            ? member.bio.substring(0, maxBioLength) + '...'
+            : member.bio;
+
+        return (
+            <div className="bg-card border border-border rounded-lg p-6 text-center hover:shadow-lg transition-shadow h-full flex flex-col">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-muted overflow-hidden">
+                    <img
+                        src={member.image}
+                        alt={member.name}
+                        className="w-full h-full object-cover"
+                    />
+                </div>
+
+                <h3 className="text-lg font-semibold mb-1">{member.name}</h3>
+                <p className="text-primary font-medium mb-2">{member.role}</p>
+
+                {member.year && member.major && (
+                    <p className="text-sm text-muted-foreground mb-3">
+                        {member.year} • {member.major}
+                    </p>
+                )}
+
+                {member.department && (
+                    <p className="text-sm text-muted-foreground mb-3">{member.department}</p>
+                )}
+
+                {member.company && (
+                    <p className="text-sm text-muted-foreground mb-3">
+                        {member.position} at {member.company}
+                    </p>
+                )}
+
+                {/* Bio section with read more functionality */}
+                {member.bio && isLeadership && (
+                    <div className="flex-grow mb-4">
+                        <p className="text-sm text-muted-foreground mb-2">{displayBio}</p>
+                        {shouldTruncate && (
+                            <button
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-1 transition-colors"
+                            >
+                                {isExpanded ? (
+                                    <>
+                                        Read less
+                                        <ChevronUp size={14} />
+                                    </>
+                                ) : (
+                                    <>
+                                        Read more
+                                        <ChevronDown size={14} />
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Social links - always at bottom */}
+                <div className="flex justify-center space-x-3 mt-auto">
+                    {member.social?.github && (
+                        <a href={member.social.github} className="text-muted-foreground hover:text-primary transition-colors">
+                            <Github size={18} />
+                        </a>
+                    )}
+                    {member.social?.linkedin && (
+                        <a href={member.social.linkedin} className="text-muted-foreground hover:text-primary transition-colors">
+                            <Linkedin size={18} />
+                        </a>
+                    )}
+                    {member.social?.twitter && (
+                        <a href={member.social.twitter} className="text-muted-foreground hover:text-primary transition-colors">
+                            <Twitter size={18} />
+                        </a>
+                    )}
+                    {member.social?.email && (
+                        <a href={`mailto:${member.social.email}`} className="text-muted-foreground hover:text-primary transition-colors">
+                            <Mail size={18} />
+                        </a>
+                    )}
+                </div>
             </div>
-
-            <h3 className="text-lg font-semibold mb-1">{member.name}</h3>
-            <p className="text-primary font-medium mb-2">{member.role}</p>
-
-            {member.year && member.major && (
-                <p className="text-sm text-muted-foreground mb-3">
-                    {member.year} • {member.major}
-                </p>
-            )}
-
-            {member.department && (
-                <p className="text-sm text-muted-foreground mb-3">{member.department}</p>
-            )}
-
-            {member.company && (
-                <p className="text-sm text-muted-foreground mb-3">
-                    {member.position} at {member.company}
-                </p>
-            )}
-
-            {member.bio && isLeadership && (
-                <p className="text-sm text-muted-foreground mb-4">{member.bio}</p>
-            )}
-
-            <div className="flex justify-center space-x-3">
-                {member.social?.github && (
-                    <a href={member.social.github} className="text-muted-foreground hover:text-primary transition-colors">
-                        <Github size={18} />
-                    </a>
-                )}
-                {member.social?.linkedin && (
-                    <a href={member.social.linkedin} className="text-muted-foreground hover:text-primary transition-colors">
-                        <Linkedin size={18} />
-                    </a>
-                )}
-                {member.social?.twitter && (
-                    <a href={member.social.twitter} className="text-muted-foreground hover:text-primary transition-colors">
-                        <Twitter size={18} />
-                    </a>
-                )}
-                {member.social?.email && (
-                    <a href={`mailto:${member.social.email}`} className="text-muted-foreground hover:text-primary transition-colors">
-                        <Mail size={18} />
-                    </a>
-                )}
-            </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="min-h-screen relative z-10">
@@ -131,7 +162,7 @@ const Team = () => {
                         ) : leadership.length > 0 ? (
                             <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
                                 {leadership.map((member, index) => (
-                                    <div key={index} className="w-full sm:w-80 max-w-sm flex-shrink-0">
+                                    <div key={index} className="w-full sm:w-80 max-w-sm min-h-[400px]">
                                         <TeamMember member={member} isLeadership={true} />
                                     </div>
                                 ))}
@@ -153,7 +184,7 @@ const Team = () => {
                             <h2 className="text-3xl font-display font-bold text-center mb-12">Advisors & Mentors</h2>
                             <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
                                 {advisors.map((member, index) => (
-                                    <div key={index} className="w-full sm:w-80 max-w-sm flex-shrink-0">
+                                    <div key={index} className="w-full sm:w-80 max-w-sm min-h-[400px]">
                                         <TeamMember member={member} isLeadership={true} />
                                     </div>
                                 ))}
@@ -169,9 +200,11 @@ const Team = () => {
                     <div className="editorial-grid">
                         <div className="col-span-12">
                             <h2 className="text-3xl font-display font-bold text-center mb-12">Team Members</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                            <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
                                 {regularMembers.map((member, index) => (
-                                    <TeamMember key={index} member={member} isLeadership={false} />
+                                    <div key={index} className="w-full sm:w-72 max-w-sm min-h-[300px]">
+                                        <TeamMember member={member} isLeadership={false} />
+                                    </div>
                                 ))}
                             </div>
                         </div>

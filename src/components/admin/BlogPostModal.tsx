@@ -123,14 +123,22 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
+      alert('Please enter a title for the blog post.');
       return;
     }
 
     if (!formData.content.trim()) {
+      alert('Please enter content for the blog post.');
       return;
     }
 
     if (!formData.author_name.trim()) {
+      alert('Please enter an author name.');
+      return;
+    }
+
+    if (!formData.category_id) {
+      alert('Please select a category for the blog post.');
       return;
     }
 
@@ -179,20 +187,33 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      style={{ 
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
+      onWheel={(e) => e.preventDefault()}
+      onTouchMove={(e) => e.preventDefault()}
+      onScroll={(e) => e.preventDefault()}
     >
       <div 
         ref={modalRef}
-        className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">
             {post ? 'Edit Blog Post' : 'Create New Blog Post'}
           </h2>
@@ -215,7 +236,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-border">
+        <div className="flex-shrink-0 border-b border-border">
           <nav className="flex px-6">
             {[
               { id: 'content', label: 'Content', icon: Eye },
@@ -238,8 +259,8 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
             })}
           </nav>
         </div>
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto overflow-auto p-6">
           {activeTab === 'content' && (
             <div className="space-y-6">
               {/* Title */}
@@ -335,17 +356,27 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
               {/* Category and Status */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-foreground">Category</label>
+                  <label className="block text-sm font-medium mb-2 text-foreground">Category *</label>
                   <select
                     value={formData.category_id}
                     onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
                     className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    required
                   >
-                    <option value="">Select a category</option>
-                    {categories.map(category => (
+                    <option value="">Select a category (required)</option>
+                    {categories.filter(cat => cat.is_active).map(category => (
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
+                  {categories.length === 0 ? (
+                    <p className="text-xs text-red-400 mt-1">
+                      No categories available. Please create a category first in the Categories tab.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Don't see the category you need? Create it in the Categories tab.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-foreground">Status</label>

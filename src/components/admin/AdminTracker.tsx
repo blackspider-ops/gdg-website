@@ -79,6 +79,7 @@ const AdminTracker = () => {
           action: 'view_admin_media',
           title: 'Media Library'
         },
+
         '/admin/guide': { 
           name: 'Admin Guide', 
           action: 'view_admin_guide',

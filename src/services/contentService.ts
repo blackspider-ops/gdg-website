@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { invalidateContentCache } from '@/utils/adminCacheUtils';
 
 // Types for content management
 export interface SiteSetting {
@@ -89,6 +90,11 @@ export class ContentService {
                 onConflict: 'key'
             });
 
+        if (!error) {
+            // Invalidate cache after successful update
+            await invalidateContentCache('siteSettings', { forceReload: false });
+        }
+
         return !error;
     }
 
@@ -138,6 +144,11 @@ export class ContentService {
                 onConflict: 'page_slug,section_key'
             });
 
+        if (!error) {
+            // Invalidate cache after successful update
+            await invalidateContentCache('pageContent', { forceReload: false });
+        }
+
         return !error;
     }
 
@@ -161,6 +172,11 @@ export class ContentService {
                 updated_by: adminId,
                 updated_at: new Date().toISOString()
             });
+
+        if (!error) {
+            // Invalidate cache after successful update
+            await invalidateContentCache('navigationItems', { forceReload: false });
+        }
 
         return !error;
     }
@@ -263,6 +279,11 @@ export class ContentService {
                 updated_at: new Date().toISOString()
             });
 
+        if (!error) {
+            // Invalidate cache after successful creation
+            await invalidateContentCache('events', { forceReload: false });
+        }
+
         return !error;
     }
 
@@ -275,6 +296,11 @@ export class ContentService {
             })
             .eq('id', id);
 
+        if (!error) {
+            // Invalidate cache after successful update
+            await invalidateContentCache('events', { forceReload: false });
+        }
+
         return !error;
     }
 
@@ -283,6 +309,11 @@ export class ContentService {
             .from('events')
             .delete()
             .eq('id', id);
+
+        if (!error) {
+            // Invalidate cache after successful deletion
+            await invalidateContentCache('events', { forceReload: false });
+        }
 
         return !error;
     }
@@ -307,6 +338,11 @@ export class ContentService {
                 updated_at: new Date().toISOString()
             });
 
+        if (!error) {
+            // Invalidate cache after successful update
+            await invalidateContentCache('team', { forceReload: false });
+        }
+
         return !error;
     }
 
@@ -328,6 +364,11 @@ export class ContentService {
                 ...project,
                 updated_at: new Date().toISOString()
             });
+
+        if (!error) {
+            // Invalidate cache after successful update
+            await invalidateContentCache('projects', { forceReload: false });
+        }
 
         return !error;
     }

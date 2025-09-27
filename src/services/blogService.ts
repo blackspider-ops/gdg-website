@@ -35,6 +35,12 @@ export interface BlogPost {
   updated_at: string;
   created_by?: string;
   updated_by?: string;
+  requires_approval?: boolean;
+  approved_by?: string;
+  approved_at?: string;
+  rejected_by?: string;
+  rejected_at?: string;
+  rejection_reason?: string;
 }
 
 export interface BlogComment {
@@ -259,9 +265,17 @@ export class BlogService {
    */
   static async createPost(post: Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'category'>): Promise<BlogPost | null> {
     try {
+      // If created by blog_editor, set status to draft and requires_approval
+      const postData = {
+        ...post,
+        // Blog editors' posts should be drafts by default and require approval
+        status: post.created_by && post.created_by.includes('blog_editor') ? 'draft' : post.status,
+        requires_approval: post.created_by && post.created_by.includes('blog_editor') ? true : false
+      };
+
       const { data, error } = await supabase
         .from('blog_posts')
-        .insert(post)
+        .insert(postData)
         .select()
         .single();
 
@@ -280,9 +294,16 @@ export class BlogService {
    */
   static async updatePost(id: string, updates: Partial<BlogPost>): Promise<boolean> {
     try {
+      // If updated by blog_editor, set requires_approval to true unless it's just a draft save
+      const updateData = {
+        ...updates,
+        // Blog editors' updates require approval unless saving as draft
+        requires_approval: updates.updated_by && updates.updated_by.includes('blog_editor') && updates.status !== 'draft' ? true : updates.requires_approval
+      };
+
       const { error } = await supabase
         .from('blog_posts')
-        .update(updates)
+        .update(updateData)
         .eq('id', id);
 
       if (error) {
@@ -556,6 +577,82 @@ export class BlogService {
   }
 
   /**
+   * Get posts pending approval
+   */
+  static async getPostsPendingApproval(): Promise<BlogPost[]> {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .eq('requires_approval', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Approve a blog post (admin only)
+   */
+  static async approvePost(id: string, adminId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .update({ 
+          requires_approval: false,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          approved_by: adminId,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Reject a blog post (admin only)
+   */
+  static async rejectPost(id: string, adminId: string, reason?: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .update({ 
+          requires_approval: false,
+          status: 'draft',
+          rejected_by: adminId,
+          rejected_at: new Date().toISOString(),
+          rejection_reason: reason
+        })
+        .eq('id', id);
+
+      if (error) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * Sync blog post like counts with the blog_likes table
    * This is useful for migrating from the old system to the new authentic system
    */
@@ -581,6 +678,242 @@ export class BlogService {
       }
     } catch (error) {
       // Silently handle sync errors
+    }
+  }
+
+  /**
+   * Get comprehensive blog analytics
+   */
+  static async getAnalytics(timeRange: '7d' | '30d' | '90d' | '1y' = '30d'): Promise<{
+    totalPosts: number;
+    totalViews: number;
+    totalLikes: number;
+    totalComments: number;
+    avgReadTime: number;
+    publishedPosts: number;
+    draftPosts: number;
+    archivedPosts: number;
+    topPosts: Array<{
+      id: string;
+      title: string;
+      views: number;
+      likes: number;
+      published_at: string;
+    }>;
+    categoryStats: Array<{
+      name: string;
+      count: number;
+      views: number;
+      color: string;
+    }>;
+    monthlyStats: Array<{
+      month: string;
+      posts: number;
+      views: number;
+      likes: number;
+    }>;
+    recentActivity: Array<{
+      type: 'view' | 'like' | 'publish';
+      post_title: string;
+      timestamp: string;
+      count?: number;
+    }>;
+  }> {
+    try {
+      // Calculate date range
+      const now = new Date();
+      const daysBack = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
+      const startDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000));
+
+      // Get all posts with categories
+      const { data: allPosts, error: postsError } = await supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (postsError) throw postsError;
+
+      const posts = allPosts || [];
+
+      // Calculate basic stats
+      const totalPosts = posts.length;
+      const publishedPosts = posts.filter(p => p.status === 'published').length;
+      const draftPosts = posts.filter(p => p.status === 'draft').length;
+      const archivedPosts = posts.filter(p => p.status === 'archived').length;
+      const totalViews = posts.reduce((sum, post) => sum + (post.views_count || 0), 0);
+      const totalLikes = posts.reduce((sum, post) => sum + (post.likes_count || 0), 0);
+      const avgReadTime = posts.length > 0 
+        ? Math.round(posts.reduce((sum, post) => sum + (post.read_time_minutes || 0), 0) / posts.length)
+        : 0;
+
+      // Get top performing posts
+      const topPosts = posts
+        .filter(p => p.status === 'published')
+        .sort((a, b) => (b.views_count || 0) - (a.views_count || 0))
+        .slice(0, 10)
+        .map(post => ({
+          id: post.id,
+          title: post.title,
+          views: post.views_count || 0,
+          likes: post.likes_count || 0,
+          published_at: post.published_at || post.created_at
+        }));
+
+      // Get category stats
+      const categoryMap = new Map();
+      posts.forEach(post => {
+        if (post.category) {
+          const existing = categoryMap.get(post.category.id) || {
+            name: post.category.name,
+            count: 0,
+            views: 0,
+            color: post.category.color
+          };
+          existing.count++;
+          existing.views += post.views_count || 0;
+          categoryMap.set(post.category.id, existing);
+        }
+      });
+      const categoryStats = Array.from(categoryMap.values());
+
+      // Generate monthly stats for the last 12 months
+      const monthlyStats = [];
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const monthPosts = posts.filter(post => {
+          const postDate = new Date(post.created_at);
+          return postDate >= monthStart && postDate <= monthEnd;
+        });
+
+        monthlyStats.push({
+          month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          posts: monthPosts.length,
+          views: monthPosts.reduce((sum, post) => sum + (post.views_count || 0), 0),
+          likes: monthPosts.reduce((sum, post) => sum + (post.likes_count || 0), 0)
+        });
+      }
+
+      // Generate recent activity (mock data for now - in a real app you'd track this)
+      const recentActivity = posts
+        .filter(p => p.status === 'published')
+        .slice(0, 10)
+        .map(post => ({
+          type: 'publish' as const,
+          post_title: post.title,
+          timestamp: post.published_at || post.created_at,
+          count: post.views_count
+        }));
+
+      return {
+        totalPosts,
+        totalViews,
+        totalLikes,
+        totalComments: 0, // TODO: Implement comments
+        avgReadTime,
+        publishedPosts,
+        draftPosts,
+        archivedPosts,
+        topPosts,
+        categoryStats,
+        monthlyStats,
+        recentActivity
+      };
+    } catch (error) {
+      console.error('Failed to get blog analytics:', error);
+      return {
+        totalPosts: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        avgReadTime: 0,
+        publishedPosts: 0,
+        draftPosts: 0,
+        archivedPosts: 0,
+        topPosts: [],
+        categoryStats: [],
+        monthlyStats: [],
+        recentActivity: []
+      };
+    }
+  }
+
+  /**
+   * Get engagement metrics for a specific post
+   */
+  static async getPostEngagement(postId: string): Promise<{
+    views: number;
+    likes: number;
+    engagementRate: number;
+    likeRate: number;
+    viewsToday: number;
+    likesToday: number;
+  }> {
+    try {
+      const { data: post, error } = await supabase
+        .from('blog_posts')
+        .select('views_count, likes_count')
+        .eq('id', postId)
+        .single();
+
+      if (error) throw error;
+
+      const views = post.views_count || 0;
+      const likes = post.likes_count || 0;
+      const engagementRate = views > 0 ? (likes / views) * 100 : 0;
+      const likeRate = views > 0 ? (likes / views) * 100 : 0;
+
+      // TODO: Implement daily tracking for viewsToday and likesToday
+      const viewsToday = 0;
+      const likesToday = 0;
+
+      return {
+        views,
+        likes,
+        engagementRate: Math.round(engagementRate * 100) / 100,
+        likeRate: Math.round(likeRate * 100) / 100,
+        viewsToday,
+        likesToday
+      };
+    } catch (error) {
+      return {
+        views: 0,
+        likes: 0,
+        engagementRate: 0,
+        likeRate: 0,
+        viewsToday: 0,
+        likesToday: 0
+      };
+    }
+  }
+
+  /**
+   * Get trending posts based on recent engagement
+   */
+  static async getTrendingPosts(limit: number = 5): Promise<BlogPost[]> {
+    try {
+      // For now, sort by a combination of views and likes
+      // In a real app, you'd want to weight recent activity more heavily
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(*)
+        `)
+        .eq('status', 'published')
+        .order('views_count', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      return [];
     }
   }
 }

@@ -20,6 +20,8 @@ export type AuditActionType =
   | 'view_media_library' | 'create_media_folder' | 'update_media_folder' | 'delete_media_folder'
   | 'upload_media_file' | 'update_media_file' | 'delete_media_file' | 'bulk_delete_media_files'
   | 'bulk_update_media_tags'
+  // Blog Submission Management
+  | 'update_blog_submission' | 'delete_blog_submission' | 'download_blog_submission'
   // Settings Management
   | 'update_site_settings' | 'update_page_content' | 'update_footer_content' | 'update_navigation'
   | 'update_social_links' | 'update_admin_secret_code'
@@ -534,6 +536,9 @@ export class AuditService {
         'upload_media_file', 'update_media_file', 'delete_media_file', 'bulk_delete_media_files',
         'bulk_update_media_tags'
       ],
+      'Blog Submissions': [
+        'update_blog_submission', 'delete_blog_submission', 'download_blog_submission'
+      ],
       'Settings Management': [
         'update_site_settings', 'update_page_content', 'update_footer_content', 
         'update_navigation', 'update_social_links', 'update_admin_secret_code'
@@ -651,6 +656,11 @@ export class AuditService {
       'delete_media_file': 'Deleted media file',
       'bulk_delete_media_files': 'Bulk deleted media files',
       'bulk_update_media_tags': 'Bulk updated media file tags',
+      
+      // Blog Submission Management
+      'update_blog_submission': 'Updated blog submission status',
+      'delete_blog_submission': 'Deleted blog submission',
+      'download_blog_submission': 'Downloaded blog submission file',
       
       // Settings Management
       'update_site_settings': 'Updated site settings',

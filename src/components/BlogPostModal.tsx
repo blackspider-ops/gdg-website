@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, User, Tag, Clock, Heart, Eye } from 'lucide-react';
+import { X, Calendar, User, Tag, Clock, Heart, Eye, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -339,8 +339,8 @@ ${post.excerpt}
 
           {/* Fixed Footer */}
           <div className="flex-shrink-0 p-6 border-t border-border bg-card rounded-b-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 {/* Post Stats */}
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-1">
@@ -354,7 +354,7 @@ ${post.excerpt}
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center flex-wrap gap-2">
                   <button
                     onClick={handleLike}
                     disabled={isLiking || isCheckingLikeStatus}
@@ -368,7 +368,7 @@ ${post.excerpt}
                       size={16} 
                       className={`${isLiking ? 'animate-pulse' : ''} ${hasLiked ? 'fill-current' : ''}`} 
                     />
-                    <span>
+                    <span className="hidden sm:inline">
                       {isLiking 
                         ? (hasLiked ? 'Unliking...' : 'Liking...') 
                         : (hasLiked ? 'Unlike' : 'Like')
@@ -378,19 +378,31 @@ ${post.excerpt}
                   
                   <button
                     onClick={() => {
+                      const url = `${window.location.origin}/blog/${currentPost.slug}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="flex items-center space-x-1 px-3 py-2 text-sm border border-gdg-blue bg-gdg-blue/10 text-gdg-blue rounded-lg hover:bg-gdg-blue/20 transition-colors"
+                  >
+                    <ExternalLink size={16} />
+                    <span className="hidden sm:inline">New Tab</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/blog/${currentPost.slug}`;
                       if (navigator.share) {
                         navigator.share({
                           title: currentPost.title,
                           text: currentPost.excerpt,
-                          url: window.location.href
+                          url: url
                         });
                       } else {
                         navigator.clipboard.writeText(
-                          `${currentPost.title} - ${currentPost.excerpt}\n\n${window.location.href}`
+                          `${currentPost.title} - ${currentPost.excerpt}\n\n${url}`
                         );
                       }
                     }}
-                    className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted/30 transition-colors text-muted-foreground hover:text-foreground"
+                    className="px-3 py-2 text-sm border border-border rounded-lg hover:bg-muted/30 transition-colors text-muted-foreground hover:text-foreground"
                   >
                     Share
                   </button>
@@ -399,7 +411,7 @@ ${post.excerpt}
               
               <button
                 onClick={onClose}
-                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium self-end sm:self-auto"
               >
                 Close
               </button>

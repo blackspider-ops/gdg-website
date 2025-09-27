@@ -6,6 +6,8 @@ export interface ContactFormData {
   type: string;
   message: string;
   interests?: string[];
+  fileUploadId?: string;
+  fileName?: string;
 }
 
 export interface ContactFormResult {

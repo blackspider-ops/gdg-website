@@ -2,11 +2,23 @@
 -- Run this after setting up the schema and admin password
 
 -- Update existing admin with password (replace email with your actual email)
+-- Note: super_admin role includes all admin and blog_editor privileges
 UPDATE admin_users 
 SET password_hash = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
     role = 'super_admin',
     is_active = true
 WHERE email = 'tms7397@psu.edu';
+
+-- Insert additional users with different roles for demonstration
+INSERT INTO admin_users (email, password_hash, role, is_active) VALUES
+-- Regular admin user
+('admin@psu.edu', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', true),
+-- Blog editor user
+('blog-editor@psu.edu', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'blog_editor', true)
+ON CONFLICT (email) DO UPDATE SET 
+    password_hash = EXCLUDED.password_hash,
+    role = EXCLUDED.role,
+    is_active = EXCLUDED.is_active;
 
 -- Insert comprehensive site content
 INSERT INTO site_content (section, key, value) VALUES 
