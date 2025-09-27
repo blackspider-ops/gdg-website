@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, Users, Calendar, Award, Heart } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
+import SafeImage from '@/components/ui/SafeImage';
 
 const Sponsors = () => {
   const { sponsors, isLoadingSponsors, loadSponsors } = useContent();
@@ -81,9 +82,10 @@ const Sponsors = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-            <img 
+            <SafeImage 
               src={sponsor.logo} 
               alt={`${sponsor.name} logo`}
+              fallbackText={sponsor.name}
               className="w-full h-full object-contain"
             />
           </div>

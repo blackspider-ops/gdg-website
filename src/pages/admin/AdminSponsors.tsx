@@ -325,7 +325,19 @@ const AdminSponsors = () => {
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                       {sponsor.logo_url ? (
-                        <img src={sponsor.logo_url} alt={sponsor.name} className="w-12 h-12 object-contain" />
+                        <img 
+                          src={sponsor.logo_url} 
+                          alt={sponsor.name} 
+                          className="w-12 h-12 object-contain" 
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<div class="w-12 h-12 bg-primary/10 rounded flex items-center justify-center text-primary font-semibold text-xs">${sponsor.name.charAt(0)}</div>`;
+                            }
+                          }}
+                        />
                       ) : (
                         <Building2 size={24} className="text-muted-foreground" />
                       )}
