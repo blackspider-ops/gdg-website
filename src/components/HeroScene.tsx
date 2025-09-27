@@ -104,6 +104,7 @@ const HeroScene = () => {
       <Canvas
         camera={{ position: [0, 0, 8], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
+        onError={(error) => console.warn('WebGL Error:', error)}
         dpr={[1, 2]}
       >
         <ambientLight intensity={0.4} />

@@ -420,6 +420,7 @@ const GlobalBackground = () => {
       <Canvas
         ref={canvasRef}
         camera={canvasConfig.camera}
+        onError={(error) => console.warn('WebGL Error:', error)}
         dpr={canvasConfig.dpr}
         performance={canvasConfig.performance}
         gl={canvasConfig.gl}

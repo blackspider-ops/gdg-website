@@ -564,6 +564,7 @@ const HomeHeroScene = () => {
     <div className="absolute inset-0 z-0" style={{ backgroundColor: '#0B0F14' }}>
       <Canvas
         camera={{ position: [0, 0, 10], fov: 40 }}
+        onError={(error) => console.warn('WebGL Error:', error)}
         gl={{ 
           antialias: true, 
           alpha: true,

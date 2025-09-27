@@ -58,17 +58,8 @@ class PreloaderService {
     if (this.preloadedFonts.has(key)) return;
 
     try {
-      const fontFace = new FontFace(
-        font.family,
-        `url(https://fonts.googleapis.com/css2?family=${font.family.replace(/\s+/g, '+')}:wght@${font.weight || '400'}&display=swap)`,
-        {
-          weight: font.weight || 'normal',
-          style: font.style || 'normal'
-        }
-      );
-
-      await fontFace.load();
-      (document as any).fonts.add(fontFace);
+      // Skip font preloading to avoid errors - fonts will load via CSS
+      // Fonts are loaded via CSS import in index.css instead
       this.preloadedFonts.add(key);
     } catch (error) {
       // Font loading failed, continue silently
