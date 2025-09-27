@@ -64,7 +64,7 @@ const BlogAnalytics: React.FC = () => {
       const data = await BlogService.getAnalytics(timeRange);
       setAnalytics(data);
     } catch (error) {
-      console.error('Failed to load blog analytics:', error);
+      // Handle error silently
     } finally {
       setLoading(false);
     }

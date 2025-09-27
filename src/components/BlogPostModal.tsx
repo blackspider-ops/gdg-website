@@ -381,10 +381,8 @@ ${post.excerpt}
                       e.preventDefault();
                       e.stopPropagation();
                       const url = `${window.location.origin}/blog/${currentPost.slug}`;
-                      console.log('Opening blog post in new tab:', url);
                       const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
                       if (!newWindow) {
-                        console.warn('Popup blocked, trying alternative method');
                         // Fallback if popup is blocked
                         const link = document.createElement('a');
                         link.href = url;

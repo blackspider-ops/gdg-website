@@ -52,7 +52,6 @@ export async function invalidateContentCache(
 
     return true;
   } catch (error) {
-    console.error('Failed to invalidate cache:', error);
     return false;
   }
 }

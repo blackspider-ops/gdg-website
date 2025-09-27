@@ -73,8 +73,6 @@ export class ProfileMergingService {
 
       return mergedProfile;
     } catch (error) {
-      console.error('Error getting merged profile:', error);
-      
       // Return basic admin profile on error
       return {
         adminId: admin.id,
@@ -158,7 +156,6 @@ export class ProfileMergingService {
         return !error;
       }
     } catch (error) {
-      console.error('Error creating/updating team profile:', error);
       return false;
     }
   }
@@ -177,7 +174,6 @@ export class ProfileMergingService {
 
       return mergedProfile;
     } catch (error) {
-      console.error('Error auto-merging on login:', error);
       return this.getMergedProfile(admin);
     }
   }

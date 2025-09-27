@@ -62,6 +62,11 @@ const AdminBlog = () => {
     totalCategories: 0
   });
 
+  // Load blog data
+  useEffect(() => {
+    loadBlogData();
+  }, []);
+
   // Authentication check after all hooks
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -71,11 +76,6 @@ const AdminBlog = () => {
   if (currentAdmin?.role !== 'admin' && currentAdmin?.role !== 'super_admin' && currentAdmin?.role !== 'blog_editor') {
     return <Navigate to="/" replace />;
   }
-
-  // Load blog data
-  useEffect(() => {
-    loadBlogData();
-  }, []);
 
   const loadBlogData = async () => {
     setIsLoading(true);

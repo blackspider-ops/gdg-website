@@ -151,7 +151,6 @@ export async function clearContentCache() {
       
       return true;
     } catch (error) {
-      console.error('Failed to clear cache:', error);
       return false;
     }
   }
@@ -170,7 +169,6 @@ export async function clearSpecificCache(pattern: string) {
       }
       return true;
     } catch (error) {
-      console.error('Failed to clear specific cache:', error);
       return false;
     }
   }

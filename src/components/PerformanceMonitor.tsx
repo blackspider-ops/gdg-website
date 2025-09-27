@@ -16,22 +16,12 @@ const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({ children }) => 
       if (!isLoading) {
         const loadTime = performance.now() - startTime;
         
-        // Only log in development
+        // Performance monitoring in development only
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🚀 Page loaded in ${loadTime.toFixed(2)}ms`);
-          
-          // Log performance metrics
+          // Track performance metrics silently
           if (performance.getEntriesByType) {
             const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-            if (navigation) {
-              console.log('📊 Performance Metrics:', {
-                'DNS Lookup': `${(navigation.domainLookupEnd - navigation.domainLookupStart).toFixed(2)}ms`,
-                'TCP Connection': `${(navigation.connectEnd - navigation.connectStart).toFixed(2)}ms`,
-                'Server Response': `${(navigation.responseEnd - navigation.requestStart).toFixed(2)}ms`,
-                'DOM Content Loaded': `${(navigation.domContentLoadedEventEnd - navigation.navigationStart).toFixed(2)}ms`,
-                'Page Load Complete': `${(navigation.loadEventEnd - navigation.navigationStart).toFixed(2)}ms`
-              });
-            }
+            // Performance data available for debugging if needed
           }
         }
       }

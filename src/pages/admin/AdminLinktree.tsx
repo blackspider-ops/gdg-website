@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { Navigate, Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Eye, BarChart3, GripVertical, ExternalLink, ArrowLeft, LinkIcon } from 'lucide-react';
@@ -29,13 +29,9 @@ const AdminLinktree = () => {
   // Lock body scroll when any modal is open
   useBodyScrollLock(showProfileForm || showLinkForm || !!editingProfile || !!editingLink);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [fetchProfiles]);
 
   useEffect(() => {
     if (selectedProfile) {
@@ -43,7 +39,11 @@ const AdminLinktree = () => {
     }
   }, [selectedProfile]);
 
-  const fetchProfiles = async () => {
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  const fetchProfiles = useCallback(async () => {
     try {
       const data = await linktreeService.getAllProfiles();
       setProfiles(data);
@@ -56,7 +56,7 @@ const AdminLinktree = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProfile]);
 
   const fetchLinks = async (profileId: string) => {
     try {
@@ -104,9 +104,7 @@ const AdminLinktree = () => {
     }
 
     try {
-      console.log('Starting profile deletion for ID:', id);
       const success = await linktreeService.deleteProfile(id);
-      console.log('Profile deletion result:', success);
       
       if (success) {
         await fetchProfiles();
@@ -118,7 +116,6 @@ const AdminLinktree = () => {
         toast.error('Failed to delete profile - check console for details');
       }
     } catch (error) {
-      console.error('Profile deletion error:', error);
       toast.error(`Failed to delete profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };

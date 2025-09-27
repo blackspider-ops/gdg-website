@@ -270,8 +270,6 @@ export class BlogService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-
-      console.log('Creating post with data:', postData);
       
       const { data, error } = await supabase
         .from('blog_posts')
@@ -280,7 +278,6 @@ export class BlogService {
         .single();
 
       if (error) {
-        console.error('Database insert error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
@@ -318,8 +315,6 @@ export class BlogService {
         updateData.pending_changes = JSON.stringify(changes);
         updateData.change_summary = this.generateChangeSummary(changes);
       }
-
-      console.log('Updating post with data:', updateData);
       
       const { error } = await supabase
         .from('blog_posts')
@@ -327,7 +322,6 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Database update error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
@@ -508,7 +502,6 @@ export class BlogService {
 
       return count || 0;
     } catch (error) {
-      console.error('Error getting pending approvals count:', error);
       return 0;
     }
   }
@@ -527,21 +520,17 @@ export class BlogService {
         updated_at: new Date().toISOString()
       };
       
-      console.log('Rejecting post with data:', updateData);
-      
       const { error } = await supabase
         .from('blog_posts')
         .update(updateData)
         .eq('id', id);
 
       if (error) {
-        console.error('Database rejection error:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error rejecting post:', error);
       return false;
     }
   }
@@ -833,13 +822,11 @@ export class BlogService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error approving post:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error approving post:', error);
       return false;
     }
   }
@@ -1008,7 +995,7 @@ export class BlogService {
         totalPosts,
         totalViews,
         totalLikes,
-        totalComments: 0, // TODO: Implement comments
+        totalComments: 0,
         avgReadTime,
         publishedPosts,
         draftPosts,
@@ -1019,7 +1006,6 @@ export class BlogService {
         recentActivity
       };
     } catch (error) {
-      console.error('Failed to get blog analytics:', error);
       return {
         totalPosts: 0,
         totalViews: 0,
@@ -1062,7 +1048,6 @@ export class BlogService {
       const engagementRate = views > 0 ? (likes / views) * 100 : 0;
       const likeRate = views > 0 ? (likes / views) * 100 : 0;
 
-      // TODO: Implement daily tracking for viewsToday and likesToday
       const viewsToday = 0;
       const likesToday = 0;
 

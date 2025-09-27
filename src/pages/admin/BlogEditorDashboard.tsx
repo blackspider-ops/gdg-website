@@ -84,7 +84,6 @@ const BlogEditorDashboard = () => {
       const requestsData = await BlogService.getRequestsByEditor(currentAdmin.email, requestFilter);
       setRequests(requestsData);
     } catch (error) {
-      console.error('Error loading requests:', error);
       setRequests([]);
     } finally {
       setLoadingRequests(false);

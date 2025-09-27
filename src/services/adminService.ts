@@ -139,7 +139,6 @@ export class AdminService {
         .single();
 
       if (error) {
-        console.error('Error creating admin user:', error);
         return null;
       }
       
@@ -149,7 +148,6 @@ export class AdminService {
 
       return newAdmin;
     } catch (error) {
-      console.error('Exception creating admin user:', error);
       return null;
     }
   }

@@ -179,7 +179,6 @@ export class OptimizedContentService {
     });
     
     // Force a complete cache refresh for projects
-    console.log('Cleared all project caches for fresh data');
   }
 
   // Clear content cache (for admin content updates)
@@ -204,8 +203,6 @@ export class OptimizedContentService {
     cacheService.clearContentType('navigationItems');
     cacheService.clearContentType('footerContent');
     cacheService.clearContentType('pageContent');
-    
-    console.log('Cleared all content caches for fresh data');
   }
 
   // Sponsors with caching

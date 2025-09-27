@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, Download, Filter, RefreshCw, Calendar, User, Clock } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { AuditService, type AuditLogEntry, type AuditStats, type AuditFilters } from '@/services/auditService';
@@ -8,20 +8,7 @@ interface ComprehensiveAuditLogProps {
 }
 
 const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAdmin }) => {
-  // Check if current user is super admin - audit log is super admin only
-  const isSuperAdmin = currentAdmin?.role === 'super_admin';
-  
-  if (!isSuperAdmin) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-8 text-center">
-        <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">Access Restricted</h3>
-        <p className="text-muted-foreground">
-          Audit log access is restricted to Super Administrators only.
-        </p>
-      </div>
-    );
-  }
+  // Initialize all hooks first
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
   const [allAdmins, setAllAdmins] = useState<Array<{id: string, email: string}>>([]);
   const [auditStats, setAuditStats] = useState<AuditStats>({
@@ -41,6 +28,21 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Check if current user is super admin - audit log is super admin only
+  const isSuperAdmin = currentAdmin?.role === 'super_admin';
+  
+  if (!isSuperAdmin) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-8 text-center">
+        <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">Access Restricted</h3>
+        <p className="text-muted-foreground">
+          Audit log access is restricted to Super Administrators only.
+        </p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     loadAuditData();
@@ -54,9 +56,9 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
         { description: 'Viewed comprehensive audit log' }
       );
     }
-  }, [currentAdmin]);
+  }, [currentAdmin, loadAuditData]);
 
-  const loadAuditData = async (filters?: AuditFilters) => {
+  const loadAuditData = useCallback(async (filters?: AuditFilters) => {
     setIsLoading(true);
     try {
       const [entries, stats, admins] = await Promise.all([
@@ -89,7 +91,7 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const loadAllAdmins = async () => {
     try {

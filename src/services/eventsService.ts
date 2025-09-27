@@ -28,12 +28,10 @@ export class EventsService {
         .order('date', { ascending: false });
 
       if (error) {
-        console.warn('Events service error:', error);
         return [];
       }
       return data || [];
     } catch (error) {
-      console.warn('Events service network error:', error);
       return [];
     }
   }
@@ -99,12 +97,10 @@ export class EventsService {
         .order('date', { ascending: true });
 
       if (error) {
-        console.warn('Upcoming events service error:', error);
         return [];
       }
       return data || [];
     } catch (error) {
-      console.warn('Upcoming events service network error:', error);
       return [];
     }
   }

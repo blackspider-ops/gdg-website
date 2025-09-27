@@ -70,7 +70,7 @@ const BlogEditorMedia: React.FC = () => {
                 }
             }
         } catch (error) {
-            console.error('Error loading blog submissions:', error);
+            // Handle error silently
         } finally {
             setIsLoading(false);
         }
@@ -82,7 +82,7 @@ const BlogEditorMedia: React.FC = () => {
             const fileUrl = signedUrl || MediaService.getFileUrl(file.file_path);
             window.open(fileUrl, '_blank');
         } catch (error) {
-            console.error('Error viewing file:', error);
+            // Handle error silently
         }
     };
 
@@ -90,7 +90,7 @@ const BlogEditorMedia: React.FC = () => {
         try {
             await MediaService.downloadFile(file.file_path, file.original_name);
         } catch (error) {
-            console.error('Error downloading file:', error);
+            // Handle error silently
         }
     };
 

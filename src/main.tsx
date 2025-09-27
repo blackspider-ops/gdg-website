@@ -8,7 +8,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     registrations.forEach((registration) => {
       registration.unregister().then(() => {
-        console.log('Service worker unregistered successfully');
         // Force reload to clear any cached responses
         if (registrations.length > 0) {
           window.location.reload();

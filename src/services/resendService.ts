@@ -33,7 +33,6 @@ export class ResendService {
       });
 
       if (error) {
-        console.error('Email sending error:', error);
         return { 
           success: false, 
           error: error.message || 'Failed to send email' 
@@ -49,7 +48,6 @@ export class ResendService {
         };
       }
     } catch (error) {
-      console.error('Email service error:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

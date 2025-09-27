@@ -36,7 +36,7 @@ const Projects = () => {
       const starred = await ProjectStarsService.getUserStarredProjects(projectIds);
       setStarredProjects(starred);
     } catch (error) {
-      console.error('Error loading starred projects:', error);
+      // Handle error silently
     }
   };
 
@@ -63,7 +63,7 @@ const Projects = () => {
         ));
       }
     } catch (error) {
-      console.error('Error toggling star:', error);
+      // Handle error silently
     } finally {
       setStarringProject(null);
     }

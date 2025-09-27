@@ -42,13 +42,6 @@ const AdminEvents = () => {
   });
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
-  // Lock body scroll when any modal is open
-  useBodyScrollLock(showCreateForm || !!editingEvent || !!viewingAttendees || showEmailModal);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
   // Unified form data state
   const [formData, setFormData] = useState({
     title: '',
@@ -66,11 +59,18 @@ const AdminEvents = () => {
     level: 'open_for_all' as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all'
   });
 
+  // Lock body scroll when any modal is open
+  useBodyScrollLock(showCreateForm || !!editingEvent || !!viewingAttendees || showEmailModal);
+
   // Load events and stats
   useEffect(() => {
     loadEvents();
     loadEventStats();
   }, []);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   // Filter events
   const filteredEvents = events.filter(event => {
@@ -96,6 +96,7 @@ const AdminEvents = () => {
       const eventsData = await EventsService.getEvents();
       setEvents(eventsData);
     } catch (error) {
+      // Handle error silently
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +107,7 @@ const AdminEvents = () => {
       const stats = await EventsService.getEventStats();
       setEventStats(stats);
     } catch (error) {
+      // Handle error silently
     }
   };
 
@@ -277,7 +279,6 @@ const AdminEvents = () => {
       }
     } catch (error) {
       setError('Failed to update event status.');
-      console.error('Toggle featured error:', error);
     }
   };
 

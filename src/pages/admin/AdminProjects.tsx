@@ -65,7 +65,6 @@ const AdminProjects = () => {
       const projectsData = await ProjectsService.getAllProjects();
       setProjects(projectsData);
     } catch (error) {
-      console.error('Failed to load projects:', error);
       setError('Failed to load projects');
     } finally {
       setIsLoading(false);
@@ -77,7 +76,7 @@ const AdminProjects = () => {
       const stats = await ProjectsService.getProjectStats();
       setProjectStats(stats);
     } catch (error) {
-      console.error('Failed to load project stats:', error);
+      // Handle error silently
     }
   };
 
@@ -180,7 +179,6 @@ const AdminProjects = () => {
         setError('Failed to update project. Please try again.');
       }
     } catch (error) {
-      console.error('Update error:', error);
       setError(`An error occurred while updating the project: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
@@ -209,7 +207,6 @@ const AdminProjects = () => {
           setError('Failed to delete project. Please try again.');
         }
       } catch (error) {
-        console.error('Delete error:', error);
         setError(`An error occurred while deleting the project: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }

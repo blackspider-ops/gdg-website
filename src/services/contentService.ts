@@ -76,12 +76,10 @@ export class ContentService {
                 .single();
 
             if (error) {
-                console.warn(`Site setting '${key}' error:`, error);
                 return null;
             }
             return data?.value;
         } catch (error) {
-            console.warn(`Site setting '${key}' network error:`, error);
             return null;
         }
     }
@@ -410,7 +408,6 @@ export class ContentService {
             const code = await this.getSiteSetting('admin_secret_code');
             return code || 'gdg-secret@psu.edu'; // Default fallback
         } catch (error) {
-            console.warn('Admin secret code fetch error:', error);
             return 'gdg-secret@psu.edu'; // Default fallback
         }
     }

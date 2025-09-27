@@ -69,22 +69,16 @@ export interface ProjectStats {
 
 export class ProjectsService {
   static async getAllProjects(): Promise<Project[]> {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching projects:', error);
-        throw error;
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in getAllProjects:', error);
+    if (error) {
       throw error;
     }
+
+    return data || [];
   }
 
   // Alias for compatibility with existing code
@@ -101,13 +95,11 @@ export class ProjectsService {
         .single();
 
       if (error) {
-        console.error('Error fetching project:', error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in getProjectById:', error);
       throw error;
     }
   }
@@ -131,13 +123,11 @@ export class ProjectsService {
         .single();
 
       if (error) {
-        console.error('Error creating project:', error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in createProject:', error);
       throw error;
     }
   }
@@ -157,8 +147,6 @@ export class ProjectsService {
         .single();
 
       if (error) {
-        console.error('Error updating project:', error);
-        
         // If it's a permission error, provide a more helpful message
         if (error.code === 'PGRST116' || error.message.includes('Cannot coerce')) {
           throw new Error('Permission denied: Unable to update project. Please check your admin permissions.');
@@ -169,7 +157,6 @@ export class ProjectsService {
 
       return data;
     } catch (error) {
-      console.error('Error in updateProject:', error);
       throw error;
     }
   }
@@ -182,8 +169,6 @@ export class ProjectsService {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting project:', error);
-        
         // If it's a permission error, provide a more helpful message
         if (error.code === 'PGRST116' || error.message.includes('Cannot coerce')) {
           throw new Error('Permission denied: Unable to delete project. Please check your admin permissions.');
@@ -194,7 +179,6 @@ export class ProjectsService {
 
       return true;
     } catch (error) {
-      console.error('Error in deleteProject:', error);
       throw error;
     }
   }
@@ -231,7 +215,6 @@ export class ProjectsService {
 
       return stats;
     } catch (error) {
-      console.error('Error in getProjectStats:', error);
       throw error;
     }
   }
@@ -248,13 +231,11 @@ export class ProjectsService {
         .eq('is_active', true);
 
       if (error) {
-        console.error('Error fetching project members:', error);
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getProjectMembers:', error);
       throw error;
     }
   }
@@ -272,13 +253,11 @@ export class ProjectsService {
         .single();
 
       if (error) {
-        console.error('Error adding project member:', error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in addProjectMember:', error);
       throw error;
     }
   }
@@ -292,13 +271,11 @@ export class ProjectsService {
         .eq('member_id', memberId);
 
       if (error) {
-        console.error('Error removing project member:', error);
         throw error;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in removeProjectMember:', error);
       throw error;
     }
   }
@@ -313,13 +290,11 @@ export class ProjectsService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching projects by category:', error);
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getProjectsByCategory:', error);
       throw error;
     }
   }
@@ -333,13 +308,11 @@ export class ProjectsService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching featured projects:', error);
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getFeaturedProjects:', error);
       throw error;
     }
   }

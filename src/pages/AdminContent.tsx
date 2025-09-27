@@ -263,9 +263,6 @@ const AdminContent = () => {
 
       setIsEditing(false);
       
-      // Show success message
-      console.log('Site settings saved successfully');
-
       // Show success feedback
     } catch (error) {
       // Error handling implemented
@@ -345,11 +342,10 @@ const AdminContent = () => {
         OptimizedContentService.clearAllCaches();
         
         // Show success feedback
-        console.log('✅ Content saved and cache updated');
       }, 500);
       
     } catch (error) {
-      console.error('Error saving home page:', error);
+      // Handle error silently
     } finally {
       setIsSaving(false);
     }
@@ -367,7 +363,6 @@ const AdminContent = () => {
       const result = await ContentService.updatePageContent('contact', 'main', contactPageData, currentAdmin?.id);
 
       setIsEditing(false);
-      console.log('Contact page content saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -386,7 +381,6 @@ const AdminContent = () => {
       );
 
       setIsEditing(false);
-      console.log('Links & URLs saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -510,7 +504,6 @@ const AdminContent = () => {
       await Promise.all([...deletePromises, ...updatePromises]);
       
       setIsEditing(false);
-      console.log('Navigation saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {
@@ -542,7 +535,6 @@ const AdminContent = () => {
       await ContentService.updateFooterContent('newsletter', JSON.stringify(footerForm.newsletter), currentAdmin?.id);
 
       setIsEditing(false);
-      console.log('Footer content saved successfully');
     } catch (error) {
     // Silently handle errors
   } finally {

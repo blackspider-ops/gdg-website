@@ -51,13 +51,11 @@ export class ProjectStarsService {
       const { data, error } = await query.maybeSingle();
 
       if (error) {
-        console.error('Error checking if user starred project:', error);
         return false;
       }
 
       return !!data;
     } catch (error) {
-      console.error('Error in hasUserStarredProject:', error);
       return false;
     }
   }
@@ -82,13 +80,11 @@ export class ProjectStarsService {
         .insert([starData]);
 
       if (error) {
-        console.error('Error starring project:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in starProject:', error);
       return false;
     }
   }
@@ -113,13 +109,11 @@ export class ProjectStarsService {
       const { error } = await deleteQuery;
 
       if (error) {
-        console.error('Error unstarring project:', error);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error in unstarProject:', error);
       return false;
     }
   }
@@ -148,7 +142,6 @@ export class ProjectStarsService {
         newCount
       };
     } catch (error) {
-      console.error('Error in toggleProjectStar:', error);
       return { starred: false, success: false, newCount: 0 };
     }
   }
@@ -163,13 +156,11 @@ export class ProjectStarsService {
         .single();
 
       if (error) {
-        console.error('Error getting project stars count:', error);
         return 0;
       }
 
       return data?.stars_count || 0;
     } catch (error) {
-      console.error('Error in getProjectStarsCount:', error);
       return 0;
     }
   }
@@ -184,7 +175,6 @@ export class ProjectStarsService {
         .eq('project_id', projectId);
 
       if (countError) {
-        console.error('Error counting stars:', countError);
         return 0;
       }
 
@@ -197,13 +187,11 @@ export class ProjectStarsService {
         .eq('id', projectId);
 
       if (updateError) {
-        console.error('Error updating star count:', updateError);
         return 0;
       }
 
       return actualCount;
     } catch (error) {
-      console.error('Error in recalculateStarsCount:', error);
       return 0;
     }
   }
@@ -230,7 +218,6 @@ export class ProjectStarsService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error getting user starred projects:', error);
         return {};
       }
 
@@ -245,7 +232,6 @@ export class ProjectStarsService {
 
       return starredProjects;
     } catch (error) {
-      console.error('Error in getUserStarredProjects:', error);
       return {};
     }
   }

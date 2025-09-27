@@ -157,10 +157,8 @@ const AdminNewsletter = () => {
     try {
       setIsLoading(true);
       setError(null);
-      console.log('Starting remove all subscribers operation...');
       
       const result = await NewsletterService.removeAllSubscribers();
-      console.log('Remove all result:', result);
       
       if (result) {
         await loadNewsletterData();
@@ -170,7 +168,6 @@ const AdminNewsletter = () => {
         setError('Failed to remove all subscribers. Please check the console for details.');
       }
     } catch (error) {
-      console.error('Remove all subscribers error:', error);
       setError(`An error occurred while removing all subscribers: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
