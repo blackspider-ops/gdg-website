@@ -3,18 +3,20 @@ import App from "./App.tsx";
 import "./index.css";
 // import { SpeedInsights } from "@vercel/speed-insights/react";
 
-// Register service worker for caching - temporarily disabled for debugging
-// if ('serviceWorker' in navigator && import.meta.env.PROD) {
-//   window.addEventListener('load', () => {
-//     navigator.serviceWorker.register('/sw.js')
-//       .then((registration) => {
-//         // Silently handle logs
-//       })
-//       .catch((registrationError) => {
-//         // Silently handle logs
-//       });
-//   });
-// }
+// Unregister any existing service workers to prevent network conflicts
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      registration.unregister().then(() => {
+        console.log('Service worker unregistered successfully');
+        // Force reload to clear any cached responses
+        if (registrations.length > 0) {
+          window.location.reload();
+        }
+      });
+    });
+  });
+}
 
 createRoot(document.getElementById("root")!).render(
   <>

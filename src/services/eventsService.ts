@@ -26,9 +26,13 @@ export class EventsService {
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Events service error:', error);
+        return [];
+      }
       return data || [];
     } catch (error) {
+      console.warn('Events service network error:', error);
       return [];
     }
   }
@@ -93,9 +97,13 @@ export class EventsService {
         .gte('date', new Date().toISOString())
         .order('date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Upcoming events service error:', error);
+        return [];
+      }
       return data || [];
     } catch (error) {
+      console.warn('Upcoming events service network error:', error);
       return [];
     }
   }

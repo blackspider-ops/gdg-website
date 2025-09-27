@@ -68,14 +68,22 @@ export class ContentService {
     }
 
     static async getSiteSetting(key: string): Promise<any> {
-        const { data, error } = await supabase
-            .from('site_settings')
-            .select('value')
-            .eq('key', key)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('site_settings')
+                .select('value')
+                .eq('key', key)
+                .single();
 
-        if (error) return null;
-        return data?.value;
+            if (error) {
+                console.warn(`Site setting '${key}' error:`, error);
+                return null;
+            }
+            return data?.value;
+        } catch (error) {
+            console.warn(`Site setting '${key}' network error:`, error);
+            return null;
+        }
     }
 
     static async updateSiteSetting(key: string, value: any, adminId?: string): Promise<boolean> {
@@ -398,8 +406,13 @@ export class ContentService {
 
     // Admin Secret Code Management
     static async getAdminSecretCode(): Promise<string> {
-        const code = await this.getSiteSetting('admin_secret_code');
-        return code || 'gdg-secret@psu.edu'; // Default fallback
+        try {
+            const code = await this.getSiteSetting('admin_secret_code');
+            return code || 'gdg-secret@psu.edu'; // Default fallback
+        } catch (error) {
+            console.warn('Admin secret code fetch error:', error);
+            return 'gdg-secret@psu.edu'; // Default fallback
+        }
     }
 
     static async updateAdminSecretCode(newCode: string, adminId?: string): Promise<boolean> {

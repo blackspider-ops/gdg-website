@@ -377,9 +377,23 @@ ${post.excerpt}
                   </button>
                   
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       const url = `${window.location.origin}/blog/${currentPost.slug}`;
-                      window.open(url, '_blank');
+                      console.log('Opening blog post in new tab:', url);
+                      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+                      if (!newWindow) {
+                        console.warn('Popup blocked, trying alternative method');
+                        // Fallback if popup is blocked
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }
                     }}
                     className="flex items-center space-x-1 px-3 py-2 text-sm border border-gdg-blue bg-gdg-blue/10 text-gdg-blue rounded-lg hover:bg-gdg-blue/20 transition-colors"
                   >
