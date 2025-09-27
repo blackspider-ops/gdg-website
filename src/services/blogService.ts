@@ -479,9 +479,9 @@ export class BlogService {
         .select('id')
         .eq('post_id', postId)
         .eq('user_identifier', identifier)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      if (error) {
         return false;
       }
 
