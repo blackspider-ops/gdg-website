@@ -259,6 +259,14 @@ export class CommunicationsService {
         }
       );
 
+      // Send email notification to all admin members
+      try {
+        await this.sendAnnouncementEmail(data.id, undefined, authorId);
+      } catch (emailError) {
+        console.error('Failed to send announcement email:', emailError);
+        // Don't fail the announcement creation if email fails
+      }
+
       return data;
     } catch (error) {
       return null;
@@ -352,8 +360,8 @@ export class CommunicationsService {
         .from('communication_tasks')
         .select(`
           *,
-          assigned_to:admin_users!communication_tasks_assigned_to_id_fkey(email, role),
-          assigned_by:admin_users!communication_tasks_assigned_by_id_fkey(email, role)
+          assigned_to:admin_users!assigned_to_id(email, role),
+          assigned_by:admin_users!assigned_by_id(email, role)
         `)
         .order('created_at', { ascending: false });
 
@@ -440,6 +448,16 @@ export class CommunicationsService {
         }
       );
 
+      // Send email notification to assigned user
+      if (task.assigned_to_id && data.assigned_to?.email) {
+        try {
+          await this.sendTaskNotificationEmail(data.id, [data.assigned_to.email], assignedById);
+        } catch (emailError) {
+          console.error('Failed to send task assignment email:', emailError);
+          // Don't fail the task creation if email fails
+        }
+      }
+
       return data;
     } catch (error) {
       return null;
@@ -452,6 +470,17 @@ export class CommunicationsService {
     userId: string
   ): Promise<boolean> {
     try {
+      // Get current task data before update
+      const { data: currentTask } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .select(`
+          *,
+          assigned_to:admin_users!communication_tasks_assigned_to_id_fkey(email, role),
+          assigned_by:admin_users!communication_tasks_assigned_by_id_fkey(email, role)
+        `)
+        .eq('id', id)
+        .single();
+
       const { error } = await getServiceRoleClient()
         .from('communication_tasks')
         .update(updates)
@@ -465,11 +494,57 @@ export class CommunicationsService {
         'update_task',
         undefined,
         {
-          description: `Updated task: ${updates.title || 'Unknown'}`,
+          description: `Updated task: ${updates.title || currentTask?.title || 'Unknown'}`,
           task_id: id,
           changes: updates
         }
       );
+
+      // Send email notifications for significant changes
+      if (currentTask) {
+        try {
+          // If task was reassigned to a different person
+          if (updates.assigned_to_id && updates.assigned_to_id !== currentTask.assigned_to_id) {
+            // Get new assignee email
+            const { data: newAssignee } = await getServiceRoleClient()
+              .from('admin_users')
+              .select('email')
+              .eq('id', updates.assigned_to_id)
+              .single();
+
+            if (newAssignee?.email) {
+              await this.sendTaskNotificationEmail(id, [newAssignee.email], userId);
+            }
+          }
+          // If status changed to completed and there's an assignee
+          else if (updates.status === 'completed' && currentTask.assigned_by?.email) {
+            await this.sendDirectEmail({
+              to_emails: [currentTask.assigned_by.email],
+              subject: `[Task Completed] ${currentTask.title}`,
+              message: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
+                    Task Completed ✅
+                  </h2>
+                  <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+                    <h3 style="color: #374151; margin-top: 0;">${currentTask.title}</h3>
+                    <p style="color: #4b5563; margin: 10px 0;"><strong>Description:</strong></p>
+                    <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${currentTask.description || 'No description provided'}</div>
+                    <p style="color: #4b5563; margin: 10px 0;"><strong>Completed by:</strong> ${currentTask.assigned_to?.email || 'Unknown'}</p>
+                    <p style="color: #4b5563; margin: 10px 0;"><strong>Completed on:</strong> ${new Date().toLocaleDateString()}</p>
+                  </div>
+                  <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+                </div>
+              `,
+              email_type: 'task_notification',
+              sender_name: 'GDG@PSU Communications'
+            }, userId);
+          }
+        } catch (emailError) {
+          console.error('Failed to send task update email:', emailError);
+          // Don't fail the task update if email fails
+        }
+      }
 
       return true;
     } catch (error) {
@@ -561,6 +636,37 @@ export class CommunicationsService {
           recipient: message.to_user_id
         }
       );
+
+      // Send email notification to recipient
+      if (data.to_user?.email) {
+        try {
+          await this.sendDirectEmail({
+            to_emails: [data.to_user.email],
+            subject: `[Internal Message] ${message.subject}`,
+            message: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+                  New Internal Message
+                </h2>
+                <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="color: #374151; margin-top: 0;">Subject: ${message.subject}</h3>
+                  <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${message.message}</div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                  <p><strong>From:</strong> ${data.from_user?.email || 'Unknown'}</p>
+                  <p><strong>Sent:</strong> ${new Date(data.created_at).toLocaleString()}</p>
+                </div>
+                <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+              </div>
+            `,
+            email_type: 'internal_message',
+            sender_name: 'GDG@PSU Communications'
+          }, fromUserId);
+        } catch (emailError) {
+          console.error('Failed to send message notification email:', emailError);
+          // Don't fail the message sending if email fails
+        }
+      }
 
       return data;
     } catch (error) {

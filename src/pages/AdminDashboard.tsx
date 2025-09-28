@@ -28,6 +28,7 @@ import { BlogService } from '@/services/blogService';
 import { ProjectsService } from '@/services/projectsService';
 import { SponsorsService } from '@/services/sponsorsService';
 import { NewsletterService } from '@/services/newsletterService';
+import { CommunicationsService } from '@/services/communicationsService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -37,7 +38,8 @@ const AdminDashboard = () => {
     newsletterSubscribers: 0,
     activeProjects: 0,
     totalSponsors: 0,
-    blogPosts: 0
+    blogPosts: 0,
+    pendingTasks: 0
   });
   const [recentActivity, setRecentActivity] = useState<Array<{
     id: string;
@@ -65,15 +67,20 @@ const AdminDashboard = () => {
       }));
 
       // Load remaining stats
-      const [projectStats, sponsorStats, newsletterStats, blogStats] = await Promise.all([
+      const [projectStats, sponsorStats, newsletterStats, blogStats, pendingApprovals] = await Promise.all([
         ProjectsService.getProjectStats(),
         SponsorsService.getSponsorStats(),
         NewsletterService.getSubscriberStats(),
-        BlogService.getBlogStats()
+        BlogService.getBlogStats(),
+        BlogService.getPendingApprovalsCount()
       ]);
 
-      // Get pending approvals count
-      const pendingApprovals = await BlogService.getPendingApprovalsCount();
+      // Get pending tasks count for current user
+      const userTasks = currentAdmin?.id ? await CommunicationsService.getTasks({
+        assigned_to: currentAdmin.id,
+        status: 'pending'
+      }) : [];
+      const pendingTasks = userTasks.length;
 
       setDashboardStats({
         totalMembers: memberStats.total,
@@ -82,7 +89,8 @@ const AdminDashboard = () => {
         activeProjects: projectStats.total,
         totalSponsors: sponsorStats.active,
         blogPosts: blogStats.publishedPosts,
-        pendingApprovals: pendingApprovals
+        pendingApprovals: pendingApprovals,
+        pendingTasks: pendingTasks
       });
 
       // Generate recent activity based on real data
@@ -176,6 +184,7 @@ const AdminDashboard = () => {
     { label: 'Newsletter Subscribers', value: dashboardStats.newsletterSubscribers.toString(), icon: Mail, color: 'text-purple-500' },
     { label: 'Active Projects', value: dashboardStats.activeProjects.toString(), icon: FileText, color: 'text-orange-500' },
     { label: 'Blog Posts', value: dashboardStats.blogPosts.toString(), icon: PenTool, color: 'text-pink-500' },
+    { label: 'My Pending Tasks', value: dashboardStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications' },
     { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500' },
   ];
 
@@ -269,8 +278,8 @@ const AdminDashboard = () => {
           ) : (
             stats.map((stat, index) => {
               const Icon = stat.icon;
-              return (
-                <div key={index} className="bg-card border border-border rounded-lg p-6">
+              const content = (
+                <>
                   <div className="flex items-center justify-between mb-4">
                     <Icon size={24} className={stat.color} />
                     <Activity size={16} className="text-muted-foreground" />
@@ -279,6 +288,24 @@ const AdminDashboard = () => {
                     <div className="text-2xl font-bold mb-1 text-foreground">{stat.value}</div>
                     <div className="text-sm text-muted-foreground">{stat.label}</div>
                   </div>
+                </>
+              );
+
+              if (stat.href) {
+                return (
+                  <Link 
+                    key={index} 
+                    to={stat.href}
+                    className="bg-card border border-border rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer block"
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+
+              return (
+                <div key={index} className="bg-card border border-border rounded-lg p-6">
+                  {content}
                 </div>
               );
             })

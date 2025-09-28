@@ -78,6 +78,10 @@ const AdminCommunications: React.FC = () => {
 
     const [selectedItem, setSelectedItem] = useState<Announcement | CommunicationTask | InternalMessage | null>(null);
 
+    // Error state
+    const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+    const [submitError, setSubmitError] = useState<string>('');
+
     // Filter state
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
@@ -140,7 +144,9 @@ const AdminCommunications: React.FC = () => {
                 }),
                 CommunicationsService.getTasks({
                     status: filterStatus === 'all' ? undefined : filterStatus,
-                    search: searchTerm || undefined
+                    search: searchTerm || undefined,
+                    // All users see only tasks assigned to them
+                    assigned_to: currentAdmin?.id
                 }),
                 currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id) : Promise.resolve([]),
                 currentAdmin?.id ? CommunicationsService.getCommunicationStats(currentAdmin.id) : Promise.resolve(null),
@@ -152,23 +158,38 @@ const AdminCommunications: React.FC = () => {
             setMessages(messagesData);
             setAdminUsers(adminUsersData);
 
-            // Update stats with actual data - use statsData if available, otherwise calculate from loaded data
-            if (statsData && typeof statsData === 'object') {
-                setCommStats([
-                    { label: 'Total Announcements', value: statsData.total_announcements?.toString() || '0', icon: Bell, color: 'text-blue-400' },
-                    { label: 'Active Tasks', value: statsData.pending_tasks?.toString() || '0', icon: CheckSquare, color: 'text-green-400' },
-                    { label: 'Unread Messages', value: statsData.unread_messages?.toString() || '0', icon: MessageSquare, color: 'text-yellow-400' },
-                    { label: 'Team Members', value: statsData.team_members?.toString() || '0', icon: Users, color: 'text-purple-400' }
-                ]);
-            } else {
-                // Fallback to calculating from loaded data
-                setCommStats([
-                    { label: 'Total Announcements', value: (announcementsData || []).length.toString(), icon: Bell, color: 'text-blue-400' },
-                    { label: 'Active Tasks', value: (tasksData || []).filter(task => task.status !== 'completed').length.toString(), icon: CheckSquare, color: 'text-green-400' },
-                    { label: 'Unread Messages', value: (messagesData || []).filter(msg => !msg.is_read).length.toString(), icon: MessageSquare, color: 'text-yellow-400' },
-                    { label: 'Team Members', value: (adminUsersData || []).length.toString(), icon: Users, color: 'text-purple-400' }
-                ]);
-            }
+            // Always calculate from user-specific filtered data for personalized experience
+            const activeTasksCount = (tasksData || []).filter(task => task.status !== 'completed').length;
+            
+            // Use global stats for announcements and team members, but user-specific for tasks and messages
+            const globalStats = statsData && typeof statsData === 'object';
+            
+            setCommStats([
+                { 
+                    label: 'Total Announcements', 
+                    value: globalStats ? (statsData.total_announcements?.toString() || '0') : (announcementsData || []).length.toString(), 
+                    icon: Bell, 
+                    color: 'text-blue-400' 
+                },
+                { 
+                    label: 'My Active Tasks', 
+                    value: activeTasksCount.toString(), 
+                    icon: CheckSquare, 
+                    color: 'text-green-400' 
+                },
+                { 
+                    label: 'Unread Messages', 
+                    value: (messagesData || []).filter(msg => !msg.is_read).length.toString(), 
+                    icon: MessageSquare, 
+                    color: 'text-yellow-400' 
+                },
+                { 
+                    label: 'Team Members', 
+                    value: globalStats ? (statsData.team_members?.toString() || '0') : (adminUsersData || []).length.toString(), 
+                    icon: Users, 
+                    color: 'text-purple-400' 
+                }
+            ]);
 
             // Log viewing action
             if (currentAdmin?.id) {
@@ -210,16 +231,72 @@ const AdminCommunications: React.FC = () => {
         loadAllData();
     };
 
+    // Validation function
+    const validateForm = (): boolean => {
+        const errors: {[key: string]: string} = {};
+        
+        // Common validations
+        if (!createForm.title.trim()) {
+            errors.title = 'Title is required';
+        }
+
+        if (activeTab === 'announcements') {
+            if (!createForm.message.trim()) {
+                errors.message = 'Message is required';
+            }
+        } else if (activeTab === 'tasks') {
+            if (!createForm.description.trim()) {
+                errors.description = 'Description is required';
+            }
+            if (!createForm.assigned_to_id) {
+                errors.assigned_to_id = 'Please assign the task to someone';
+            }
+            if (!createForm.due_date) {
+                errors.due_date = 'Due date is required';
+            } else {
+                // Check if due date is in the past
+                const dueDate = new Date(createForm.due_date);
+                const now = new Date();
+                if (dueDate < now) {
+                    errors.due_date = 'Due date cannot be in the past';
+                }
+            }
+        } else if (activeTab === 'messages') {
+            if (!createForm.subject.trim()) {
+                errors.subject = 'Subject is required';
+            }
+            if (!createForm.message.trim()) {
+                errors.message = 'Message is required';
+            }
+            if (!createForm.to_user_id) {
+                errors.to_user_id = 'Please select a recipient';
+            }
+        }
+
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     // CRUD Functions
     const handleCreate = async () => {
         if (!currentAdmin?.id) return;
 
+        // Clear previous errors
+        setSubmitError('');
+        setFormErrors({});
+
+        // Validate form
+        if (!validateForm()) {
+            return;
+        }
+
         setIsSaving(true);
         try {
             let success = false;
+            let result = null;
 
             if (activeTab === 'announcements' && currentAdmin?.id) {
-                const result = await CommunicationsService.createAnnouncement({
+                result = await CommunicationsService.createAnnouncement({
                     title: createForm.title,
                     message: createForm.message,
                     priority: createForm.priority,
@@ -227,7 +304,7 @@ const AdminCommunications: React.FC = () => {
                 }, currentAdmin.id);
                 success = !!result;
             } else if (activeTab === 'tasks' && currentAdmin?.id) {
-                const result = await CommunicationsService.createTask({
+                result = await CommunicationsService.createTask({
                     title: createForm.title,
                     description: createForm.description,
                     assigned_to_id: createForm.assigned_to_id,
@@ -236,7 +313,7 @@ const AdminCommunications: React.FC = () => {
                 }, currentAdmin.id);
                 success = !!result;
             } else if (activeTab === 'messages' && currentAdmin?.id) {
-                const result = await CommunicationsService.sendMessage({
+                result = await CommunicationsService.sendMessage({
                     to_user_id: createForm.to_user_id,
                     subject: createForm.subject,
                     message: createForm.message
@@ -248,9 +325,11 @@ const AdminCommunications: React.FC = () => {
                 setShowCreateModal(false);
                 resetCreateForm();
                 await loadAllData();
+            } else {
+                setSubmitError('Failed to create. Please check your input and try again.');
             }
-        } catch (error) {
-            // Silently handle errors
+        } catch (error: any) {
+            setSubmitError(error.message || 'An unexpected error occurred. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -395,6 +474,8 @@ const AdminCommunications: React.FC = () => {
             to_user_id: '',
             due_date: ''
         });
+        setFormErrors({});
+        setSubmitError('');
     };
 
     // Email handlers
@@ -545,23 +626,29 @@ const AdminCommunications: React.FC = () => {
                         <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                         <span>Refresh</span>
                     </button>
-                    <button
-                        onClick={() => openEmailModal()}
-                        className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
-                    >
-                        <Mail size={16} />
-                        <span>Send Email</span>
-                    </button>
-                    <button
-                        onClick={() => {
-                            resetCreateForm();
-                            setShowCreateModal(true);
-                        }}
-                        className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                    >
-                        <Plus size={16} />
-                        <span>Create {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}</span>
-                    </button>
+                    {/* Hide email functionality from blog editors */}
+                    {currentAdmin?.role !== 'blog_editor' && (
+                        <button
+                            onClick={() => openEmailModal()}
+                            className="flex items-center space-x-2 px-3 py-2 border border-border text-gray-300 rounded-lg hover:bg-muted transition-colors"
+                        >
+                            <Mail size={16} />
+                            <span>Send Email</span>
+                        </button>
+                    )}
+                    {/* Hide task creation from blog editors */}
+                    {!(activeTab === 'tasks' && currentAdmin?.role === 'blog_editor') && (
+                        <button
+                            onClick={() => {
+                                resetCreateForm();
+                                setShowCreateModal(true);
+                            }}
+                            className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                        >
+                            <Plus size={16} />
+                            <span>Create {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}</span>
+                        </button>
+                    )}
                 </div>
             }
         >
@@ -692,27 +779,35 @@ const AdminCommunications: React.FC = () => {
                                                         <Eye size={16} />
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => openEmailModal(announcement)}
-                                                    className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
-                                                    title="Send as email"
-                                                >
-                                                    <Mail size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => openEditModal(announcement)}
-                                                    className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
-                                                    title="Edit announcement"
-                                                >
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => openDeleteModal(announcement)}
-                                                    className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
-                                                    title="Delete announcement"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                {/* Hide email functionality from blog editors */}
+                                                {currentAdmin?.role !== 'blog_editor' && (
+                                                    <button
+                                                        onClick={() => openEmailModal(announcement)}
+                                                        className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
+                                                        title="Send as email"
+                                                    >
+                                                        <Mail size={16} />
+                                                    </button>
+                                                )}
+                                                {/* Blog editors can only edit/delete their own announcements */}
+                                                {(currentAdmin?.role !== 'blog_editor' || announcement.author_id === currentAdmin?.id) && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => openEditModal(announcement)}
+                                                            className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                                                            title="Edit announcement"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openDeleteModal(announcement)}
+                                                            className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
+                                                            title="Delete announcement"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -787,27 +882,35 @@ const AdminCommunications: React.FC = () => {
                                             </div>
 
                                             <div className="flex items-center space-x-2 ml-4">
-                                                <button
-                                                    onClick={() => openEmailModal(task)}
-                                                    className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
-                                                    title="Send as email"
-                                                >
-                                                    <Mail size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => openEditModal(task)}
-                                                    className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
-                                                    title="Edit task"
-                                                >
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => openDeleteModal(task)}
-                                                    className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
-                                                    title="Delete task"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                {/* Hide email functionality from blog editors */}
+                                                {currentAdmin?.role !== 'blog_editor' && (
+                                                    <button
+                                                        onClick={() => openEmailModal(task)}
+                                                        className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
+                                                        title="Send as email"
+                                                    >
+                                                        <Mail size={16} />
+                                                    </button>
+                                                )}
+                                                {/* Hide edit/delete buttons from blog editors */}
+                                                {currentAdmin?.role !== 'blog_editor' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => openEditModal(task)}
+                                                            className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                                                            title="Edit task"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openDeleteModal(task)}
+                                                            className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
+                                                            title="Delete task"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -816,8 +919,10 @@ const AdminCommunications: React.FC = () => {
                                 {tasks.length === 0 && (
                                     <div className="p-8 text-center">
                                         <CheckSquare size={48} className="mx-auto text-muted-foreground mb-4" />
-                                        <h3 className="text-lg font-medium text-foreground mb-2">No tasks yet</h3>
-                                        <p className="text-muted-foreground">Create your first task to get started.</p>
+                                        <h3 className="text-lg font-medium text-foreground mb-2">No tasks assigned to you</h3>
+                                        <p className="text-muted-foreground">
+                                            You don't have any tasks assigned to you at the moment.
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -942,10 +1047,17 @@ const AdminCommunications: React.FC = () => {
 
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Error Display */}
+                            {submitError && (
+                                <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
+                                    {submitError}
+                                </div>
+                            )}
+
                             {/* Title/Subject Field */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    {activeTab === 'messages' ? 'Subject' : 'Title'}
+                                    {activeTab === 'messages' ? 'Subject' : 'Title'} *
                                 </label>
                                 <input
                                     type="text"
@@ -954,15 +1066,22 @@ const AdminCommunications: React.FC = () => {
                                         ...prev,
                                         [activeTab === 'messages' ? 'subject' : 'title']: e.target.value
                                     }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                        formErrors[activeTab === 'messages' ? 'subject' : 'title'] 
+                                            ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
+                                            : 'border-border'
+                                    }`}
                                     placeholder={`Enter ${activeTab === 'messages' ? 'subject' : 'title'}`}
                                 />
+                                {formErrors[activeTab === 'messages' ? 'subject' : 'title'] && (
+                                    <p className="text-red-400 text-sm mt-1">{formErrors[activeTab === 'messages' ? 'subject' : 'title']}</p>
+                                )}
                             </div>
 
                             {/* Message/Description Field */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    {activeTab === 'tasks' ? 'Description' : 'Message'}
+                                    {activeTab === 'tasks' ? 'Description' : 'Message'} *
                                 </label>
                                 <textarea
                                     value={activeTab === 'tasks' ? createForm.description : createForm.message}
@@ -970,10 +1089,17 @@ const AdminCommunications: React.FC = () => {
                                         ...prev,
                                         [activeTab === 'tasks' ? 'description' : 'message']: e.target.value
                                     }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                        formErrors[activeTab === 'tasks' ? 'description' : 'message'] 
+                                            ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
+                                            : 'border-border'
+                                    }`}
                                     placeholder={`Enter ${activeTab === 'tasks' ? 'description' : 'message'}`}
                                     rows={6}
                                 />
+                                {formErrors[activeTab === 'tasks' ? 'description' : 'message'] && (
+                                    <p className="text-red-400 text-sm mt-1">{formErrors[activeTab === 'tasks' ? 'description' : 'message']}</p>
+                                )}
                             </div>
 
                             {/* Priority Field (for announcements and tasks) */}
@@ -1012,27 +1138,41 @@ const AdminCommunications: React.FC = () => {
                             {activeTab === 'tasks' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Assign To</label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Assign To *</label>
                                         <select
                                             value={createForm.assigned_to_id}
                                             onChange={(e) => setCreateForm(prev => ({ ...prev, assigned_to_id: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                                formErrors.assigned_to_id 
+                                                    ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
+                                                    : 'border-border'
+                                            }`}
                                         >
                                             <option value="">Select user...</option>
                                             {(adminUsers || []).map(user => (
                                                 <option key={user.id} value={user.id}>{user.email}</option>
                                             ))}
                                         </select>
+                                        {formErrors.assigned_to_id && (
+                                            <p className="text-red-400 text-sm mt-1">{formErrors.assigned_to_id}</p>
+                                        )}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Due Date *</label>
                                         <input
                                             type="datetime-local"
                                             value={createForm.due_date}
                                             onChange={(e) => setCreateForm(prev => ({ ...prev, due_date: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                                formErrors.due_date 
+                                                    ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
+                                                    : 'border-border'
+                                            }`}
                                         />
+                                        {formErrors.due_date && (
+                                            <p className="text-red-400 text-sm mt-1">{formErrors.due_date}</p>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -1040,17 +1180,24 @@ const AdminCommunications: React.FC = () => {
                             {/* Message-specific fields */}
                             {activeTab === 'messages' && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Send To</label>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Send To *</label>
                                     <select
                                         value={createForm.to_user_id}
                                         onChange={(e) => setCreateForm(prev => ({ ...prev, to_user_id: e.target.value }))}
-                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                            formErrors.to_user_id 
+                                                ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
+                                                : 'border-border'
+                                        }`}
                                     >
                                         <option value="">Select user...</option>
                                         {(adminUsers || []).map(user => (
                                             <option key={user.id} value={user.id}>{user.email}</option>
                                         ))}
                                     </select>
+                                    {formErrors.to_user_id && (
+                                        <p className="text-red-400 text-sm mt-1">{formErrors.to_user_id}</p>
+                                    )}
                                 </div>
                             )}
                         </div>

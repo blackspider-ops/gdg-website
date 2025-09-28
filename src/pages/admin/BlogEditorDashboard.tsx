@@ -15,9 +15,11 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { BlogService, BlogCategory, BlogPost } from '@/services/blogService';
+import { CommunicationsService } from '@/services/communicationsService';
 import BlogPostModal from '@/components/admin/BlogPostModal';
 
 const BlogEditorDashboard = () => {
@@ -28,7 +30,8 @@ const BlogEditorDashboard = () => {
     draftPosts: 0,
     totalViews: 0,
     totalLikes: 0,
-    pendingApproval: 0
+    pendingApproval: 0,
+    pendingTasks: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -50,14 +53,19 @@ const BlogEditorDashboard = () => {
   const loadBlogStats = async () => {
     setIsLoading(true);
     try {
-      const [stats, categoriesData] = await Promise.all([
+      const [stats, categoriesData, userTasks] = await Promise.all([
         BlogService.getBlogStats(),
-        BlogService.getCategories()
+        BlogService.getCategories(),
+        currentAdmin?.id ? CommunicationsService.getTasks({
+          assigned_to: currentAdmin.id,
+          status: 'pending'
+        }) : Promise.resolve([])
       ]);
       
       setBlogStats({
         ...stats,
-        pendingApproval: stats.draftPosts // For now, treat drafts as pending approval
+        pendingApproval: stats.draftPosts, // For now, treat drafts as pending approval
+        pendingTasks: userTasks.length
       });
       
       setCategories(categoriesData);
@@ -68,7 +76,8 @@ const BlogEditorDashboard = () => {
         draftPosts: 0,
         totalViews: 0,
         totalLikes: 0,
-        pendingApproval: 0
+        pendingApproval: 0,
+        pendingTasks: 0
       });
       setCategories([]);
     } finally {
@@ -101,12 +110,14 @@ const BlogEditorDashboard = () => {
     { label: 'Drafts', value: blogStats.draftPosts.toString(), icon: Clock, color: 'text-orange-500' },
     { label: 'Total Views', value: blogStats.totalViews.toString(), icon: Eye, color: 'text-purple-500' },
     { label: 'Total Likes', value: blogStats.totalLikes.toString(), icon: Heart, color: 'text-pink-500' },
+    { label: 'My Pending Tasks', value: blogStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications' },
   ];
 
   const quickActions = [
     { label: 'Manage Blog Posts', icon: FileText, href: '/admin/blog', type: 'link' },
     { label: 'Create New Post', icon: PenTool, action: () => setShowCreateModal(true), type: 'action' },
     { label: 'Blog Submissions', icon: FileText, href: '/admin/blog-media', type: 'link' },
+    { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', type: 'link' },
     { label: 'My Profile', icon: Users, href: '/admin/profile', type: 'link' },
   ];
 
@@ -166,8 +177,8 @@ const BlogEditorDashboard = () => {
             ) : (
               stats.map((stat, index) => {
                 const Icon = stat.icon;
-                return (
-                  <div key={index} className="bg-card border border-border rounded-lg p-6">
+                const content = (
+                  <>
                     <div className="flex items-center justify-between mb-4">
                       <Icon size={24} className={stat.color} />
                       <Activity size={16} className="text-muted-foreground" />
@@ -176,6 +187,24 @@ const BlogEditorDashboard = () => {
                       <div className="text-2xl font-bold mb-1 text-foreground">{stat.value}</div>
                       <div className="text-sm text-muted-foreground">{stat.label}</div>
                     </div>
+                  </>
+                );
+
+                if (stat.href) {
+                  return (
+                    <Link 
+                      key={index} 
+                      to={stat.href}
+                      className="bg-card border border-border rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer block"
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div key={index} className="bg-card border border-border rounded-lg p-6">
+                    {content}
                   </div>
                 );
               })
@@ -187,7 +216,7 @@ const BlogEditorDashboard = () => {
             <div className="bg-card border border-border rounded-lg p-6">
               <h2 className="font-display text-lg font-semibold mb-6 text-foreground">Quick Actions</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
                   
@@ -223,6 +252,15 @@ const BlogEditorDashboard = () => {
                 <p className="text-sm text-blue-300">
                   All blog posts created or edited by blog editors require approval from an admin before being published. 
                   Your drafts will be reviewed and published by the admin team.
+                </p>
+              </div>
+
+              {/* Communications Hub Access */}
+              <div className="mt-4 p-4 bg-green-900/20 border border-green-800 rounded-lg">
+                <h3 className="font-medium text-green-400 mb-2">Team Communications</h3>
+                <p className="text-sm text-green-300">
+                  Access the Communications Hub to view announcements, see tasks assigned to you, and send internal messages to team members. 
+                  Note: Email sending is restricted to admin users only.
                 </p>
               </div>
             </div>
