@@ -713,4 +713,57 @@ export class AuditService {
     
     return description;
   }
+
+  /**
+   * Clear audit log entries (Super Admin only)
+   * Optionally clear entries older than a specific date
+   */
+  static async clearAuditLog(
+    adminId: string,
+    olderThanDate?: Date
+  ): Promise<boolean> {
+    try {
+      if (olderThanDate) {
+        // Clear entries older than specified date
+        const { error } = await supabase
+          .from('admin_actions')
+          .delete()
+          .lt('created_at', olderThanDate.toISOString());
+        
+        if (error) {
+          console.error('Error clearing audit log:', error);
+          return false;
+        }
+      } else {
+        // Clear all entries - simple approach
+        const { error } = await supabase
+          .from('admin_actions')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // This will match all records
+        
+        if (error) {
+          console.error('Error clearing audit log:', error);
+          return false;
+        }
+      }
+
+      // Log the clear action after clearing (so it's the only entry left)
+      await this.logAction(
+        adminId,
+        'clear_cache', // Using existing action type for clearing
+        undefined,
+        {
+          description: 'Cleared audit log entries',
+          cleared_before_date: olderThanDate?.toISOString(),
+          total_entries_cleared: 'all',
+          cleared_at: new Date().toISOString()
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error clearing audit log:', error);
+      return false;
+    }
+  }
 }

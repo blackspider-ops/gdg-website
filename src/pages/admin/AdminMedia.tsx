@@ -90,6 +90,8 @@ const AdminMedia: React.FC = () => {
     const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [selectedFileForDetail, setSelectedFileForDetail] = useState<MediaFile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     
@@ -140,7 +142,7 @@ const AdminMedia: React.FC = () => {
     });
     
     // Lock body scroll when modal is open
-    useBodyScrollLock(showUploadModal || showCreateFolderModal || showEditModal || showDeleteModal);
+    useBodyScrollLock(showUploadModal || showCreateFolderModal || showEditModal || showDeleteModal || showDetailModal);
 
     
 
@@ -477,27 +479,17 @@ const AdminMedia: React.FC = () => {
         }
     };
 
-    const handleViewFile = async (file: MediaFile) => {
+    const handleViewFile = (file: MediaFile) => {
+        setSelectedFileForDetail(file);
+        setShowDetailModal(true);
+    };
+
+    const handleOpenFileInNewTab = async (file: MediaFile) => {
         try {
             // Get signed URL for secure access
             const signedUrl = await MediaService.getSignedFileUrl(file.file_path);
             const fileUrl = signedUrl || MediaService.getFileUrl(file.file_path);
-            
-            // For PDFs and documents, always open in new tab
-            if (file.file_type === 'document' || file.mime_type === 'application/pdf') {
-                window.open(fileUrl, '_blank');
-                return;
-            }
-            
-            // For images and videos, open in new tab
-            if (file.file_type === 'image' || file.file_type === 'video') {
-                window.open(fileUrl, '_blank');
-                return;
-            }
-            
-            // For other files, try to open or download
             window.open(fileUrl, '_blank');
-            
         } catch (error) {
             // Silently handle file open errors
         }
@@ -879,6 +871,16 @@ const AdminMedia: React.FC = () => {
                                                     title={file.is_starred ? 'Unstar' : 'Star'}
                                                 >
                                                     <Star size={14} className={`text-yellow-400 ${file.is_starred ? 'fill-current' : ''}`} />
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenFileInNewTab(file);
+                                                    }}
+                                                    className="p-1 hover:bg-gray-700 rounded transition-colors"
+                                                    title="Open in new tab"
+                                                >
+                                                    <Eye size={14} className="text-muted-foreground" />
                                                 </button>
                                                 <button 
                                                     onClick={async (e) => {
@@ -1498,6 +1500,251 @@ const AdminMedia: React.FC = () => {
                             >
                                 {isSaving ? 'Deleting...' : 'Delete'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* File Detail Modal */}
+            {showDetailModal && selectedFileForDetail && (
+                <div 
+                    className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+                    style={{ 
+                        overflow: 'hidden',
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setShowDetailModal(false);
+                            setSelectedFileForDetail(null);
+                        }
+                    }}
+                    onWheel={(e) => e.preventDefault()}
+                    onTouchMove={(e) => e.preventDefault()}
+                    onScroll={(e) => e.preventDefault()}
+                >
+                    <div 
+                        className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                    >
+                        {/* Fixed Header */}
+                        <div className="flex-shrink-0 p-6 border-b border-border">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    {getFileIcon(selectedFileForDetail.file_type, 24)}
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-foreground">
+                                            File Details
+                                        </h2>
+                                        <p className="text-sm text-muted-foreground">
+                                            {selectedFileForDetail.original_name}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowDetailModal(false);
+                                        setSelectedFileForDetail(null);
+                                    }}
+                                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto flex">
+                            {/* Left Panel - File Preview */}
+                            <div className="w-1/2 p-6 border-r border-border">
+                                <div className="space-y-4">
+                                    {/* File Preview */}
+                                    <div className="bg-muted rounded-lg p-4">
+                                        {selectedFileForDetail.file_type === 'image' ? (
+                                            <div className="aspect-video">
+                                                <MediaImage 
+                                                    filePath={selectedFileForDetail.file_path}
+                                                    alt={selectedFileForDetail.alt_text || selectedFileForDetail.name}
+                                                    className="w-full h-full object-contain rounded"
+                                                />
+                                            </div>
+                                        ) : selectedFileForDetail.file_type === 'video' ? (
+                                            <div className="aspect-video flex items-center justify-center">
+                                                <div className="text-center">
+                                                    <Video size={48} className="mx-auto text-muted-foreground mb-2" />
+                                                    <p className="text-sm text-muted-foreground">Video Preview</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="aspect-video flex items-center justify-center">
+                                                {getFileIcon(selectedFileForDetail.file_type, 48)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="space-y-2">
+                                        <button
+                                            onClick={() => handleOpenFileInNewTab(selectedFileForDetail)}
+                                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                                        >
+                                            <Eye size={16} />
+                                            <span>Open in New Tab</span>
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await MediaService.downloadFile(selectedFileForDetail.file_path, selectedFileForDetail.original_name);
+                                                } catch (error) {
+                                                    // Silently handle download errors
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                                        >
+                                            <Download size={16} />
+                                            <span>Download File</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleCopyUrl(selectedFileForDetail.file_path)}
+                                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                                        >
+                                            <Copy size={16} />
+                                            <span>Copy URL</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Panel - File Information */}
+                            <div className="w-1/2 p-6">
+                                <div className="space-y-6">
+                                    {/* Basic Info */}
+                                    <div>
+                                        <h3 className="font-semibold text-foreground mb-4">File Information</h3>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-sm font-medium text-muted-foreground">File Name</label>
+                                                <p className="mt-1 text-sm">{selectedFileForDetail.original_name}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-muted-foreground">File Type</label>
+                                                <p className="mt-1 text-sm capitalize">{selectedFileForDetail.file_type}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-muted-foreground">MIME Type</label>
+                                                <p className="mt-1 text-sm">{selectedFileForDetail.mime_type}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-muted-foreground">File Size</label>
+                                                <p className="mt-1 text-sm">{MediaService.formatFileSize(selectedFileForDetail.file_size)}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-muted-foreground">Uploaded</label>
+                                                <p className="mt-1 text-sm">{new Date(selectedFileForDetail.created_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}</p>
+                                            </div>
+                                            {selectedFileForDetail.uploaded_by_user && (
+                                                <div>
+                                                    <label className="text-sm font-medium text-muted-foreground">Uploaded By</label>
+                                                    <p className="mt-1 text-sm">{selectedFileForDetail.uploaded_by_user.email}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Metadata */}
+                                    {(selectedFileForDetail.alt_text || selectedFileForDetail.description) && (
+                                        <div>
+                                            <h3 className="font-semibold text-foreground mb-4">Metadata</h3>
+                                            <div className="space-y-3">
+                                                {selectedFileForDetail.alt_text && (
+                                                    <div>
+                                                        <label className="text-sm font-medium text-muted-foreground">Alt Text</label>
+                                                        <p className="mt-1 text-sm">{selectedFileForDetail.alt_text}</p>
+                                                    </div>
+                                                )}
+                                                {selectedFileForDetail.description && (
+                                                    <div>
+                                                        <label className="text-sm font-medium text-muted-foreground">Description</label>
+                                                        <p className="mt-1 text-sm">{selectedFileForDetail.description}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Tags */}
+                                    {selectedFileForDetail.tags && selectedFileForDetail.tags.length > 0 && (
+                                        <div>
+                                            <h3 className="font-semibold text-foreground mb-4">Tags</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedFileForDetail.tags.map((tag, index) => (
+                                                    <span 
+                                                        key={index}
+                                                        className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                                                    >
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Usage Information */}
+                                    <div>
+                                        <h3 className="font-semibold text-foreground mb-4">Usage</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center space-x-2">
+                                                <Star size={16} className={`${selectedFileForDetail.is_starred ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`} />
+                                                <span className="text-sm">{selectedFileForDetail.is_starred ? 'Starred' : 'Not starred'}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <div className={`w-2 h-2 rounded-full ${selectedFileForDetail.is_public ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                                <span className="text-sm">{selectedFileForDetail.is_public ? 'Public' : 'Private'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="pt-4 border-t border-border">
+                                        <div className="flex space-x-3">
+                                            <button
+                                                onClick={() => {
+                                                    handleEdit(selectedFileForDetail);
+                                                    setShowDetailModal(false);
+                                                    setSelectedFileForDetail(null);
+                                                }}
+                                                className="flex items-center space-x-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+                                            >
+                                                <Edit3 size={16} />
+                                                <span>Edit</span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    openDeleteModal(selectedFileForDetail);
+                                                    setShowDetailModal(false);
+                                                    setSelectedFileForDetail(null);
+                                                }}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                                <span>Delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

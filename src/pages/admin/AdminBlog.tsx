@@ -23,13 +23,19 @@ import {
   Download,
   Check,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  MessageSquare,
+  Send,
+  RefreshCw,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
-import { BlogSubmissionService, type BlogSubmission } from '@/services/blogSubmissionService';
+import { BlogSubmissionService, type BlogSubmission, type BlogSubmissionComment } from '@/services/blogSubmissionService';
 import { AuditService } from '@/services/auditService';
 import { supabase } from '@/lib/supabase';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import BlogPostModal from '@/components/admin/BlogPostModal';
 import CategoryModal from '@/components/admin/CategoryModal';
 import BlogAnalytics from '@/components/admin/BlogAnalytics';
@@ -53,6 +59,11 @@ const AdminBlog = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<BlogSubmission | null>(null);
   const [showChanges, setShowChanges] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
+  const [comments, setComments] = useState<BlogSubmissionComment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentType, setCommentType] = useState<BlogSubmissionComment['comment_type']>('general');
+  const [isAddingComment, setIsAddingComment] = useState(false);
+
   const [blogStats, setBlogStats] = useState({
     totalPosts: 0,
     publishedPosts: 0,
@@ -66,6 +77,9 @@ const AdminBlog = () => {
   useEffect(() => {
     loadBlogData();
   }, []);
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock(showPostModal || showCategoryModal || showSubmissionModal || !!editingPost || !!editingCategory);
 
   // Authentication check after all hooks
   if (!isAuthenticated) {
@@ -287,6 +301,94 @@ const AdminBlog = () => {
       } catch (fallbackError) {
         // Handle error silently
       }
+    }
+  };
+
+  const loadComments = async (submissionId: string) => {
+    try {
+      const submissionComments = await BlogSubmissionService.getSubmissionComments(submissionId);
+      setComments(submissionComments);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      setComments([]);
+    }
+  };
+
+  const handleViewSubmissionDetails = async (submission: BlogSubmission) => {
+    setSelectedSubmission(submission);
+    setAdminNotes(submission.admin_notes || '');
+    await loadComments(submission.id);
+    setShowSubmissionModal(true);
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedSubmission || !currentAdmin?.id || !newComment.trim()) return;
+    
+    setIsAddingComment(true);
+    try {
+      const comment = await BlogSubmissionService.addSubmissionComment(
+        selectedSubmission.id,
+        currentAdmin.id,
+        newComment.trim(),
+        commentType
+      );
+      
+      if (comment) {
+        setComments(prev => [...prev, comment]);
+        setNewComment('');
+        setCommentType('general');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
+
+
+  const handleQuickStatusUpdate = async (submissionId: string, newStatus: BlogSubmission['status']) => {
+    if (!currentAdmin?.id) return;
+    
+    try {
+      const success = await BlogSubmissionService.updateSubmissionStatusWithComment(
+        submissionId,
+        newStatus,
+        currentAdmin.id,
+        `Status changed to ${newStatus} via quick update`
+      );
+      
+      if (success) {
+        // Update the submission in the list
+        setSubmissions(prev => prev.map(sub => 
+          sub.id === submissionId 
+            ? { ...sub, status: newStatus }
+            : sub
+        ));
+        
+        // If this submission is currently selected, update it too
+        if (selectedSubmission?.id === submissionId) {
+          setSelectedSubmission(prev => prev ? { ...prev, status: newStatus } : null);
+          await loadComments(submissionId);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
+  const getBlogSubmissionStatusColor = (status: BlogSubmission['status']) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+      case 'reviewed':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+      case 'approved':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
     }
   };
 
@@ -765,6 +867,22 @@ const AdminBlog = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-1">
                             <h4 className="font-medium text-foreground truncate">{submission.original_name}</h4>
+                            <div className="flex items-center space-x-2">
+                              <select
+                                value={submission.status}
+                                onChange={(e) => {
+                                  const newStatus = e.target.value as BlogSubmission['status'];
+                                  handleQuickStatusUpdate(submission.id, newStatus);
+                                }}
+                                className={`px-2 py-1 text-xs rounded-full font-medium border-0 cursor-pointer ${getBlogSubmissionStatusColor(submission.status)}`}
+                                title="Change status"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                              </select>
+                            </div>
                             <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                               {formatFileSize(submission.file_size)}
                             </span>
@@ -789,18 +907,19 @@ const AdminBlog = () => {
                       
                       <div className="flex items-center space-x-2 ml-4">
                         <button
+                          onClick={() => handleViewSubmissionDetails(submission)}
+                          className="flex items-center space-x-1 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                          title="View details and comments"
+                        >
+                          <MessageSquare size={14} />
+                          <span>Details</span>
+                        </button>
+                        <button
                           onClick={() => handleDownloadFile(submission)}
                           className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                           title="Download file"
                         >
                           <Download size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleEditNotes(submission)}
-                          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                          title="Edit notes"
-                        >
-                          <Edit3 size={16} />
                         </button>
                         <button
                           onClick={() => handleDeleteSubmission(submission.id)}
@@ -819,71 +938,220 @@ const AdminBlog = () => {
         </div>
       )}
 
-      {/* Edit Notes Modal */}
+      {/* Submission Details Modal */}
       {showSubmissionModal && selectedSubmission && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-xl shadow-xl border border-border p-6 w-full max-w-md">
-            <div className="flex items-center space-x-3 mb-4">
-              <FileText size={20} className="text-primary" />
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">Edit Notes</h3>
-                <p className="text-sm text-muted-foreground">{selectedSubmission.original_name}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Notes (Visible to all team members)
-                </label>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add notes about this submission..."
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-card text-foreground"
-                  rows={4}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  These notes help team members collaborate and track the status of submissions.
-                </p>
-              </div>
-              
-              <div className="p-3 bg-muted rounded-lg text-sm">
-                <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                  <span>Submitter:</span>
-                  <span className="text-foreground">{selectedSubmission.submitter_name}</span>
-                  <span>Email:</span>
-                  <span className="text-foreground">{selectedSubmission.submitter_email}</span>
-                  <span>Size:</span>
-                  <span className="text-foreground">{formatFileSize(selectedSubmission.file_size)}</span>
-                  <span>Submitted:</span>
-                  <span className="text-foreground">{formatDate(selectedSubmission.created_at)}</span>
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          style={{ 
+            overflow: 'hidden',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSubmissionModal(false);
+              setSelectedSubmission(null);
+              setAdminNotes('');
+              setComments([]);
+            }
+          }}
+          onWheel={(e) => e.preventDefault()}
+          onTouchMove={(e) => e.preventDefault()}
+          onScroll={(e) => e.preventDefault()}
+        >
+          <div 
+            className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <FileText size={24} className="text-primary" />
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground">
+                      Blog Submission Details
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedSubmission.original_name}
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setShowSubmissionModal(false);
+                    setSelectedSubmission(null);
+                    setAdminNotes('');
+                    setComments([]);
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowSubmissionModal(false);
-                  setSelectedSubmission(null);
-                  setAdminNotes('');
-                }}
-                className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleSaveNotes(selectedSubmission.id)}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                <Save size={16} />
-                <span>Save Notes</span>
-              </button>
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto flex">
+              {/* Left Panel - Submission Info */}
+              <div className="w-1/3 p-6 border-r border-border overflow-y-auto">
+                <div className="space-y-4">
+                  {/* Status */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Status</label>
+                    <div className="mt-1">
+                      <span className={`px-3 py-1 text-sm rounded-full font-medium ${getBlogSubmissionStatusColor(selectedSubmission.status)}`}>
+                        {selectedSubmission.status.charAt(0).toUpperCase() + selectedSubmission.status.slice(1)}
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Change status from the main list
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submitter Info */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Submitter</label>
+                    <div className="mt-1">
+                      <p className="font-medium">{selectedSubmission.submitter_name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedSubmission.submitter_email}</p>
+                    </div>
+                  </div>
+
+                  {/* Submission Date */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Submitted</label>
+                    <p className="mt-1">{formatDate(selectedSubmission.created_at)}</p>
+                  </div>
+
+                  {/* File Info */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">File</label>
+                    <div className="mt-1 space-y-1">
+                      <p className="text-sm">{selectedSubmission.original_name}</p>
+                      <p className="text-xs text-muted-foreground">{selectedSubmission.mime_type}</p>
+                      <p className="text-xs text-muted-foreground">{formatFileSize(selectedSubmission.file_size)}</p>
+                    </div>
+                  </div>
+
+                  {/* Admin Notes */}
+                  {selectedSubmission.admin_notes && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Admin Notes</label>
+                      <div className="mt-1 p-3 bg-muted rounded-lg">
+                        <p className="text-sm">{selectedSubmission.admin_notes}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-4 space-y-2">
+                    <button
+                      onClick={() => handleDownloadFile(selectedSubmission)}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      <Download size={16} />
+                      <span>Download File</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Panel - Comments */}
+              <div className="flex-1 flex flex-col">
+                {/* Comments Header */}
+                <div className="p-4 border-b border-border">
+                  <h3 className="font-semibold text-foreground">Comments & Feedback</h3>
+                </div>
+
+                {/* Comments List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {comments.length === 0 ? (
+                    <div className="text-center py-8">
+                      <MessageSquare size={48} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">No comments yet</p>
+                    </div>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="bg-muted/30 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                              <User size={16} className="text-primary-foreground" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{comment.admin_users?.email}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(comment.created_at)} • {comment.comment_type}
+                              </p>
+                            </div>
+                          </div>
+                          {comment.comment_type === 'status_change' && (
+                            <div className="flex items-center space-x-1 text-xs">
+                              {comment.comment.includes('approved') ? (
+                                <CheckCircle size={14} className="text-green-500" />
+                              ) : comment.comment.includes('rejected') ? (
+                                <XCircle size={14} className="text-red-500" />
+                              ) : (
+                                <Clock size={14} className="text-yellow-500" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{comment.comment}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Comment */}
+                <div className="p-4 border-t border-border">
+                  <div className="space-y-3">
+                    <div className="flex space-x-2">
+                      <select
+                        value={commentType}
+                        onChange={(e) => setCommentType(e.target.value as BlogSubmissionComment['comment_type'])}
+                        className="px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                      >
+                        <option value="general">General</option>
+                        <option value="feedback">Feedback</option>
+                        <option value="internal">Internal Note</option>
+                      </select>
+                    </div>
+                    <div className="flex space-x-2">
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Add a comment..."
+                        className="flex-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground resize-none"
+                        rows={3}
+                      />
+                      <button
+                        onClick={handleAddComment}
+                        disabled={!newComment.trim() || isAddingComment}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isAddingComment ? (
+                          <RefreshCw size={16} className="animate-spin" />
+                        ) : (
+                          <Send size={16} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+
 
       {/* Approvals Tab */}
       {activeTab === 'approvals' && currentAdmin?.role !== 'blog_editor' && (

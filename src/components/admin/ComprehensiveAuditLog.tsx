@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Activity, Download, Filter, RefreshCw, Calendar, User, Clock } from 'lucide-react';
+import { Activity, Download, Filter, RefreshCw, Calendar, User, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { AuditService, type AuditLogEntry, type AuditStats, type AuditFilters } from '@/services/auditService';
 
@@ -28,6 +28,8 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   
   // Check if current user is super admin - audit log is super admin only
   const isSuperAdmin = currentAdmin?.role === 'super_admin';
@@ -43,20 +45,6 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
       </div>
     );
   }
-
-  useEffect(() => {
-    loadAuditData();
-    
-    // Log that the audit log was viewed
-    if (currentAdmin?.id) {
-      AuditService.logAction(
-        currentAdmin.id,
-        'view_audit_log',
-        undefined,
-        { description: 'Viewed comprehensive audit log' }
-      );
-    }
-  }, [currentAdmin, loadAuditData]);
 
   const loadAuditData = useCallback(async (filters?: AuditFilters) => {
     setIsLoading(true);
@@ -92,6 +80,20 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadAuditData();
+    
+    // Log that the audit log was viewed
+    if (currentAdmin?.id) {
+      AuditService.logAction(
+        currentAdmin.id,
+        'view_audit_log',
+        undefined,
+        { description: 'Viewed comprehensive audit log' }
+      );
+    }
+  }, [currentAdmin, loadAuditData]);
 
   const loadAllAdmins = async () => {
     try {
@@ -202,6 +204,29 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
     const today = new Date().toISOString().split('T')[0];
     setDateFrom(today);
     setDateTo(today);
+  };
+
+  const handleClearAuditLog = async () => {
+    if (!currentAdmin?.id) return;
+    
+    setIsClearing(true);
+    try {
+      const success = await AuditService.clearAuditLog(currentAdmin.id);
+      if (success) {
+        // Reload the audit data to show the cleared state
+        await loadAuditData();
+        setShowClearModal(false);
+        // Show success message (you might want to add a toast notification here)
+        alert('Audit log cleared successfully');
+      } else {
+        alert('Failed to clear audit log');
+      }
+    } catch (error) {
+      console.error('Error clearing audit log:', error);
+      alert('Error clearing audit log');
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const getActionColor = (action: string) => {
@@ -492,8 +517,15 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
           )}
         </div>
 
-        {/* Export Controls */}
-        <div className="flex justify-end">
+        {/* Export and Clear Controls */}
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setShowClearModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <Trash2 size={16} />
+            <span>Clear Audit Log</span>
+          </button>
           <button
             onClick={handleExport}
             className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
@@ -597,6 +629,52 @@ const ComprehensiveAuditLog: React.FC<ComprehensiveAuditLogProps> = ({ currentAd
           )}
         </div>
       </div>
+
+      {/* Clear Confirmation Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <AlertTriangle size={20} className="text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Clear Audit Log</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to clear all audit log entries? This will permanently delete all historical audit data and cannot be reversed.
+              </p>
+              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                  <strong>Warning:</strong> This will remove all audit trail records. Consider exporting the data first if you need to keep a backup.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowClearModal(false)}
+                disabled={isClearing}
+                className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearAuditLog}
+                disabled={isClearing}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                {isClearing && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
+                <span>{isClearing ? 'Clearing...' : 'Clear Audit Log'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

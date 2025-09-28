@@ -86,15 +86,18 @@ const AdminResources = () => {
   const [materialInput, setMaterialInput] = useState('');
   const [tagInput, setTagInput] = useState('');
 
-  const filteredResources = resources.filter(resource => {
-    const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.speaker?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || resource.type === filterType;
-    const matchesStatus = filterStatus === 'all' || resource.status === filterStatus;
-    return matchesSearch && matchesType && matchesStatus;
-  });
+  // Filter resources based on search and filter criteria
+  const filteredResources = React.useMemo(() => {
+    return resources.filter(resource => {
+      const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           resource.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           resource.speaker?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === 'all' || resource.type === filterType;
+      const matchesStatus = filterStatus === 'all' || resource.status === filterStatus;
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [resources, searchTerm, filterType, filterStatus]);
 
   const resetForm = () => {
     setFormData({
@@ -329,12 +332,25 @@ const AdminResources = () => {
     }));
   };
 
-  const resourceStatsDisplay = [
-    { label: 'Total Resources', value: resourceStats.total.toString(), color: 'text-blue-500' },
-    { label: 'Active Resources', value: resourceStats.active.toString(), color: 'text-green-500' },
-    { label: 'Study Jams', value: (resourceStats.typeDistribution.study_jam || 0).toString(), color: 'text-purple-500' },
-    { label: 'Cloud Credits', value: (resourceStats.typeDistribution.cloud_credit || 0).toString(), color: 'text-orange-500' },
-  ];
+  // Calculate filtered stats based on currently displayed resources
+  const filteredStats = React.useMemo(() => {
+    return {
+      total: filteredResources.length,
+      active: filteredResources.filter(r => r.is_active).length,
+      typeDistribution: filteredResources.reduce((acc, resource) => {
+        acc[resource.type] = (acc[resource.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    };
+  }, [filteredResources]);
+
+  // Always use filtered stats to show what's currently displayed
+  const resourceStatsDisplay = React.useMemo(() => [
+    { label: 'Total Resources', value: filteredStats.total.toString(), color: 'text-blue-500' },
+    { label: 'Active Resources', value: filteredStats.active.toString(), color: 'text-green-500' },
+    { label: 'Study Jams', value: (filteredStats.typeDistribution.study_jam || 0).toString(), color: 'text-purple-500' },
+    { label: 'Cloud Credits', value: (filteredStats.typeDistribution.cloud_credit || 0).toString(), color: 'text-orange-500' },
+  ], [filteredStats]);
 
   const getTypeColor = (type: string) => {
     switch (type) {

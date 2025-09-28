@@ -29,9 +29,28 @@ const AdminLinktree = () => {
   // Lock body scroll when any modal is open
   useBodyScrollLock(showProfileForm || showLinkForm || !!editingProfile || !!editingLink);
 
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
   useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        const data = await linktreeService.getAllProfiles();
+        setProfiles(data);
+        if (data.length > 0 && !selectedProfile) {
+          setSelectedProfile(data[0]);
+        }
+      } catch (error) {
+        // Silently handle errors
+        toast.error('Failed to fetch profiles');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchProfiles();
-  }, [fetchProfiles]);
+  }, []);
 
   useEffect(() => {
     if (selectedProfile) {
@@ -39,11 +58,7 @@ const AdminLinktree = () => {
     }
   }, [selectedProfile]);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  const fetchProfiles = useCallback(async () => {
+  const fetchProfiles = async () => {
     try {
       const data = await linktreeService.getAllProfiles();
       setProfiles(data);
@@ -56,7 +71,7 @@ const AdminLinktree = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedProfile]);
+  };
 
   const fetchLinks = async (profileId: string) => {
     try {

@@ -14,6 +14,20 @@ export interface BlogSubmission {
   updated_at: string;
 }
 
+export interface BlogSubmissionComment {
+  id: string;
+  submission_id: string;
+  admin_id: string;
+  comment: string;
+  comment_type: 'general' | 'feedback' | 'status_change' | 'internal';
+  created_at: string;
+  updated_at: string;
+  admin_users?: {
+    email: string;
+    role: string;
+  };
+}
+
 export class BlogSubmissionService {
   /**
    * Upload a blog submission file to the dedicated blog-submissions bucket
@@ -180,6 +194,158 @@ export class BlogSubmissionService {
 
       return true;
     } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get comments for a blog submission
+   */
+  static async getSubmissionComments(submissionId: string): Promise<BlogSubmissionComment[]> {
+    try {
+      const { data, error } = await supabase
+        .from('blog_submission_comments')
+        .select(`
+          *,
+          admin_users (
+            email,
+            role
+          )
+        `)
+        .eq('submission_id', submissionId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching submission comments:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add a comment to a blog submission
+   */
+  static async addSubmissionComment(
+    submissionId: string,
+    adminId: string,
+    comment: string,
+    commentType: BlogSubmissionComment['comment_type'] = 'general'
+  ): Promise<BlogSubmissionComment | null> {
+    try {
+      const { data, error } = await supabase
+        .from('blog_submission_comments')
+        .insert({
+          submission_id: submissionId,
+          admin_id: adminId,
+          comment,
+          comment_type: commentType
+        })
+        .select(`
+          *,
+          admin_users (
+            email,
+            role
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error adding submission comment:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Update a comment (only by the author)
+   */
+  static async updateSubmissionComment(
+    commentId: string,
+    comment: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('blog_submission_comments')
+        .update({ comment })
+        .eq('id', commentId);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating submission comment:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a comment (super admin only)
+   */
+  static async deleteSubmissionComment(commentId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('blog_submission_comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting submission comment:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update submission status with automatic comment
+   */
+  static async updateSubmissionStatusWithComment(
+    id: string,
+    status: BlogSubmission['status'],
+    adminId: string,
+    adminNotes?: string
+  ): Promise<boolean> {
+    try {
+      // Update the submission status
+      const { error: updateError } = await supabase
+        .from('blog_submissions')
+        .update({
+          status,
+          admin_notes: adminNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Add a status change comment
+      const statusComment = `Status changed to: ${status.charAt(0).toUpperCase() + status.slice(1)}${adminNotes ? `\n\nNotes: ${adminNotes}` : ''}`;
+      
+      await this.addSubmissionComment(
+        id,
+        adminId,
+        statusComment,
+        'status_change'
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error updating submission status:', error);
       return false;
     }
   }
