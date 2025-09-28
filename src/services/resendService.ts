@@ -369,36 +369,5 @@ The GDG@PSU Team`,
     return result.success;
   }
 
-  // Test email functionality
-  static async sendTestEmail(to: string): Promise<boolean> {
-    const testEmail: ResendEmailData = {
-      to,
-      subject: '🧪 Test Email from GDG@PSU Newsletter System',
-      content: `Hello!
 
-This is a test email from your GDG@PSU newsletter system.
-
-If you're receiving this, your email configuration is working correctly! 🎉
-
-Domain: ${this.DOMAIN}
-From: ${this.FROM_EMAIL}
-
-Key features:
-• Direct email sending from your app
-• Professional email templates
-• Newsletter confirmations
-• Event registration emails
-• Automatic scheduling
-• Bulk email support
-
-You can now send newsletters to your subscribers with confidence.
-
-Best regards,
-The GDG@PSU Newsletter System`,
-      subscriber_name: 'Test User'
-    };
-
-    const result = await this.sendEmail(testEmail);
-    return result.success;
-  }
 }

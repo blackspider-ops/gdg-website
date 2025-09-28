@@ -559,40 +559,7 @@ export class AuditService {
     };
   }
 
-  /**
-   * Add sample audit data for testing (development only)
-   */
-  static async addSampleAuditData(adminId: string): Promise<boolean> {
-    try {
-      const sampleActions = [
-        {
-          action: 'login' as AuditActionType,
-          description: 'Logged into admin panel'
-        },
-        {
-          action: 'view_audit_log' as AuditActionType,
-          description: 'Viewed comprehensive audit log'
-        },
-        {
-          action: 'update_site_settings' as AuditActionType,
-          description: 'Updated site configuration'
-        }
-      ];
 
-      for (const sample of sampleActions) {
-        await this.logAction(
-          adminId,
-          sample.action,
-          undefined,
-          { description: sample.description, sample: true }
-        );
-      }
-
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
 
   /**
    * Get human-readable action description
