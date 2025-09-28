@@ -187,6 +187,12 @@ export class CommunicationsService {
       const currentUser = await supabase.auth.getUser();
       const currentUserId = currentUser.data.user?.id;
 
+      // Get total active admin users count for calculating recipients
+      const { count: totalAdminUsers } = await getServiceRoleClient()
+        .from('admin_users')
+        .select('id', { count: 'exact' })
+        .eq('is_active', true);
+
       // Get read counts and current user read status
       const enrichedData = await Promise.all(
         (data || []).map(async (announcement) => {
@@ -205,10 +211,20 @@ export class CommunicationsService {
               .single();
           }
 
+          // Calculate total recipients based on target audience
+          let totalRecipients = totalAdminUsers || 0;
+          
+          // If there's a specific target audience, calculate based on that
+          if (announcement.target_audience && announcement.target_audience.type !== 'all') {
+            // For now, default to all admin users, but this can be extended
+            // to support specific role targeting, etc.
+            totalRecipients = totalAdminUsers || 0;
+          }
+
           return {
             ...announcement,
             read_count: readCountResult.count || 0,
-            total_recipients: 5, // Calculated based on target audience
+            total_recipients: totalRecipients,
             is_read_by_current_user: !!currentUserReadResult.data
           };
         })
@@ -343,6 +359,37 @@ export class CommunicationsService {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  static async getUnreadAnnouncementsCount(userId: string): Promise<number> {
+    try {
+      // Get all announcements
+      const { data: announcements, error: announcementsError } = await getServiceRoleClient()
+        .from('announcements')
+        .select('id')
+        .eq('is_archived', false);
+
+      if (announcementsError) throw announcementsError;
+
+      if (!announcements || announcements.length === 0) {
+        return 0;
+      }
+
+      // Get read announcements for this user
+      const { data: readAnnouncements, error: readsError } = await getServiceRoleClient()
+        .from('announcement_reads')
+        .select('announcement_id')
+        .eq('user_id', userId);
+
+      if (readsError) throw readsError;
+
+      const readAnnouncementIds = new Set(readAnnouncements?.map(r => r.announcement_id) || []);
+      const unreadCount = announcements.filter(a => !readAnnouncementIds.has(a.id)).length;
+
+      return unreadCount;
+    } catch (error) {
+      return 0;
     }
   }
 

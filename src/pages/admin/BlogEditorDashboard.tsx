@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Calendar,
   MessageSquare,
-  MessageCircle
+  MessageCircle,
+  Bell
 } from 'lucide-react';
 import { BlogService, BlogCategory, BlogPost } from '@/services/blogService';
 import { CommunicationsService } from '@/services/communicationsService';
@@ -34,7 +35,9 @@ const BlogEditorDashboard = () => {
     totalLikes: 0,
     pendingApproval: 0,
     pendingTasks: 0,
-    pendingComments: 0
+    pendingComments: 0,
+    unreadMessages: 0,
+    unreadAnnouncements: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -65,12 +68,23 @@ const BlogEditorDashboard = () => {
         }) : Promise.resolve([]),
         BlogCommentsService.getCommentStats()
       ]);
+
+      // Get unread messages and announcements for current user
+      const [userMessages, userAnnouncements] = await Promise.all([
+        currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role) : Promise.resolve([]),
+        CommunicationsService.getAnnouncements({})
+      ]);
+
+      const unreadMessages = userMessages.filter(msg => !msg.is_read && msg.to_user_id === currentAdmin?.id).length;
+      const unreadAnnouncements = currentAdmin?.id ? await CommunicationsService.getUnreadAnnouncementsCount(currentAdmin.id) : 0;
       
       setBlogStats({
         ...stats,
         pendingApproval: stats.draftPosts, // For now, treat drafts as pending approval
         pendingTasks: userTasks.length,
-        pendingComments: commentStats.pending
+        pendingComments: commentStats.pending,
+        unreadMessages: unreadMessages,
+        unreadAnnouncements: unreadAnnouncements
       });
       
       setCategories(categoriesData);
@@ -83,7 +97,9 @@ const BlogEditorDashboard = () => {
         totalLikes: 0,
         pendingApproval: 0,
         pendingTasks: 0,
-        pendingComments: 0
+        pendingComments: 0,
+        unreadMessages: 0,
+        unreadAnnouncements: 0
       });
       setCategories([]);
     } finally {
@@ -116,8 +132,10 @@ const BlogEditorDashboard = () => {
     { label: 'Drafts', value: blogStats.draftPosts.toString(), icon: Clock, color: 'text-orange-500' },
     { label: 'Total Views', value: blogStats.totalViews.toString(), icon: Eye, color: 'text-purple-500' },
     { label: 'Total Likes', value: blogStats.totalLikes.toString(), icon: Heart, color: 'text-pink-500' },
-    { label: 'My Pending Tasks', value: blogStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications' },
-    { label: 'Pending Comments', value: blogStats.pendingComments.toString(), icon: MessageCircle, color: 'text-amber-500', href: '/admin/blog?tab=comments' },
+    { label: 'My Pending Tasks', value: blogStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications?tab=tasks' },
+    { label: 'Unread Messages', value: blogStats.unreadMessages.toString(), icon: MessageCircle, color: 'text-indigo-500', href: '/admin/communications?tab=messages' },
+    { label: 'Unread Announcements', value: blogStats.unreadAnnouncements.toString(), icon: Bell, color: 'text-amber-500', href: '/admin/communications?tab=announcements' },
+    { label: 'Pending Comments', value: blogStats.pendingComments.toString(), icon: MessageCircle, color: 'text-red-500', href: '/admin/blog?tab=comments' },
   ];
 
   const quickActions = [
@@ -168,9 +186,9 @@ const BlogEditorDashboard = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-8">
             {isLoading ? (
-              Array.from({ length: 5 }).map((_, index) => (
+              Array.from({ length: 9 }).map((_, index) => (
                 <div key={index} className="bg-card border border-border rounded-lg p-6">
                   <div className="animate-pulse">
                     <div className="flex items-center justify-between mb-4">

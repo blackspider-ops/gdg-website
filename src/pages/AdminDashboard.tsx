@@ -19,7 +19,9 @@ import {
   BookOpen,
   PenTool,
   Link as LinkIcon,
-  Clock
+  Clock,
+  Bell,
+  MessageCircle
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -30,6 +32,7 @@ import { SponsorsService } from '@/services/sponsorsService';
 import { NewsletterService } from '@/services/newsletterService';
 import { useTaskScheduler } from '@/hooks/useTaskScheduler';
 import { CommunicationsService } from '@/services/communicationsService';
+import { BlogCommentsService } from '@/services/blogCommentsService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -40,7 +43,10 @@ const AdminDashboard = () => {
     activeProjects: 0,
     totalSponsors: 0,
     blogPosts: 0,
-    pendingTasks: 0
+    pendingTasks: 0,
+    unreadMessages: 0,
+    unreadAnnouncements: 0,
+    pendingComments: 0
   });
   const [recentActivity, setRecentActivity] = useState<Array<{
     id: string;
@@ -86,6 +92,16 @@ const AdminDashboard = () => {
       }) : [];
       const pendingTasks = userTasks.length;
 
+      // Get unread messages, announcements, and pending comments for current user
+      const [userMessages, userAnnouncements, commentStats] = await Promise.all([
+        currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role) : Promise.resolve([]),
+        CommunicationsService.getAnnouncements({}),
+        BlogCommentsService.getCommentStats()
+      ]);
+
+      const unreadMessages = userMessages.filter(msg => !msg.is_read && msg.to_user_id === currentAdmin?.id).length;
+      const unreadAnnouncements = currentAdmin?.id ? await CommunicationsService.getUnreadAnnouncementsCount(currentAdmin.id) : 0;
+
       setDashboardStats({
         totalMembers: memberStats.total,
         upcomingEvents: eventStats.upcoming,
@@ -94,7 +110,10 @@ const AdminDashboard = () => {
         totalSponsors: sponsorStats.active,
         blogPosts: blogStats.publishedPosts,
         pendingApprovals: pendingApprovals,
-        pendingTasks: pendingTasks
+        pendingTasks: pendingTasks,
+        unreadMessages: unreadMessages,
+        unreadAnnouncements: unreadAnnouncements,
+        pendingComments: commentStats.pending
       });
 
       // Generate recent activity based on real data
@@ -160,7 +179,11 @@ const AdminDashboard = () => {
         newsletterSubscribers: 0,
         activeProjects: 0,
         totalSponsors: 0,
-        blogPosts: 0
+        blogPosts: 0,
+        pendingTasks: 0,
+        unreadMessages: 0,
+        unreadAnnouncements: 0,
+        pendingComments: 0
       });
     } finally {
       setIsLoading(false);
@@ -188,7 +211,10 @@ const AdminDashboard = () => {
     { label: 'Newsletter Subscribers', value: dashboardStats.newsletterSubscribers.toString(), icon: Mail, color: 'text-purple-500' },
     { label: 'Active Projects', value: dashboardStats.activeProjects.toString(), icon: FileText, color: 'text-orange-500' },
     { label: 'Blog Posts', value: dashboardStats.blogPosts.toString(), icon: PenTool, color: 'text-pink-500' },
-    { label: 'My Pending Tasks', value: dashboardStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications' },
+    { label: 'My Pending Tasks', value: dashboardStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications?tab=tasks' },
+    { label: 'Unread Messages', value: dashboardStats.unreadMessages.toString(), icon: MessageCircle, color: 'text-indigo-500', href: '/admin/communications?tab=messages' },
+    { label: 'Unread Announcements', value: dashboardStats.unreadAnnouncements.toString(), icon: Bell, color: 'text-amber-500', href: '/admin/communications?tab=announcements' },
+    { label: 'Pending Comments', value: dashboardStats.pendingComments.toString(), icon: MessageCircle, color: 'text-red-500', href: '/admin/blog?tab=comments' },
     { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500' },
   ];
 
@@ -265,9 +291,9 @@ const AdminDashboard = () => {
 
 
         {/* Stats Grid */}
-        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-8">
           {isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
+            Array.from({ length: 10 }).map((_, index) => (
               <div key={index} className="bg-card border border-border rounded-lg p-6">
                 <div className="animate-pulse">
                   <div className="flex items-center justify-between mb-4">

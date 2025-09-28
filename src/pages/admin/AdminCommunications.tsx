@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+
+// Add CSS for line clamping
+const styles = `
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
 import {
     MessageSquare,
     Bell,
@@ -25,7 +42,8 @@ import {
     Reply,
     AlertCircle,
     XCircle,
-    ExternalLink
+    ExternalLink,
+    AlertTriangle
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import {
@@ -36,12 +54,17 @@ import {
     type CommunicationStats
 } from '@/services/communicationsService';
 import { AuditService } from '@/services/auditService';
+import { useTaskScheduler } from '@/hooks/useTaskScheduler';
 
 const AdminCommunications: React.FC = () => {
     const { isAuthenticated, currentAdmin } = useAdmin();
+    const [searchParams, setSearchParams] = useSearchParams();
 
+    // Get initial tab from URL params or default to announcements
+    const initialTab = searchParams.get('tab') || 'announcements';
+    
     // State management
-    const [activeTab, setActiveTab] = useState('announcements');
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -49,6 +72,12 @@ const AdminCommunications: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [isCheckingOverdue, setIsCheckingOverdue] = useState(false);
+    const [overdueCheckResult, setOverdueCheckResult] = useState<string>('');
+    const [selectedConversation, setSelectedConversation] = useState<InternalMessage | null>(null);
+    const [conversationMessages, setConversationMessages] = useState<InternalMessage[]>([]);
+    const [replyMessage, setReplyMessage] = useState('');
+    const [showConversationModal, setShowConversationModal] = useState(false);
 
     // Data state
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -96,7 +125,10 @@ const AdminCommunications: React.FC = () => {
     const [selectedItemForEmail, setSelectedItemForEmail] = useState<Announcement | CommunicationTask | null>(null);
 
     // Lock body scroll when modal is open
-    useBodyScrollLock(showCreateModal || showEditModal || showDeleteModal || showEmailModal);
+    useBodyScrollLock(showCreateModal || showEditModal || showDeleteModal || showEmailModal || showConversationModal);
+
+    // Enable automatic overdue task checking
+    const { forceCheck } = useTaskScheduler(true);
 
     // Load data on component mount
     useEffect(() => {
@@ -145,10 +177,10 @@ const AdminCommunications: React.FC = () => {
                 CommunicationsService.getTasks({
                     status: filterStatus === 'all' ? undefined : filterStatus,
                     search: searchTerm || undefined,
-                    // All users see only tasks assigned to them
-                    assigned_to: currentAdmin?.id
+                    // Show tasks where user is either assignee OR assigner
+                    user_id: currentAdmin?.id
                 }),
-                currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id) : Promise.resolve([]),
+                currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role) : Promise.resolve([]),
                 currentAdmin?.id ? CommunicationsService.getCommunicationStats(currentAdmin.id) : Promise.resolve(null),
                 CommunicationsService.getAllAdminUsers()
             ]);
@@ -172,7 +204,7 @@ const AdminCommunications: React.FC = () => {
                     color: 'text-blue-400' 
                 },
                 { 
-                    label: 'My Active Tasks', 
+                    label: 'My Tasks', 
                     value: activeTasksCount.toString(), 
                     icon: CheckSquare, 
                     color: 'text-green-400' 
@@ -235,16 +267,17 @@ const AdminCommunications: React.FC = () => {
     const validateForm = (): boolean => {
         const errors: {[key: string]: string} = {};
         
-        // Common validations
-        if (!createForm.title.trim()) {
-            errors.title = 'Title is required';
-        }
-
         if (activeTab === 'announcements') {
+            if (!createForm.title.trim()) {
+                errors.title = 'Title is required';
+            }
             if (!createForm.message.trim()) {
                 errors.message = 'Message is required';
             }
         } else if (activeTab === 'tasks') {
+            if (!createForm.title.trim()) {
+                errors.title = 'Title is required';
+            }
             if (!createForm.description.trim()) {
                 errors.description = 'Description is required';
             }
@@ -569,6 +602,163 @@ const AdminCommunications: React.FC = () => {
         setSelectedItemForEmail(null);
     };
 
+    // Load conversation messages - get all messages in the same thread
+    const openConversation = async (message: InternalMessage) => {
+        setSelectedConversation(message);
+        
+        // Find the root message (the one without reply_to_id or the one this is replying to)
+        const rootMessageId = message.reply_to_id || message.id;
+        
+        // Get all messages in this thread (root message + all replies)
+        const threadMessages = messages.filter(msg => 
+            msg.id === rootMessageId || msg.reply_to_id === rootMessageId
+        ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        
+        setConversationMessages(threadMessages);
+        setShowConversationModal(true);
+        
+        // Mark all unread messages in this thread as read (only messages TO the current user)
+        const unreadMessagesToUser = threadMessages.filter(msg => 
+            !msg.is_read && msg.to_user_id === currentAdmin?.id
+        );
+        
+        for (const unreadMessage of unreadMessagesToUser) {
+            await markAsRead(unreadMessage);
+        }
+        
+        // Refresh the conversation list to update unread counts
+        if (unreadMessagesToUser.length > 0) {
+            await loadAllData();
+        }
+    };
+
+    const closeConversation = () => {
+        setSelectedConversation(null);
+        setConversationMessages([]);
+        setReplyMessage('');
+        setShowConversationModal(false);
+    };
+
+    const sendReply = async () => {
+        if (!selectedConversation || !currentAdmin?.id || !replyMessage.trim()) return;
+
+        // Check if this is a super admin replying to a conversation they're not originally part of
+        const threadMessages = conversationMessages;
+        const isUserInvolved = threadMessages.some(msg => 
+            msg.from_user_id === currentAdmin?.id || msg.to_user_id === currentAdmin?.id
+        );
+        const isAdminView = currentAdmin?.role === 'super_admin' && !isUserInvolved;
+
+        if (isAdminView) {
+            const confirmed = confirm(
+                'You are replying as a super admin to a conversation you were not originally part of. ' +
+                'This will notify the participants that an admin has joined the conversation. ' +
+                'Do you want to continue?'
+            );
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        try {
+            // Find the root message ID for threading
+            const rootMessageId = selectedConversation.reply_to_id || selectedConversation.id;
+            
+            const result = await CommunicationsService.sendMessage({
+                to_user_id: selectedConversation.from_user_id,
+                subject: selectedConversation.subject.startsWith('Re:') ? selectedConversation.subject : `Re: ${selectedConversation.subject}`,
+                message: replyMessage,
+                reply_to_id: rootMessageId
+            }, currentAdmin.id);
+
+            if (result) {
+                setReplyMessage('');
+                // Refresh the conversation and main list
+                await loadAllData();
+                // Add the new message to the current conversation view
+                setConversationMessages(prev => [...prev, result]);
+            }
+        } catch (error) {
+            console.error('Failed to send reply:', error);
+        }
+    };
+
+    const deleteMessage = async (messageId: string) => {
+        if (!currentAdmin?.id) return;
+
+        try {
+            const success = await CommunicationsService.deleteMessage(messageId, currentAdmin.id);
+            
+            if (success) {
+                // Remove the message from the current conversation view
+                setConversationMessages(prev => prev.filter(msg => msg.id !== messageId));
+                // Refresh the main conversation list
+                await loadAllData();
+            }
+        } catch (error) {
+            console.error('Failed to delete message:', error);
+        }
+    };
+
+    const deleteConversationThread = async () => {
+        if (!selectedConversation || !currentAdmin?.id || currentAdmin.role !== 'super_admin') return;
+
+        // Confirm deletion
+        if (!confirm('Are you sure you want to delete this entire conversation thread? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const success = await CommunicationsService.deleteMessageThread(selectedConversation.id, currentAdmin.id);
+            
+            if (success) {
+                // Close the conversation modal
+                closeConversation();
+                // Refresh the main conversation list
+                await loadAllData();
+            }
+        } catch (error) {
+            console.error('Failed to delete conversation thread:', error);
+        }
+    };
+
+    // Manual overdue check function
+    const handleManualOverdueCheck = async () => {
+        if (!currentAdmin?.id) return;
+
+        setIsCheckingOverdue(true);
+        setOverdueCheckResult('');
+        
+        try {
+            // Try using the hook's forceCheck method first, then fallback to service
+            let result;
+            try {
+                result = await forceCheck();
+            } catch (hookError) {
+                console.warn('Hook forceCheck failed, using service directly:', hookError);
+                result = await CommunicationsService.checkOverdueTasks();
+            }
+            
+            if (result.success) {
+                if (result.marked > 0) {
+                    setOverdueCheckResult(`✅ Successfully marked ${result.marked} task(s) as overdue and sent ${result.notified} notification(s)`);
+                } else {
+                    setOverdueCheckResult('✅ No overdue tasks found');
+                }
+                // Refresh the tasks list to show updated statuses
+                await loadAllData();
+            } else {
+                setOverdueCheckResult(`❌ Failed to check overdue tasks: ${result.error || 'Unknown error'}`);
+            }
+        } catch (error: any) {
+            setOverdueCheckResult(`❌ Error checking overdue tasks: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsCheckingOverdue(false);
+            // Clear the result message after 5 seconds
+            setTimeout(() => setOverdueCheckResult(''), 5000);
+        }
+    };
+
     // Utility functions
     const tabs = [
         { id: 'announcements', label: 'Announcements', icon: Bell },
@@ -636,8 +826,8 @@ const AdminCommunications: React.FC = () => {
                             <span>Send Email</span>
                         </button>
                     )}
-                    {/* Hide task creation from blog editors */}
-                    {!(activeTab === 'tasks' && currentAdmin?.role === 'blog_editor') && (
+                    {/* Hide task creation from blog editors, but allow announcements and messages */}
+                    {(activeTab !== 'tasks' || currentAdmin?.role !== 'blog_editor') && (
                         <button
                             onClick={() => {
                                 resetCreateForm();
@@ -676,7 +866,10 @@ const AdminCommunications: React.FC = () => {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => {
+                                    setActiveTab(tab.id);
+                                    setSearchParams({ tab: tab.id });
+                                }}
                                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
                                     ? 'border-blue-600 text-primary'
                                     : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
@@ -789,24 +982,26 @@ const AdminCommunications: React.FC = () => {
                                                         <Mail size={16} />
                                                     </button>
                                                 )}
-                                                {/* Blog editors can only edit/delete their own announcements */}
-                                                {(currentAdmin?.role !== 'blog_editor' || announcement.author_id === currentAdmin?.id) && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => openEditModal(announcement)}
-                                                            className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
-                                                            title="Edit announcement"
-                                                        >
-                                                            <Edit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => openDeleteModal(announcement)}
-                                                            className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
-                                                            title="Delete announcement"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </>
+                                                {/* Edit: Super admins can edit any announcement, others can edit their own */}
+                                                {(currentAdmin?.role === 'super_admin' || announcement.author_id === currentAdmin?.id) && (
+                                                    <button
+                                                        onClick={() => openEditModal(announcement)}
+                                                        className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                                                        title={currentAdmin?.role === 'super_admin' ? "Edit announcement" : "Edit your announcement"}
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                )}
+                                                
+                                                {/* Delete: Super admins can delete any announcement, others can only delete their own */}
+                                                {(currentAdmin?.role === 'super_admin' || announcement.author_id === currentAdmin?.id) && (
+                                                    <button
+                                                        onClick={() => openDeleteModal(announcement)}
+                                                        className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
+                                                        title={currentAdmin?.role === 'super_admin' ? "Delete announcement" : "Delete your announcement"}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
@@ -828,7 +1023,33 @@ const AdminCommunications: React.FC = () => {
                 {activeTab === 'tasks' && (
                     <>
                         <div className="p-6 border-b border-border">
-                            <h2 className="text-xl font-semibold text-foreground">Task Management</h2>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold text-foreground">Task Management</h2>
+                                {/* Manual overdue check button - only for super_admins */}
+                                {currentAdmin?.role === 'super_admin' && (
+                                    <div className="flex items-center space-x-3">
+                                        <button
+                                            onClick={handleManualOverdueCheck}
+                                            disabled={isCheckingOverdue}
+                                            className="flex items-center space-x-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Manually check for overdue tasks and send notifications"
+                                        >
+                                            <AlertTriangle size={16} className={isCheckingOverdue ? 'animate-pulse' : ''} />
+                                            <span>{isCheckingOverdue ? 'Checking...' : 'Check Overdue'}</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Show result message */}
+                            {overdueCheckResult && (
+                                <div className={`mt-3 p-3 rounded-lg text-sm ${
+                                    overdueCheckResult.startsWith('✅') 
+                                        ? 'bg-green-900/20 text-green-400 border border-green-500/30' 
+                                        : 'bg-red-900/20 text-red-400 border border-red-500/30'
+                                }`}>
+                                    {overdueCheckResult}
+                                </div>
+                            )}
                         </div>
                         {isLoading ? (
                             <div className="p-8 text-center">
@@ -849,6 +1070,12 @@ const AdminCommunications: React.FC = () => {
                                                     <span className={`px-2 py-1 text-xs rounded-full font-medium border ${getPriorityColor(task.priority)}`}>
                                                         {task.priority}
                                                     </span>
+                                                    {/* Show "Assigned by you" tag if current user is the assigner but NOT the assignee */}
+                                                    {task.assigned_by_id === currentAdmin?.id && task.assigned_to_id !== currentAdmin?.id && (
+                                                        <span className="px-2 py-1 text-xs rounded-full font-medium bg-blue-900/20 text-blue-400 border border-blue-500/30">
+                                                            Assigned by you
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <p className="text-muted-foreground mb-4">{task.description}</p>
@@ -892,24 +1119,28 @@ const AdminCommunications: React.FC = () => {
                                                         <Mail size={16} />
                                                     </button>
                                                 )}
-                                                {/* Hide edit/delete buttons from blog editors */}
-                                                {currentAdmin?.role !== 'blog_editor' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => openEditModal(task)}
-                                                            className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
-                                                            title="Edit task"
-                                                        >
-                                                            <Edit size={16} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => openDeleteModal(task)}
-                                                            className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
-                                                            title="Delete task"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </>
+                                                {/* Edit permissions: assigned_by, assigned_to, or super_admin can edit */}
+                                                {(currentAdmin?.role === 'super_admin' || 
+                                                  task.assigned_by_id === currentAdmin?.id || 
+                                                  task.assigned_to_id === currentAdmin?.id) && (
+                                                    <button
+                                                        onClick={() => openEditModal(task)}
+                                                        className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                                                        title={task.assigned_to_id === currentAdmin?.id ? "Edit task status" : "Edit task"}
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                )}
+                                                
+                                                {/* Delete permissions: only assigned_by or super_admin can delete */}
+                                                {(currentAdmin?.role === 'super_admin' || task.assigned_by_id === currentAdmin?.id) && (
+                                                    <button
+                                                        onClick={() => openDeleteModal(task)}
+                                                        className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
+                                                        title="Delete task"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
@@ -919,9 +1150,9 @@ const AdminCommunications: React.FC = () => {
                                 {tasks.length === 0 && (
                                     <div className="p-8 text-center">
                                         <CheckSquare size={48} className="mx-auto text-muted-foreground mb-4" />
-                                        <h3 className="text-lg font-medium text-foreground mb-2">No tasks assigned to you</h3>
+                                        <h3 className="text-lg font-medium text-foreground mb-2">No tasks found</h3>
                                         <p className="text-muted-foreground">
-                                            You don't have any tasks assigned to you at the moment.
+                                            You don't have any tasks assigned to you or created by you at the moment.
                                         </p>
                                     </div>
                                 )}
@@ -931,89 +1162,199 @@ const AdminCommunications: React.FC = () => {
                 )}
 
                 {activeTab === 'messages' && (
-                    <>
-                        <div className="p-6 border-b border-border">
-                            <h2 className="text-xl font-semibold text-foreground">Internal Messages</h2>
+                    <div className="flex flex-col h-[700px]">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-border">
+                            <div className="flex items-center space-x-3">
+                                <MessageSquare size={20} className="text-primary" />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">Team Messages</h2>
+                                    <p className="text-sm text-muted-foreground">Internal communication hub</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                <span className="text-sm text-muted-foreground">
+                                    {messages.filter(m => !m.is_read && m.to_user_id === currentAdmin?.id).length} unread
+                                </span>
+                            </div>
                         </div>
-                        {isLoading ? (
-                            <div className="p-8 text-center">
-                                <RefreshCw size={24} className="animate-spin mx-auto text-muted-foreground mb-2" />
-                                <p className="text-muted-foreground">Loading messages...</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-gray-800">
-                                {(messages || []).map((message) => (
-                                    <div key={message.id} className={`p-6 hover:bg-muted transition-colors ${!message.is_read ? 'bg-muted/50' : ''}`}>
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-3 mb-2">
-                                                    <h3 className="text-lg font-semibold text-foreground">{message.subject}</h3>
-                                                    {!message.is_read && (
-                                                        <span className="w-2 h-2 bg-primary rounded-full"></span>
-                                                    )}
-                                                </div>
 
-                                                <p className="text-muted-foreground mb-4">{message.message}</p>
-
-                                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                                    <div className="flex items-center space-x-1">
-                                                        <User size={14} />
-                                                        <span>From: {message.from_user?.email || 'Unknown'}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-1">
-                                                        <Clock size={14} />
-                                                        <span>{formatDate(message.created_at)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center space-x-2 ml-4">
-                                                {!message.is_read && (
-                                                    <button
-                                                        onClick={() => markAsRead(message)}
-                                                        className="p-2 hover:bg-blue-900/20 rounded-lg transition-colors text-blue-400"
-                                                        title="Mark as read"
-                                                    >
-                                                        <Eye size={16} />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        setCreateForm({
-                                                            ...createForm,
-                                                            to_user_id: message.from_user_id,
-                                                            subject: `Re: ${message.subject}`,
-                                                            message: ''
-                                                        });
-                                                        setShowCreateModal(true);
-                                                    }}
-                                                    className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
-                                                    title="Reply to message"
-                                                >
-                                                    <Reply size={16} />
-                                                </button>
-                                            </div>
+                        {/* Conversations List */}
+                        <div className="flex-1 overflow-y-auto">
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <RefreshCw size={24} className="animate-spin text-muted-foreground" />
+                                </div>
+                            ) : messages.length === 0 ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <div className="text-center max-w-md">
+                                        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted/20 flex items-center justify-center">
+                                            <MessageSquare size={32} className="text-muted-foreground/60" />
                                         </div>
+                                        <h3 className="text-lg font-semibold text-foreground mb-2">No conversations yet</h3>
+                                        <p className="text-muted-foreground mb-6 leading-relaxed">
+                                            Start communicating with your team members by sending your first message.
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                resetCreateForm();
+                                                setShowCreateModal(true);
+                                            }}
+                                            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-sm"
+                                        >
+                                            Start a conversation
+                                        </button>
                                     </div>
-                                ))}
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-border/30">
+                                    {(() => {
+                                        // Group messages by thread (root message ID)
+                                        const threads = new Map();
+                                        
+                                        messages.forEach(message => {
+                                            const threadId = message.reply_to_id || message.id;
+                                            if (!threads.has(threadId)) {
+                                                threads.set(threadId, []);
+                                            }
+                                            threads.get(threadId).push(message);
+                                        });
+                                        
+                                        // Get the latest message from each thread for display
+                                        const threadPreviews = Array.from(threads.values()).map(threadMessages => {
+                                            // Sort by date and get the latest message
+                                            const sortedMessages = threadMessages.sort((a, b) => 
+                                                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                            );
+                                            const latestMessage = sortedMessages[0];
+                                            const rootMessage = threadMessages.find(m => !m.reply_to_id) || threadMessages[0];
+                                            
+                                            // Check for unread messages that are TO the current user
+                                            const hasUnreadForUser = threadMessages.some(m => 
+                                                !m.is_read && m.to_user_id === currentAdmin?.id
+                                            );
+                                            
+                                            return {
+                                                ...latestMessage,
+                                                threadCount: threadMessages.length,
+                                                rootSubject: rootMessage.subject,
+                                                hasUnread: hasUnreadForUser,
+                                                threadMessages: threadMessages // Keep reference for later use
+                                            };
+                                        }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                                        
+                                        return threadPreviews.map((thread) => {
+                                            // Check if current user is involved in this conversation
+                                            const threadMessages = threads.get(thread.reply_to_id || thread.id) || [];
+                                            const isUserInvolved = threadMessages.some(msg => 
+                                                msg.from_user_id === currentAdmin?.id || msg.to_user_id === currentAdmin?.id
+                                            );
+                                            const isAdminView = currentAdmin?.role === 'super_admin' && !isUserInvolved;
 
-                                {messages.length === 0 && (
-                                    <div className="p-8 text-center">
-                                        <MessageSquare size={48} className="mx-auto text-muted-foreground mb-4" />
-                                        <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
-                                        <p className="text-muted-foreground">Send your first message to get started.</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </>
+                                            return (
+                                                <div 
+                                                    key={thread.id} 
+                                                    className={`p-5 hover:bg-muted/40 transition-all duration-200 cursor-pointer border-l-4 relative ${
+                                                        isAdminView 
+                                                            ? 'border-l-orange-500/60 bg-gradient-to-r from-orange-500/8 to-transparent' 
+                                                            : thread.hasUnread
+                                                                ? 'border-l-blue-500/60 bg-gradient-to-r from-blue-500/8 to-transparent'
+                                                                : 'border-l-transparent hover:border-l-primary/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-transparent'
+                                                    }`}
+                                                    onClick={() => openConversation(thread)}
+                                                >
+                                                    <div className="flex items-start space-x-4">
+                                                        {/* Avatar */}
+                                                        <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ${
+                                                            isAdminView 
+                                                                ? 'bg-gradient-to-br from-orange-500 to-orange-600 ring-2 ring-orange-500/20' 
+                                                                : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                                                        }`}>
+                                                            {thread.from_user?.email?.charAt(0).toUpperCase() || 'U'}
+                                                        </div>
+                                                        
+                                                        {/* Conversation Preview */}
+                                                        <div className="flex-1 min-w-0">
+                                                            {/* Header */}
+                                                            <div className="flex items-center space-x-2 mb-2">
+                                                                <span className="font-semibold text-foreground truncate text-base">
+                                                                    {thread.rootSubject}
+                                                                </span>
+                                                                {thread.hasUnread && (
+                                                                    <span className="px-2.5 py-1 bg-blue-500 text-white text-xs rounded-full font-semibold shadow-sm">
+                                                                        New
+                                                                    </span>
+                                                                )}
+                                                                {thread.threadCount > 1 && (
+                                                                    <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                                                                        {thread.threadCount} messages
+                                                                    </span>
+                                                                )}
+                                                                {isAdminView && (
+                                                                    <span className="text-xs px-2.5 py-1 bg-orange-500/15 text-orange-400 rounded-full border border-orange-500/30 font-medium">
+                                                                        admin view
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {/* Sender and timestamp */}
+                                                            <div className="flex items-center space-x-3 text-sm text-muted-foreground mb-2">
+                                                                <div className="flex items-center space-x-1.5">
+                                                                    <User size={13} />
+                                                                    <span className="font-medium">{thread.from_user?.email?.split('@')[0] || 'Unknown'}</span>
+                                                                </div>
+                                                                <div className="flex items-center space-x-1.5">
+                                                                    <Clock size={13} />
+                                                                    <span>{formatDate(thread.created_at)}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* Message preview */}
+                                                            <div className="text-sm text-muted-foreground/80 line-clamp-2 leading-relaxed">
+                                                                {thread.message}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Status indicator */}
+                                                        <div className="flex-shrink-0 flex flex-col items-center space-y-1">
+                                                            {thread.hasUnread && (
+                                                                <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+                                                            )}
+                                                            {isAdminView && (
+                                                                <div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* New Message Button */}
+                        <div className="p-4 border-t border-border">
+                            <button
+                                onClick={() => {
+                                    resetCreateForm();
+                                    setShowCreateModal(true);
+                                }}
+                                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                            >
+                                <Plus size={16} />
+                                <span>New Message</span>
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
 
             {/* Create Modal */}
             {showCreateModal && (
                 <div
-                    className="fixed inset-0 z-50 bg-card bg-opacity-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
                     style={{
                         overflow: 'hidden',
                         position: 'fixed',
@@ -1033,145 +1374,236 @@ const AdminCommunications: React.FC = () => {
                     onScroll={(e) => e.preventDefault()}
                 >
                     <div
-                        className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+                        className="bg-card rounded-2xl shadow-2xl border border-border/50 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col backdrop-blur-xl"
                         onClick={(e) => e.stopPropagation()}
                         onWheel={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                     >
                         {/* Fixed Header */}
-                        <div className="flex-shrink-0 p-6 border-b border-border">
-                            <h2 className="text-xl font-semibold text-foreground">
-                                Create {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}
-                            </h2>
+                        <div className="flex-shrink-0 p-8 border-b border-border/50 bg-gradient-to-r from-card to-muted/20">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    {activeTab === 'announcements' ? (
+                                        <Bell size={20} className="text-primary" />
+                                    ) : activeTab === 'tasks' ? (
+                                        <CheckSquare size={20} className="text-primary" />
+                                    ) : (
+                                        <MessageSquare size={20} className="text-primary" />
+                                    )}
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground">
+                                        Create {activeTab === 'announcements' ? 'Announcement' : activeTab === 'tasks' ? 'Task' : 'Message'}
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {activeTab === 'announcements' 
+                                            ? 'Share important updates with your team' 
+                                            : activeTab === 'tasks' 
+                                                ? 'Assign a new task to a team member'
+                                                : 'Send a direct message to a colleague'
+                                        }
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
                             {/* Error Display */}
                             {submitError && (
-                                <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
-                                    {submitError}
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-xl backdrop-blur-sm">
+                                    <div className="flex items-center space-x-3">
+                                        <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
+                                        <div>
+                                            <p className="font-medium">Error</p>
+                                            <p className="text-sm opacity-90">{submitError}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Title/Subject Field */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    {activeTab === 'messages' ? 'Subject' : 'Title'} *
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-foreground">
+                                    {activeTab === 'messages' ? 'Subject' : 'Title'} 
+                                    <span className="text-red-400 ml-1">*</span>
                                 </label>
-                                <input
-                                    type="text"
-                                    value={activeTab === 'messages' ? createForm.subject : createForm.title}
-                                    onChange={(e) => setCreateForm(prev => ({
-                                        ...prev,
-                                        [activeTab === 'messages' ? 'subject' : 'title']: e.target.value
-                                    }))}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
-                                        formErrors[activeTab === 'messages' ? 'subject' : 'title'] 
-                                            ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
-                                            : 'border-border'
-                                    }`}
-                                    placeholder={`Enter ${activeTab === 'messages' ? 'subject' : 'title'}`}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={activeTab === 'messages' ? createForm.subject : createForm.title}
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            [activeTab === 'messages' ? 'subject' : 'title']: e.target.value
+                                        }))}
+                                        className={`w-full px-4 py-3 border border-border/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 bg-card text-foreground transition-all duration-200 placeholder:text-muted-foreground/60 ${
+                                            formErrors[activeTab === 'messages' ? 'subject' : 'title'] 
+                                                ? 'border-red-500/50 focus:ring-red-400/20 focus:border-red-400' 
+                                                : 'hover:border-border'
+                                        }`}
+                                        placeholder={`Enter a compelling ${activeTab === 'messages' ? 'subject' : 'title'}...`}
+                                    />
+                                </div>
                                 {formErrors[activeTab === 'messages' ? 'subject' : 'title'] && (
-                                    <p className="text-red-400 text-sm mt-1">{formErrors[activeTab === 'messages' ? 'subject' : 'title']}</p>
+                                    <div className="flex items-center space-x-2 text-red-400 text-sm">
+                                        <AlertCircle size={16} />
+                                        <span>{formErrors[activeTab === 'messages' ? 'subject' : 'title']}</span>
+                                    </div>
                                 )}
                             </div>
 
                             {/* Message/Description Field */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    {activeTab === 'tasks' ? 'Description' : 'Message'} *
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-foreground">
+                                    {activeTab === 'tasks' ? 'Description' : 'Message'} 
+                                    <span className="text-red-400 ml-1">*</span>
                                 </label>
-                                <textarea
-                                    value={activeTab === 'tasks' ? createForm.description : createForm.message}
-                                    onChange={(e) => setCreateForm(prev => ({
-                                        ...prev,
-                                        [activeTab === 'tasks' ? 'description' : 'message']: e.target.value
-                                    }))}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
-                                        formErrors[activeTab === 'tasks' ? 'description' : 'message'] 
-                                            ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
-                                            : 'border-border'
-                                    }`}
-                                    placeholder={`Enter ${activeTab === 'tasks' ? 'description' : 'message'}`}
-                                    rows={6}
-                                />
+                                <div className="relative">
+                                    <textarea
+                                        value={activeTab === 'tasks' ? createForm.description : createForm.message}
+                                        onChange={(e) => setCreateForm(prev => ({
+                                            ...prev,
+                                            [activeTab === 'tasks' ? 'description' : 'message']: e.target.value
+                                        }))}
+                                        className={`w-full px-4 py-3 border border-border/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 bg-card text-foreground transition-all duration-200 placeholder:text-muted-foreground/60 resize-none ${
+                                            formErrors[activeTab === 'tasks' ? 'description' : 'message'] 
+                                                ? 'border-red-500/50 focus:ring-red-400/20 focus:border-red-400' 
+                                                : 'hover:border-border'
+                                        }`}
+                                        placeholder={activeTab === 'tasks' 
+                                            ? 'Describe what needs to be done, include any relevant details or requirements...' 
+                                            : 'Write your message here...'
+                                        }
+                                        rows={6}
+                                    />
+                                </div>
                                 {formErrors[activeTab === 'tasks' ? 'description' : 'message'] && (
-                                    <p className="text-red-400 text-sm mt-1">{formErrors[activeTab === 'tasks' ? 'description' : 'message']}</p>
+                                    <div className="flex items-center space-x-2 text-red-400 text-sm">
+                                        <AlertCircle size={16} />
+                                        <span>{formErrors[activeTab === 'tasks' ? 'description' : 'message']}</span>
+                                    </div>
                                 )}
                             </div>
 
                             {/* Priority Field (for announcements and tasks) */}
                             {(activeTab === 'announcements' || activeTab === 'tasks') && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
-                                    <select
-                                        value={createForm.priority}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, priority: e.target.value as any }))}
-                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                    >
-                                        <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="high">High</option>
-                                    </select>
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-semibold text-foreground">Priority Level</label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {[
+                                            { value: 'low', label: 'Low', color: 'bg-green-500/10 border-green-500/20 text-green-400', icon: '🟢' },
+                                            { value: 'medium', label: 'Medium', color: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400', icon: '🟡' },
+                                            { value: 'high', label: 'High', color: 'bg-red-500/10 border-red-500/20 text-red-400', icon: '🔴' }
+                                        ].map((priority) => (
+                                            <button
+                                                key={priority.value}
+                                                type="button"
+                                                onClick={() => setCreateForm(prev => ({ ...prev, priority: priority.value as any }))}
+                                                className={`p-4 border-2 rounded-xl transition-all duration-200 text-center ${
+                                                    createForm.priority === priority.value
+                                                        ? `${priority.color} border-opacity-100 scale-105`
+                                                        : 'bg-card/50 border-border/50 text-muted-foreground hover:border-border'
+                                                }`}
+                                            >
+                                                <div className="text-lg mb-1">{priority.icon}</div>
+                                                <div className="font-medium text-sm">{priority.label}</div>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
                             {/* Pin Announcement */}
                             {activeTab === 'announcements' && (
-                                <div className="flex items-center space-x-3">
-                                    <input
-                                        type="checkbox"
-                                        id="is_pinned"
-                                        checked={createForm.is_pinned}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, is_pinned: e.target.checked }))}
-                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                                    />
-                                    <label htmlFor="is_pinned" className="text-sm font-medium text-gray-300">
-                                        Pin this announcement
-                                    </label>
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-semibold text-foreground">Options</label>
+                                    <div className="bg-card/50 border-2 border-border/50 rounded-xl p-4">
+                                        <label className="flex items-center space-x-3 cursor-pointer group">
+                                            <div className="relative">
+                                                <input
+                                                    type="checkbox"
+                                                    id="is_pinned"
+                                                    checked={createForm.is_pinned}
+                                                    onChange={(e) => setCreateForm(prev => ({ ...prev, is_pinned: e.target.checked }))}
+                                                    className="sr-only"
+                                                />
+                                                <div className={`w-6 h-6 rounded-lg border-2 transition-all duration-200 flex items-center justify-center ${
+                                                    createForm.is_pinned 
+                                                        ? 'bg-primary border-primary' 
+                                                        : 'border-border/50 group-hover:border-border'
+                                                }`}>
+                                                    {createForm.is_pinned && (
+                                                        <Pin size={14} className="text-primary-foreground" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">Pin this announcement</div>
+                                                <div className="text-sm text-muted-foreground">Pinned announcements appear at the top</div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Task-specific fields */}
                             {activeTab === 'tasks' && (
                                 <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Assign To *</label>
-                                        <select
-                                            value={createForm.assigned_to_id}
-                                            onChange={(e) => setCreateForm(prev => ({ ...prev, assigned_to_id: e.target.value }))}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
-                                                formErrors.assigned_to_id 
-                                                    ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
-                                                    : 'border-border'
-                                            }`}
-                                        >
-                                            <option value="">Select user...</option>
-                                            {(adminUsers || []).map(user => (
-                                                <option key={user.id} value={user.id}>{user.email}</option>
-                                            ))}
-                                        </select>
+                                    <div className="space-y-3">
+                                        <label className="block text-sm font-semibold text-foreground">
+                                            Assign To 
+                                            <span className="text-red-400 ml-1">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={createForm.assigned_to_id}
+                                                onChange={(e) => setCreateForm(prev => ({ ...prev, assigned_to_id: e.target.value }))}
+                                                className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary bg-card/50 text-foreground transition-all duration-200 appearance-none ${
+                                                    formErrors.assigned_to_id 
+                                                        ? 'border-red-500/50 focus:ring-red-400/20 focus:border-red-400' 
+                                                        : 'border-border/50 hover:border-border'
+                                                }`}
+                                            >
+                                                <option value="">Choose a team member...</option>
+                                                {(adminUsers || []).map(user => (
+                                                    <option key={user.id} value={user.id}>
+                                                        {user.email} ({user.role})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <User size={20} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                        </div>
                                         {formErrors.assigned_to_id && (
-                                            <p className="text-red-400 text-sm mt-1">{formErrors.assigned_to_id}</p>
+                                            <div className="flex items-center space-x-2 text-red-400 text-sm">
+                                                <AlertCircle size={16} />
+                                                <span>{formErrors.assigned_to_id}</span>
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Due Date *</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={createForm.due_date}
-                                            onChange={(e) => setCreateForm(prev => ({ ...prev, due_date: e.target.value }))}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
-                                                formErrors.due_date 
-                                                    ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
-                                                    : 'border-border'
-                                            }`}
-                                        />
+                                    <div className="space-y-3">
+                                        <label className="block text-sm font-semibold text-foreground">
+                                            Due Date 
+                                            <span className="text-red-400 ml-1">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="datetime-local"
+                                                value={createForm.due_date}
+                                                onChange={(e) => setCreateForm(prev => ({ ...prev, due_date: e.target.value }))}
+                                                className={`w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary bg-card/50 text-foreground transition-all duration-200 ${
+                                                    formErrors.due_date 
+                                                        ? 'border-red-500/50 focus:ring-red-400/20 focus:border-red-400' 
+                                                        : 'border-border/50 hover:border-border'
+                                                }`}
+                                            />
+                                            <Calendar size={20} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                        </div>
                                         {formErrors.due_date && (
-                                            <p className="text-red-400 text-sm mt-1">{formErrors.due_date}</p>
+                                            <div className="flex items-center space-x-2 text-red-400 text-sm">
+                                                <AlertCircle size={16} />
+                                                <span>{formErrors.due_date}</span>
+                                            </div>
                                         )}
                                     </div>
                                 </>
@@ -1179,54 +1611,74 @@ const AdminCommunications: React.FC = () => {
 
                             {/* Message-specific fields */}
                             {activeTab === 'messages' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Send To *</label>
-                                    <select
-                                        value={createForm.to_user_id}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, to_user_id: e.target.value }))}
-                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
-                                            formErrors.to_user_id 
-                                                ? 'border-red-500 focus:ring-red-400 focus:border-red-400' 
-                                                : 'border-border'
-                                        }`}
-                                    >
-                                        <option value="">Select user...</option>
-                                        {(adminUsers || []).map(user => (
-                                            <option key={user.id} value={user.id}>{user.email}</option>
-                                        ))}
-                                    </select>
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-semibold text-foreground">
+                                        Send To 
+                                        <span className="text-red-400 ml-1">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={createForm.to_user_id}
+                                            onChange={(e) => setCreateForm(prev => ({ ...prev, to_user_id: e.target.value }))}
+                                            className={`w-full px-4 py-3 border border-border/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 bg-card text-foreground transition-all duration-200 appearance-none ${
+                                                formErrors.to_user_id 
+                                                    ? 'border-red-500/50 focus:ring-red-400/20 focus:border-red-400' 
+                                                    : 'hover:border-border'
+                                            }`}
+                                        >
+                                            <option value="">Choose a recipient...</option>
+                                            {(adminUsers || []).map(user => (
+                                                <option key={user.id} value={user.id}>
+                                                    {user.email} ({user.role})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <User size={20} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                                    </div>
                                     {formErrors.to_user_id && (
-                                        <p className="text-red-400 text-sm mt-1">{formErrors.to_user_id}</p>
+                                        <div className="flex items-center space-x-2 text-red-400 text-sm">
+                                            <AlertCircle size={16} />
+                                            <span>{formErrors.to_user_id}</span>
+                                        </div>
                                     )}
                                 </div>
                             )}
                         </div>
 
                         {/* Fixed Footer */}
-                        <div className="flex-shrink-0 p-6 border-t border-border">
-                            <div className="flex space-x-3">
+                        <div className="flex-shrink-0 p-8 border-t border-border/50 bg-gradient-to-r from-card to-muted/10">
+                            <div className="flex space-x-4">
                                 <button
                                     onClick={() => {
                                         setShowCreateModal(false);
                                         resetCreateForm();
                                     }}
                                     disabled={isSaving}
-                                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300 disabled:opacity-50"
+                                    className="flex-1 px-6 py-4 border-2 border-border/50 rounded-xl hover:bg-muted/50 hover:border-border transition-all duration-200 font-semibold text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleCreate}
                                     disabled={isSaving}
-                                    className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                    className="flex-1 px-6 py-4 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-xl hover:from-primary/90 hover:to-primary/80 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-primary/25"
                                 >
                                     {isSaving ? (
                                         <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground mr-3"></div>
                                             Creating...
                                         </>
                                     ) : (
-                                        activeTab === 'messages' ? 'Send Message' : `Create ${activeTab === 'announcements' ? 'Announcement' : 'Task'}`
+                                        <>
+                                            {activeTab === 'announcements' ? (
+                                                <Bell size={18} className="mr-2" />
+                                            ) : activeTab === 'tasks' ? (
+                                                <CheckSquare size={18} className="mr-2" />
+                                            ) : (
+                                                <Send size={18} className="mr-2" />
+                                            )}
+                                            {activeTab === 'messages' ? 'Send Message' : `Create ${activeTab === 'announcements' ? 'Announcement' : 'Task'}`}
+                                        </>
                                     )}
                                 </button>
                             </div>
@@ -1271,14 +1723,24 @@ const AdminCommunications: React.FC = () => {
 
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* Same form fields as create modal */}
+                            {/* Task content fields - editable by assigned_by or super_admin */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Title
+                                    {('description' in selectedItem) && !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) && (
+                                        <span className="text-xs text-muted-foreground ml-2">(Read-only: Only task creator can edit content)</span>
+                                    )}
+                                </label>
                                 <input
                                     type="text"
                                     value={createForm.title}
                                     onChange={(e) => setCreateForm(prev => ({ ...prev, title: e.target.value }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                    disabled={('description' in selectedItem) && !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id)}
+                                    className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                        ('description' in selectedItem) && !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) 
+                                            ? 'opacity-50 cursor-not-allowed' 
+                                            : ''
+                                    }`}
                                 />
                             </div>
 
@@ -1294,22 +1756,42 @@ const AdminCommunications: React.FC = () => {
                                 </div>
                             ) : (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Description
+                                        {!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) && (
+                                            <span className="text-xs text-muted-foreground ml-2">(Read-only: Only task creator can edit content)</span>
+                                        )}
+                                    </label>
                                     <textarea
                                         value={createForm.description}
                                         onChange={(e) => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
-                                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                        disabled={!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id)}
+                                        className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                            !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) 
+                                                ? 'opacity-50 cursor-not-allowed' 
+                                                : ''
+                                        }`}
                                         rows={6}
                                     />
                                 </div>
                             )}
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Priority
+                                    {('description' in selectedItem) && !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) && (
+                                        <span className="text-xs text-muted-foreground ml-2">(Read-only: Only task creator can edit priority)</span>
+                                    )}
+                                </label>
                                 <select
                                     value={createForm.priority}
                                     onChange={(e) => setCreateForm(prev => ({ ...prev, priority: e.target.value as any }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                    disabled={('description' in selectedItem) && !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id)}
+                                    className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                        ('description' in selectedItem) && !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) 
+                                            ? 'opacity-50 cursor-not-allowed' 
+                                            : ''
+                                    }`}
                                 >
                                     <option value="low">Low</option>
                                     <option value="medium">Medium</option>
@@ -1334,12 +1816,23 @@ const AdminCommunications: React.FC = () => {
 
                             {'description' in selectedItem && (
                                 <>
+                                    {/* Status can only be changed by assignee or super_admin */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Status
+                                            {!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_to_id === currentAdmin?.id) && (
+                                                <span className="text-xs text-muted-foreground ml-2">(Read-only: Only assignee can change status)</span>
+                                            )}
+                                        </label>
                                         <select
                                             value={createForm.status}
                                             onChange={(e) => setCreateForm(prev => ({ ...prev, status: e.target.value as any }))}
-                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                            disabled={!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_to_id === currentAdmin?.id)}
+                                            className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                                !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_to_id === currentAdmin?.id) 
+                                                    ? 'opacity-50 cursor-not-allowed' 
+                                                    : ''
+                                            }`}
                                         >
                                             <option value="pending">Pending</option>
                                             <option value="in-progress">In Progress</option>
@@ -1348,12 +1841,23 @@ const AdminCommunications: React.FC = () => {
                                         </select>
                                     </div>
 
+                                    {/* Task content can only be changed by assigned_by or super_admin */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Assign To</label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Assign To
+                                            {!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) && (
+                                                <span className="text-xs text-muted-foreground ml-2">(Read-only: Only task creator can change assignment)</span>
+                                            )}
+                                        </label>
                                         <select
                                             value={createForm.assigned_to_id}
                                             onChange={(e) => setCreateForm(prev => ({ ...prev, assigned_to_id: e.target.value }))}
-                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                            disabled={!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id)}
+                                            className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                                !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) 
+                                                    ? 'opacity-50 cursor-not-allowed' 
+                                                    : ''
+                                            }`}
                                         >
                                             <option value="">Select user...</option>
                                             {(adminUsers || []).map(user => (
@@ -1363,7 +1867,12 @@ const AdminCommunications: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Due Date
+                                            {!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) && (
+                                                <span className="text-xs text-muted-foreground ml-2">(Read-only: Only task creator can change due date)</span>
+                                            )}
+                                        </label>
                                         <input
                                             type="datetime-local"
                                             value={createForm.due_date}
@@ -1371,7 +1880,12 @@ const AdminCommunications: React.FC = () => {
                                                 ...prev,
                                                 due_date: e.target.value
                                             }))}
-                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                            disabled={!(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id)}
+                                            className={`w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground ${
+                                                !(currentAdmin?.role === 'super_admin' || selectedItem.assigned_by_id === currentAdmin?.id) 
+                                                    ? 'opacity-50 cursor-not-allowed' 
+                                                    : ''
+                                            }`}
                                         />
                                     </div>
                                 </>
@@ -1406,6 +1920,333 @@ const AdminCommunications: React.FC = () => {
                                         'Update'
                                     )}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Conversation Modal */}
+            {showConversationModal && selectedConversation && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    style={{
+                        overflow: 'hidden',
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            closeConversation();
+                        }
+                    }}
+                    onWheel={(e) => e.preventDefault()}
+                    onTouchMove={(e) => e.preventDefault()}
+                    onScroll={(e) => e.preventDefault()}
+                >
+                    <div
+                        className="bg-card rounded-2xl shadow-2xl border border-border/50 w-full max-w-6xl max-h-[90vh] overflow-hidden flex backdrop-blur-xl"
+                        onClick={(e) => e.stopPropagation()}
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                    >
+                        {/* Left Panel - Conversation Info */}
+                        <div className="w-80 border-r border-border/30 bg-gradient-to-b from-muted/20 to-muted/5 flex flex-col">
+                            {/* Header */}
+                            <div className="p-6 border-b border-border/30 bg-gradient-to-r from-card to-muted/10">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                                            <MessageSquare size={18} className="text-primary" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-foreground">Conversation Details</h3>
+                                            <p className="text-xs text-muted-foreground mt-0.5">Thread information</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                        {/* Super admin delete thread button */}
+                                        {currentAdmin?.role === 'super_admin' && (
+                                            <button
+                                                onClick={deleteConversationThread}
+                                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                                                title="Delete entire conversation thread (Admin)"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={closeConversation}
+                                            className="p-2 hover:bg-muted/50 rounded-lg transition-colors"
+                                        >
+                                            <XCircle size={16} className="text-muted-foreground" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Conversation Info */}
+                            <div className="flex-1 p-6 space-y-8">
+                                <div className="bg-card/50 rounded-xl p-4 border border-border/30">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Subject</label>
+                                    <div className="font-semibold text-foreground text-sm leading-relaxed">
+                                        {conversationMessages[0]?.subject || 'No subject'}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4 block">Participants</label>
+                                    <div className="space-y-3">
+                                        {Array.from(new Set(conversationMessages.map(m => m.from_user?.email).filter(Boolean))).map(email => {
+                                            const isCurrentUser = email === currentAdmin?.email;
+                                            return (
+                                                <div key={email} className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                                                    isCurrentUser ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'
+                                                }`}>
+                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold ${
+                                                        isCurrentUser ? 'bg-primary' : 'bg-blue-500'
+                                                    }`}>
+                                                        {email?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="text-sm font-semibold text-foreground flex items-center space-x-2">
+                                                            <span>{email?.split('@')[0]}</span>
+                                                            {isCurrentUser && (
+                                                                <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full">You</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">{email}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="bg-muted/20 rounded-lg p-4">
+                                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Started</label>
+                                        <div className="text-sm font-medium text-foreground">
+                                            {new Date(conversationMessages[0]?.created_at || '').toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-muted/20 rounded-lg p-4">
+                                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Messages</label>
+                                        <div className="text-sm font-medium text-foreground">
+                                            {conversationMessages.length} message{conversationMessages.length !== 1 ? 's' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Panel - Messages & Reply */}
+                        <div className="flex-1 flex flex-col bg-background">
+                            {/* Header */}
+                            <div className="p-6 border-b border-border/30 bg-gradient-to-r from-card/80 to-muted/20">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-foreground mb-1">
+                                            {conversationMessages[0]?.subject || 'Messages & Feedback'}
+                                        </h2>
+                                        <p className="text-sm text-muted-foreground">
+                                            {conversationMessages.length} message{conversationMessages.length !== 1 ? 's' : ''} in this thread
+                                        </p>
+                                    </div>
+                                    {(() => {
+                                        // Check if current user is involved in this conversation
+                                        const threadMessages = conversationMessages;
+                                        const isUserInvolved = threadMessages.some(msg => 
+                                            msg.from_user_id === currentAdmin?.id || msg.to_user_id === currentAdmin?.id
+                                        );
+                                        const isAdminView = currentAdmin?.role === 'super_admin' && !isUserInvolved;
+                                        
+                                        return isAdminView && (
+                                            <div className="flex items-center space-x-2 px-3 py-2 bg-orange-500/10 text-orange-400 rounded-lg border border-orange-500/20">
+                                                <Eye size={16} />
+                                                <span className="text-sm font-medium">Admin Oversight</span>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Messages */}
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="max-w-4xl mx-auto space-y-6">
+                                    {conversationMessages.map((message, index) => {
+                                        // Check if this is the user's last sent message
+                                        const isCurrentUser = message.from_user_id === currentAdmin?.id;
+                                        const userMessages = conversationMessages.filter(msg => msg.from_user_id === currentAdmin?.id);
+                                        const isLastUserMessage = isCurrentUser && userMessages.length > 0 && 
+                                            userMessages[userMessages.length - 1].id === message.id;
+                                        
+                                        // Super admins can delete any message, regular users can only delete their last message
+                                        const canDeleteMessage = currentAdmin?.role === 'super_admin' || isLastUserMessage;
+                                        
+                                        return (
+                                            <div key={message.id} className="group">
+                                                <div className={`flex items-start space-x-4 p-5 rounded-xl transition-all duration-200 ${
+                                                    isCurrentUser 
+                                                        ? 'bg-primary/5 border border-primary/10 hover:bg-primary/8' 
+                                                        : 'bg-muted/20 border border-border/30 hover:bg-muted/30'
+                                                }`}>
+                                                    {/* Avatar */}
+                                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ${
+                                                        isCurrentUser 
+                                                            ? 'bg-gradient-to-br from-primary to-primary/80' 
+                                                            : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                                                    }`}>
+                                                        {message.from_user?.email?.charAt(0).toUpperCase() || 'U'}
+                                                    </div>
+                                                    
+                                                    {/* Message Content */}
+                                                    <div className="flex-1 min-w-0">
+                                                        {/* Header with user, date, and type */}
+                                                        <div className="flex items-center space-x-3 mb-3">
+                                                            <span className="font-semibold text-foreground">
+                                                                {message.from_user?.email?.split('@')[0] || 'Unknown User'}
+                                                            </span>
+                                                            {isCurrentUser && (
+                                                                <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full font-medium">
+                                                                    You
+                                                                </span>
+                                                            )}
+                                                            <span className="text-sm text-muted-foreground">
+                                                                {new Date(message.created_at).toLocaleDateString('en-US', {
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    year: 'numeric'
+                                                                })}, {new Date(message.created_at).toLocaleTimeString('en-US', {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                    hour12: true
+                                                                })}
+                                                            </span>
+                                                            {/* Super admin indicator for viewing others' messages */}
+                                                            {currentAdmin?.role === 'super_admin' && !isCurrentUser && (() => {
+                                                                const threadMessages = conversationMessages;
+                                                                const isUserInvolved = threadMessages.some(msg => 
+                                                                    msg.from_user_id === currentAdmin?.id || msg.to_user_id === currentAdmin?.id
+                                                                );
+                                                                return !isUserInvolved && (
+                                                                    <span className="text-xs px-2 py-1 bg-orange-500/10 text-orange-400 rounded-full border border-orange-500/20 font-medium">
+                                                                        admin view
+                                                                    </span>
+                                                                );
+                                                            })()} 
+                                                        </div>
+                                                        
+                                                        {/* Message content */}
+                                                        <div className="text-foreground whitespace-pre-wrap leading-relaxed">
+                                                            {message.message}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Delete button */}
+                                                    {canDeleteMessage && (
+                                                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                            <button
+                                                                onClick={() => deleteMessage(message.id)}
+                                                                className="p-2.5 hover:bg-red-500/10 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                                                                title={currentAdmin?.role === 'super_admin' ? 'Delete message (Admin)' : 'Delete your last message'}
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Reply Input */}
+                            <div className="border-t border-border/30 bg-gradient-to-r from-card/80 to-muted/20">
+                                <div className="p-6">
+                                    <div className="max-w-4xl mx-auto">
+                                        {(() => {
+                                            // Check if this is a super admin replying to a conversation they're not originally part of
+                                            const threadMessages = conversationMessages;
+                                            const isUserInvolved = threadMessages.some(msg => 
+                                                msg.from_user_id === currentAdmin?.id || msg.to_user_id === currentAdmin?.id
+                                            );
+                                            const isAdminView = currentAdmin?.role === 'super_admin' && !isUserInvolved;
+                                            
+                                            return isAdminView && (
+                                                <div className="mb-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                                    <div className="flex items-center space-x-3">
+                                                        <AlertTriangle size={18} className="text-orange-400 flex-shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-orange-400">Admin Reply Notice</p>
+                                                            <p className="text-xs text-orange-400/80 mt-1">
+                                                                You are replying as a super admin to a conversation you were not originally part of. 
+                                                                This will notify participants that an admin has joined the conversation.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                        
+                                        <div className="flex items-start space-x-4">
+                                            {/* Current user avatar */}
+                                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                                {currentAdmin?.email?.charAt(0).toUpperCase() || 'Y'}
+                                            </div>
+                                            
+                                            {/* Input area */}
+                                            <div className="flex-1 relative">
+                                                <div className="relative">
+                                                    <textarea
+                                                        placeholder="Type your reply..."
+                                                        value={replyMessage}
+                                                        onChange={(e) => {
+                                                            if (e.target.value.length <= 1000) {
+                                                                setReplyMessage(e.target.value);
+                                                            }
+                                                        }}
+                                                        className="w-full px-5 py-4 pr-16 border-2 border-border/30 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary/50 bg-background text-foreground resize-none min-h-[120px] transition-all duration-200 placeholder:text-muted-foreground/60"
+                                                        rows={4}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                sendReply();
+                                                            }
+                                                        }}
+                                                    />
+                                                    
+                                                    {/* Send button inside textarea */}
+                                                    <button
+                                                        onClick={sendReply}
+                                                        disabled={!replyMessage.trim()}
+                                                        className="absolute bottom-4 right-4 p-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                                        title="Send reply (Enter)"
+                                                    >
+                                                        <Send size={16} />
+                                                    </button>
+                                                </div>
+                                                
+                                                {/* Helper text */}
+                                                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                                                    <span>Press Enter to send, Shift+Enter for new line</span>
+                                                    <span>{replyMessage.length}/1000</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1463,7 +2304,7 @@ const AdminCommunications: React.FC = () => {
             {/* Email Modal */}
             {showEmailModal && (
                 <div
-                    className="fixed inset-0 z-50 bg-card bg-opacity-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
                     style={{
                         overflow: 'hidden',
                         position: 'fixed',
@@ -1483,86 +2324,104 @@ const AdminCommunications: React.FC = () => {
                     onScroll={(e) => e.preventDefault()}
                 >
                     <div
-                        className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+                        className="bg-card rounded-2xl shadow-2xl border border-border/50 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col backdrop-blur-xl"
                         onClick={(e) => e.stopPropagation()}
                         onWheel={(e) => e.stopPropagation()}
                         onTouchMove={(e) => e.stopPropagation()}
                     >
                         {/* Fixed Header */}
-                        <div className="flex-shrink-0 p-6 border-b border-border">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-foreground">
-                                    {selectedItemForEmail ? 'Send Item as Email' : 'Send Direct Email'}
-                                </h2>
-                                <button
-                                    onClick={() => {
-                                        setShowEmailModal(false);
-                                        resetEmailForm();
-                                    }}
-                                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                                >
-                                    <XCircle size={20} className="text-muted-foreground" />
-                                </button>
+                        <div className="flex-shrink-0 p-8 border-b border-border/50 bg-gradient-to-r from-card to-muted/20">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Mail size={20} className="text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground">
+                                        {selectedItemForEmail ? 'Send Item as Email' : 'Send Direct Email'}
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Send email notifications to team members
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
                         {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
                             {/* Email Type */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Email Type</label>
-                                <select
-                                    value={emailForm.email_type}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, email_type: e.target.value as any }))}
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                >
-                                    <option value="custom">Custom Email</option>
-                                    <option value="announcement">Announcement</option>
-                                    <option value="task_notification">Task Notification</option>
-                                    <option value="direct_message">Direct Message</option>
-                                </select>
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-foreground">Email Type</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { value: 'custom', label: 'Custom', icon: '📧' },
+                                        { value: 'announcement', label: 'Announcement', icon: '📢' },
+                                        { value: 'task_notification', label: 'Task', icon: '✅' },
+                                        { value: 'direct_message', label: 'Direct', icon: '💬' }
+                                    ].map((type) => (
+                                        <button
+                                            key={type.value}
+                                            type="button"
+                                            onClick={() => setEmailForm(prev => ({ ...prev, email_type: type.value as any }))}
+                                            className={`p-4 border-2 rounded-xl transition-all duration-200 text-center ${
+                                                emailForm.email_type === type.value
+                                                    ? 'border-primary/50 bg-primary/10 text-primary'
+                                                    : 'border-border/50 text-muted-foreground hover:border-border'
+                                            }`}
+                                        >
+                                            <div className="text-lg mb-1">{type.icon}</div>
+                                            <div className="font-medium text-sm">{type.label}</div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Recipients */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Recipients (comma-separated emails)
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-foreground">
+                                    Recipients
                                 </label>
-                                <textarea
-                                    value={emailForm.to_emails}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, to_emails: e.target.value }))}
-                                    placeholder="user1@example.com, user2@example.com"
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                    rows={3}
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <div className="relative">
+                                    <textarea
+                                        value={emailForm.to_emails}
+                                        onChange={(e) => setEmailForm(prev => ({ ...prev, to_emails: e.target.value }))}
+                                        placeholder="user1@example.com, user2@example.com"
+                                        className="w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary bg-card/50 text-foreground transition-all duration-200 placeholder:text-muted-foreground/60 resize-none"
+                                        rows={3}
+                                    />
+                                    <Users size={20} className="absolute right-4 top-4 text-muted-foreground pointer-events-none" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
                                     Leave empty to send to all active admin users
                                 </p>
                             </div>
 
                             {/* Subject */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
-                                <input
-                                    type="text"
-                                    value={emailForm.subject}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
-                                    placeholder="Email subject"
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                />
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-foreground">Subject</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={emailForm.subject}
+                                        onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
+                                        placeholder="Enter email subject..."
+                                        className="w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary bg-card/50 text-foreground transition-all duration-200 placeholder:text-muted-foreground/60"
+                                    />
+                                </div>
                             </div>
 
                             {/* Message */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                                <textarea
-                                    value={emailForm.message}
-                                    onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
-                                    placeholder="Email message content"
-                                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
-                                    rows={8}
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-foreground">Message</label>
+                                <div className="relative">
+                                    <textarea
+                                        value={emailForm.message}
+                                        onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
+                                        placeholder="Write your email message here..."
+                                        className="w-full px-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary bg-card/50 text-foreground transition-all duration-200 placeholder:text-muted-foreground/60 resize-none"
+                                        rows={8}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
                                     HTML formatting is supported
                                 </p>
                             </div>
@@ -1578,22 +2437,22 @@ const AdminCommunications: React.FC = () => {
                         </div>
 
                         {/* Fixed Footer */}
-                        <div className="flex-shrink-0 p-6 border-t border-border">
-                            <div className="flex space-x-3">
+                        <div className="flex-shrink-0 p-8 border-t border-border/50 bg-gradient-to-r from-card to-muted/10">
+                            <div className="flex space-x-4">
                                 <button
                                     onClick={() => {
                                         setShowEmailModal(false);
                                         resetEmailForm();
                                     }}
                                     disabled={isSendingEmail}
-                                    className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300 disabled:opacity-50"
+                                    className="flex-1 px-6 py-4 border-2 border-border/50 rounded-xl hover:bg-muted/50 hover:border-border transition-all duration-200 font-semibold text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSendEmail}
                                     disabled={isSendingEmail || !emailForm.subject || !emailForm.message}
-                                    className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                    className="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl hover:from-green-500 hover:to-green-400 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-green-600/25"
                                 >
                                     {isSendingEmail ? (
                                         <>
