@@ -16,10 +16,12 @@ import {
   XCircle,
   AlertCircle,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  MessageCircle
 } from 'lucide-react';
 import { BlogService, BlogCategory, BlogPost } from '@/services/blogService';
 import { CommunicationsService } from '@/services/communicationsService';
+import { BlogCommentsService } from '@/services/blogCommentsService';
 import BlogPostModal from '@/components/admin/BlogPostModal';
 
 const BlogEditorDashboard = () => {
@@ -31,7 +33,8 @@ const BlogEditorDashboard = () => {
     totalViews: 0,
     totalLikes: 0,
     pendingApproval: 0,
-    pendingTasks: 0
+    pendingTasks: 0,
+    pendingComments: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -53,19 +56,21 @@ const BlogEditorDashboard = () => {
   const loadBlogStats = async () => {
     setIsLoading(true);
     try {
-      const [stats, categoriesData, userTasks] = await Promise.all([
+      const [stats, categoriesData, userTasks, commentStats] = await Promise.all([
         BlogService.getBlogStats(),
         BlogService.getCategories(),
         currentAdmin?.id ? CommunicationsService.getTasks({
           assigned_to: currentAdmin.id,
           status: 'pending'
-        }) : Promise.resolve([])
+        }) : Promise.resolve([]),
+        BlogCommentsService.getCommentStats()
       ]);
       
       setBlogStats({
         ...stats,
         pendingApproval: stats.draftPosts, // For now, treat drafts as pending approval
-        pendingTasks: userTasks.length
+        pendingTasks: userTasks.length,
+        pendingComments: commentStats.pending
       });
       
       setCategories(categoriesData);
@@ -77,7 +82,8 @@ const BlogEditorDashboard = () => {
         totalViews: 0,
         totalLikes: 0,
         pendingApproval: 0,
-        pendingTasks: 0
+        pendingTasks: 0,
+        pendingComments: 0
       });
       setCategories([]);
     } finally {
@@ -111,12 +117,14 @@ const BlogEditorDashboard = () => {
     { label: 'Total Views', value: blogStats.totalViews.toString(), icon: Eye, color: 'text-purple-500' },
     { label: 'Total Likes', value: blogStats.totalLikes.toString(), icon: Heart, color: 'text-pink-500' },
     { label: 'My Pending Tasks', value: blogStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications' },
+    { label: 'Pending Comments', value: blogStats.pendingComments.toString(), icon: MessageCircle, color: 'text-amber-500', href: '/admin/blog?tab=comments' },
   ];
 
   const quickActions = [
     { label: 'Manage Blog Posts', icon: FileText, href: '/admin/blog', type: 'link' },
     { label: 'Create New Post', icon: PenTool, action: () => setShowCreateModal(true), type: 'action' },
     { label: 'Blog Submissions', icon: FileText, href: '/admin/blog-media', type: 'link' },
+    { label: 'Manage Comments', icon: MessageCircle, href: '/admin/blog?tab=comments', type: 'link' },
     { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', type: 'link' },
     { label: 'My Profile', icon: Users, href: '/admin/profile', type: 'link' },
   ];
@@ -257,9 +265,10 @@ const BlogEditorDashboard = () => {
 
               {/* Communications Hub Access */}
               <div className="mt-4 p-4 bg-green-900/20 border border-green-800 rounded-lg">
-                <h3 className="font-medium text-green-400 mb-2">Team Communications</h3>
+                <h3 className="font-medium text-green-400 mb-2">Team Communications & Content Management</h3>
                 <p className="text-sm text-green-300">
-                  Access the Communications Hub to view announcements, see tasks assigned to you, and send internal messages to team members. 
+                  Access the Communications Hub to view announcements, see tasks assigned to you, and send internal messages. 
+                  You can also manage blog comments to moderate community engagement.
                   Note: Email sending is restricted to admin users only.
                 </p>
               </div>

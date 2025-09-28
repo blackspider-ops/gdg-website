@@ -28,11 +28,15 @@ import {
   Send,
   RefreshCw,
   CheckCircle,
-  XCircle
+  XCircle,
+  MessageCircle,
+  Flag,
+  ExternalLink
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
 import { BlogSubmissionService, type BlogSubmission, type BlogSubmissionComment } from '@/services/blogSubmissionService';
+import { BlogCommentsService, type BlogComment } from '@/services/blogCommentsService';
 import { AuditService } from '@/services/auditService';
 import { supabase } from '@/lib/supabase';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -47,6 +51,14 @@ const AdminBlog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [submissions, setSubmissions] = useState<BlogSubmission[]>([]);
+  const [comments, setComments] = useState<BlogComment[]>([]);
+  const [commentStats, setCommentStats] = useState({
+    total: 0,
+    approved: 0,
+    pending: 0,
+    flagged: 0
+  });
+  const [commentFilter, setCommentFilter] = useState<'all' | 'pending' | 'approved' | 'flagged'>('pending');
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -59,7 +71,7 @@ const AdminBlog = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<BlogSubmission | null>(null);
   const [showChanges, setShowChanges] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
-  const [comments, setComments] = useState<BlogSubmissionComment[]>([]);
+  const [submissionComments, setSubmissionComments] = useState<BlogSubmissionComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentType, setCommentType] = useState<BlogSubmissionComment['comment_type']>('general');
   const [isAddingComment, setIsAddingComment] = useState(false);
@@ -78,6 +90,12 @@ const AdminBlog = () => {
     loadBlogData();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'comments') {
+      loadComments();
+    }
+  }, [activeTab, commentFilter]);
+
   // Lock body scroll when modal is open
   useBodyScrollLock(showPostModal || showCategoryModal || showSubmissionModal || !!editingPost || !!editingCategory);
 
@@ -94,21 +112,91 @@ const AdminBlog = () => {
   const loadBlogData = async () => {
     setIsLoading(true);
     try {
-      const [postsData, categoriesData, statsData, submissionsData] = await Promise.all([
+      const [postsData, categoriesData, statsData, submissionsData, commentsStatsData] = await Promise.all([
         BlogService.getAllPosts(),
         BlogService.getAllCategories(),
         BlogService.getBlogStats(),
-        BlogSubmissionService.getAllSubmissions()
+        BlogSubmissionService.getAllSubmissions(),
+        BlogCommentsService.getCommentStats()
       ]);
       
       setPosts(postsData);
       setCategories(categoriesData);
       setBlogStats(statsData);
       setSubmissions(submissionsData);
+      setCommentStats(commentsStatsData);
+      
+      // Load comments if on comments tab
+      if (activeTab === 'comments') {
+        loadComments();
+      }
     } catch (error) {
       // Handle error silently
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadComments = async () => {
+    try {
+      const filters: any = {};
+      
+      if (commentFilter === 'pending') {
+        filters.isApproved = false;
+      } else if (commentFilter === 'approved') {
+        filters.isApproved = true;
+      } else if (commentFilter === 'flagged') {
+        filters.isFlagged = true;
+      }
+
+      const commentsData = await BlogCommentsService.getAllComments(filters);
+      setComments(commentsData);
+    } catch (error) {
+      setComments([]);
+    }
+  };
+
+  const handleApproveComment = async (commentId: string) => {
+    try {
+      await BlogCommentsService.approveComment(commentId);
+      await loadComments();
+      await BlogCommentsService.getCommentStats().then(setCommentStats);
+    } catch (error) {
+      // Error approving comment
+    }
+  };
+
+  const handleRejectComment = async (commentId: string) => {
+    try {
+      await BlogCommentsService.rejectComment(commentId);
+      await loadComments();
+      await BlogCommentsService.getCommentStats().then(setCommentStats);
+    } catch (error) {
+      // Error rejecting comment
+    }
+  };
+
+  const handleFlagComment = async (commentId: string) => {
+    try {
+      await BlogCommentsService.flagComment(commentId);
+      await loadComments();
+      await BlogCommentsService.getCommentStats().then(setCommentStats);
+    } catch (error) {
+      // Error flagging comment
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await BlogCommentsService.deleteComment(commentId);
+      await loadComments();
+      await BlogCommentsService.getCommentStats().then(setCommentStats);
+    } catch (error) {
+      // Error deleting comment
     }
   }; 
  // Filter posts based on search and filters
@@ -304,20 +392,19 @@ const AdminBlog = () => {
     }
   };
 
-  const loadComments = async (submissionId: string) => {
+  const loadSubmissionComments = async (submissionId: string) => {
     try {
-      const submissionComments = await BlogSubmissionService.getSubmissionComments(submissionId);
-      setComments(submissionComments);
+      const commentsData = await BlogSubmissionService.getSubmissionComments(submissionId);
+      setSubmissionComments(commentsData);
     } catch (error) {
-      console.error('Error loading comments:', error);
-      setComments([]);
+      setSubmissionComments([]);
     }
   };
 
   const handleViewSubmissionDetails = async (submission: BlogSubmission) => {
     setSelectedSubmission(submission);
     setAdminNotes(submission.admin_notes || '');
-    await loadComments(submission.id);
+    await loadSubmissionComments(submission.id);
     setShowSubmissionModal(true);
   };
 
@@ -334,12 +421,12 @@ const AdminBlog = () => {
       );
       
       if (comment) {
-        setComments(prev => [...prev, comment]);
+        setSubmissionComments(prev => [...prev, comment]);
         setNewComment('');
         setCommentType('general');
       }
     } catch (error) {
-      console.error('Error adding comment:', error);
+      // Error adding comment
     } finally {
       setIsAddingComment(false);
     }
@@ -369,11 +456,11 @@ const AdminBlog = () => {
         // If this submission is currently selected, update it too
         if (selectedSubmission?.id === submissionId) {
           setSelectedSubmission(prev => prev ? { ...prev, status: newStatus } : null);
-          await loadComments(submissionId);
+          await loadSubmissionComments(submissionId);
         }
       }
     } catch (error) {
-      console.error('Error updating status:', error);
+      // Error updating status
     }
   };
 
@@ -433,6 +520,8 @@ const AdminBlog = () => {
               <span>Back to Dashboard</span>
             </Link>
           )}
+
+
           
           {activeTab === 'posts' && (
             <button
@@ -527,6 +616,7 @@ const AdminBlog = () => {
               { id: 'submissions', label: 'Submissions', icon: Upload },
               { id: 'approvals', label: 'Approvals', icon: Clock }
             ] : []),
+            { id: 'comments', label: 'Comments', icon: MessageSquare },
             { id: 'analytics', label: 'Analytics', icon: BarChart3 }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -955,7 +1045,7 @@ const AdminBlog = () => {
               setShowSubmissionModal(false);
               setSelectedSubmission(null);
               setAdminNotes('');
-              setComments([]);
+              setSubmissionComments([]);
             }
           }}
           onWheel={(e) => e.preventDefault()}
@@ -987,7 +1077,7 @@ const AdminBlog = () => {
                     setShowSubmissionModal(false);
                     setSelectedSubmission(null);
                     setAdminNotes('');
-                    setComments([]);
+                    setSubmissionComments([]);
                   }}
                   className="p-2 hover:bg-muted rounded-lg transition-colors"
                 >
@@ -1071,13 +1161,13 @@ const AdminBlog = () => {
 
                 {/* Comments List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {comments.length === 0 ? (
+                  {submissionComments.length === 0 ? (
                     <div className="text-center py-8">
                       <MessageSquare size={48} className="mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">No comments yet</p>
                     </div>
                   ) : (
-                    comments.map((comment) => (
+                    submissionComments.map((comment) => (
                       <div key={comment.id} className="bg-muted/30 rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center space-x-2">
@@ -1246,6 +1336,202 @@ const AdminBlog = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comments Tab */}
+      {activeTab === 'comments' && (
+        <div className="space-y-6">
+          {/* Comment Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[
+              { label: 'Total Comments', value: commentStats.total, icon: MessageCircle, color: 'text-blue-500' },
+              { label: 'Pending Review', value: commentStats.pending, icon: Clock, color: 'text-yellow-500' },
+              { label: 'Approved', value: commentStats.approved, icon: CheckCircle, color: 'text-green-500' },
+              { label: 'Flagged', value: commentStats.flagged, icon: Flag, color: 'text-red-500' },
+            ].map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div key={index} className="bg-card rounded-xl p-6 shadow-sm border border-border">
+                  <div className="flex items-center justify-between mb-4">
+                    <Icon size={24} className={stat.color} />
+                  </div>
+                  <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Comment Filter Tabs */}
+          <div className="border-b border-border">
+            <nav className="flex space-x-8">
+              {[
+                { id: 'pending', label: 'Pending Review', count: commentStats.pending },
+                { id: 'approved', label: 'Approved', count: commentStats.approved },
+                { id: 'flagged', label: 'Flagged', count: commentStats.flagged },
+                { id: 'all', label: 'All Comments', count: commentStats.total },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setCommentFilter(tab.id as any)}
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    commentFilter === tab.id
+                      ? 'border-blue-600 text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-gray-300 hover:border-border'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span className="bg-muted text-muted-foreground text-xs px-2 py-1 rounded-full">
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Comments List */}
+          <div className="bg-card rounded-xl shadow-sm border border-border">
+            {isLoading ? (
+              <div className="p-6">
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="animate-pulse">
+                      <div className="flex items-start space-x-4 p-4 border border-border rounded-lg">
+                        <div className="w-10 h-10 bg-muted rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="w-32 h-4 bg-muted rounded mb-2"></div>
+                          <div className="w-full h-4 bg-muted rounded mb-2"></div>
+                          <div className="w-3/4 h-4 bg-muted rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="p-12 text-center">
+                <MessageCircle size={48} className="mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  {commentFilter === 'pending' ? 'No pending comments' :
+                   commentFilter === 'approved' ? 'No approved comments' :
+                   commentFilter === 'flagged' ? 'No flagged comments' : 'No comments yet'}
+                </h3>
+                <p className="text-muted-foreground">
+                  {commentFilter === 'pending' ? 'All comments have been reviewed.' :
+                   commentFilter === 'approved' ? 'No comments have been approved yet.' :
+                   commentFilter === 'flagged' ? 'No comments have been flagged.' : 'No blog comments have been submitted yet.'}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {comments.map((comment) => {
+                  const getStatusColor = (comment: BlogComment) => {
+                    if (comment.is_flagged) return 'text-red-500 bg-red-500/10 border-red-500/20';
+                    if (comment.is_approved) return 'text-green-500 bg-green-500/10 border-green-500/20';
+                    return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+                  };
+
+                  const getStatusLabel = (comment: BlogComment) => {
+                    if (comment.is_flagged) return 'Flagged';
+                    if (comment.is_approved) return 'Approved';
+                    return 'Pending';
+                  };
+
+                  const formatDate = (dateString: string) => {
+                    return new Date(dateString).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                  };
+
+                  return (
+                    <div key={comment.id} className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-gdg-blue to-gdg-green rounded-full flex items-center justify-center">
+                            <User size={16} className="text-white" />
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-3 mb-1">
+                              <span className="font-medium text-foreground">{comment.author_name}</span>
+                              <span className="text-sm text-muted-foreground">{comment.author_email}</span>
+                              <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(comment)}`}>
+                                {getStatusLabel(comment)}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <div className="flex items-center space-x-1">
+                                <Calendar size={14} />
+                                <span>{formatDate(comment.created_at)}</span>
+                              </div>
+                              {(comment as any).blog_post && (
+                                <div className="flex items-center space-x-1">
+                                  <ExternalLink size={14} />
+                                  <span>On: {(comment as any).blog_post.title}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          {!comment.is_approved && (
+                            <button
+                              onClick={() => handleApproveComment(comment.id)}
+                              className="p-2 hover:bg-green-900/20 rounded-lg transition-colors text-green-400"
+                              title="Approve comment"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
+                          
+                          {comment.is_approved && (
+                            <button
+                              onClick={() => handleRejectComment(comment.id)}
+                              className="p-2 hover:bg-yellow-900/20 rounded-lg transition-colors text-yellow-400"
+                              title="Unapprove comment"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          )}
+
+                          {!comment.is_flagged && (
+                            <button
+                              onClick={() => handleFlagComment(comment.id)}
+                              className="p-2 hover:bg-orange-900/20 rounded-lg transition-colors text-orange-400"
+                              title="Flag comment"
+                            >
+                              <Flag size={16} />
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="p-2 hover:bg-red-900/20 rounded-lg transition-colors text-red-400"
+                            title="Delete comment"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="ml-14">
+                        <div className="text-foreground leading-relaxed whitespace-pre-wrap bg-muted/30 p-4 rounded-lg">
+                          {comment.content}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

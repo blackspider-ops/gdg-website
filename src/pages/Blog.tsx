@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, Tag, ArrowRight, ExternalLink, Filter, Grid, List } from 'lucide-react';
+import { Calendar, User, Tag, ArrowRight, ExternalLink, Filter, Grid, List, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
@@ -202,6 +202,10 @@ const Blog = () => {
                       <Calendar size={16} />
                       <span>{featuredPost.published_at ? new Date(featuredPost.published_at).toLocaleDateString() : 'No date'}</span>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <MessageCircle size={16} />
+                      <span>{featuredPost.comments_count || 0} comments</span>
+                    </div>
                     <span>{featuredPost.read_time_minutes ? `${featuredPost.read_time_minutes} min read` : '5 min read'}</span>
                   </div>
 
@@ -308,6 +312,10 @@ const Blog = () => {
                         <div className="flex items-center space-x-1">
                           <Calendar size={14} />
                           <span>{post.published_at ? new Date(post.published_at).toLocaleDateString() : 'No date'}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <MessageCircle size={14} />
+                          <span>{post.comments_count || 0}</span>
                         </div>
                       </div>
 

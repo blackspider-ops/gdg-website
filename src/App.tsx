@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -136,6 +136,7 @@ const App = () => (
                       <Route path="/admin/profile" element={<AdminProfile />} />
                       <Route path="/admin/sponsors" element={<AdminSponsors />} />
                       <Route path="/admin/communications" element={<AdminCommunications />} />
+                      <Route path="/admin/blog-comments" element={<Navigate to="/admin/blog?tab=comments" replace />} />
                       <Route path="/admin/media" element={<AdminMedia />} />
                       <Route path="/admin/guide" element={<AdminGuide />} />
                       <Route path="/admin/linktree" element={<AdminLinktree />} />

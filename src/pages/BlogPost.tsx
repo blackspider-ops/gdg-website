@@ -8,6 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import { BlogService, BlogPost as BlogPostType } from '@/services/blogService';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import BlogLikeButton from '@/components/BlogLikeButton';
+import BlogComments from '@/components/BlogComments';
 import 'highlight.js/styles/github-dark.css';
 
 const BlogPost = () => {
@@ -356,6 +357,12 @@ ${post.excerpt}
           </div>
         </div>
       </section>
+
+      {/* Comments Section */}
+      <BlogComments 
+        blogPostId={post.id} 
+        initialCommentsCount={post.comments_count || 0} 
+      />
 
       {/* Related Posts or Call to Action */}
       <section className="py-16 bg-muted/20 border-t border-border">
