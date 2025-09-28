@@ -263,15 +263,18 @@ export class CommunicationsService {
 
       if (error) throw error;
 
-      // Log the action
+      // Log the action (without message content for privacy)
       await AuditService.logAction(
         authorId,
         'create_announcement',
         undefined,
         {
-          description: `Created announcement: ${announcement.title}`,
+          description: 'Created announcement',
+          announcement_id: data.id,
+          has_title: !!announcement.title,
           priority: announcement.priority,
-          is_pinned: announcement.is_pinned
+          is_pinned: announcement.is_pinned,
+          timestamp: new Date().toISOString()
         }
       );
 
@@ -302,15 +305,19 @@ export class CommunicationsService {
 
       if (error) throw error;
 
-      // Log the action
+      // Log the action (without message content for privacy)
       await AuditService.logAction(
         userId,
         'update_announcement',
         undefined,
         {
-          description: `Updated announcement: ${updates.title || 'Unknown'}`,
+          description: 'Updated announcement',
           announcement_id: id,
-          changes: updates
+          updated_fields: Object.keys(updates),
+          has_title_change: 'title' in updates,
+          has_message_change: 'message' in updates,
+          has_priority_change: 'priority' in updates,
+          timestamp: new Date().toISOString()
         }
       );
 
@@ -356,6 +363,18 @@ export class CommunicationsService {
         });
 
       if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'mark_announcement_read',
+        undefined,
+        {
+          description: 'Marked announcement as read',
+          announcement_id: announcementId
+        }
+      );
+
       return true;
     } catch (error) {
       return false;
@@ -487,17 +506,20 @@ export class CommunicationsService {
 
       if (error) throw error;
 
-      // Log the action
+      // Log the action (without task content for privacy)
       await AuditService.logAction(
         assignedById,
         'create_task',
-        task.assigned_to_id,
+        data.assigned_to?.email,
         {
-          description: `Created task: ${task.title}`,
+          description: 'Created task',
           task_id: data.id,
-          assigned_to: task.assigned_to_id,
+          assigned_to_id: task.assigned_to_id,
+          has_title: !!task.title,
+          has_description: !!task.description,
           priority: task.priority,
-          due_date: task.due_date
+          has_due_date: !!task.due_date,
+          timestamp: new Date().toISOString()
         }
       );
 
@@ -541,15 +563,20 @@ export class CommunicationsService {
 
       if (error) throw error;
 
-      // Log the action
+      // Log the action (without task content for privacy)
       await AuditService.logAction(
         userId,
         'update_task',
         undefined,
         {
-          description: `Updated task: ${updates.title || currentTask?.title || 'Unknown'}`,
+          description: 'Updated task',
           task_id: id,
-          changes: updates
+          updated_fields: Object.keys(updates),
+          has_title_change: 'title' in updates,
+          has_description_change: 'description' in updates,
+          has_status_change: 'status' in updates,
+          has_assignee_change: 'assigned_to_id' in updates,
+          timestamp: new Date().toISOString()
         }
       );
 
@@ -735,15 +762,18 @@ export class CommunicationsService {
 
       if (error) throw error;
 
-      // Log the action
+      // Log the action (without message content for privacy)
       await AuditService.logAction(
         fromUserId,
         'send_message',
-        message.to_user_id,
+        data.to_user?.email,
         {
-          description: `Sent message: ${message.subject}`,
+          description: 'Sent internal message',
           message_id: data.id,
-          recipient: message.to_user_id
+          recipient_id: message.to_user_id,
+          has_subject: !!message.subject,
+          is_reply: !!message.reply_to_id,
+          timestamp: new Date().toISOString()
         }
       );
 
@@ -796,6 +826,18 @@ export class CommunicationsService {
         .eq('to_user_id', userId);
 
       if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'mark_message_read',
+        undefined,
+        {
+          description: 'Marked message as read',
+          message_id: id
+        }
+      );
+
       return true;
     } catch (error) {
       return false;
@@ -939,19 +981,20 @@ export class CommunicationsService {
         throw new Error(error.message || 'Failed to send emails');
       }
 
-      // Log the email action
+      // Log the email action (without email content for privacy)
       try {
         await AuditService.logAction(
           senderId,
-          'send_message',
+          'send_email',
           undefined,
           {
-            description: `Sent direct email: ${emailData.subject}`,
+            description: 'Sent direct email',
             recipients_count: emailData.to_emails.length,
             email_type: emailData.email_type,
-            subject: emailData.subject,
-            sent: data?.total_sent || 0,
-            failed: data?.total_failed || 0
+            has_subject: !!emailData.subject,
+            sent_count: data?.total_sent || 0,
+            failed_count: data?.total_failed || 0,
+            timestamp: new Date().toISOString()
           }
         );
       } catch (auditError) {
@@ -1115,7 +1158,7 @@ export class CommunicationsService {
   }
 
   // Check for overdue tasks and send notifications
-  static async checkOverdueTasks(): Promise<{
+  static async checkOverdueTasks(userId?: string): Promise<{
     success: boolean;
     marked: number;
     notified: number;
@@ -1135,6 +1178,21 @@ export class CommunicationsService {
           message: 'Failed to check overdue tasks',
           error: error.message
         };
+      }
+
+      // Log the action if userId is provided
+      if (userId) {
+        await AuditService.logAction(
+          userId,
+          'check_overdue_tasks',
+          undefined,
+          {
+            description: 'Manually checked for overdue tasks',
+            marked_count: data?.marked || 0,
+            notified_count: data?.notified || 0,
+            result_message: data?.message || 'Check completed'
+          }
+        );
       }
 
       return {
@@ -1164,11 +1222,17 @@ export class CommunicationsService {
 
       if (error) throw error;
 
-      // Log the action (skip audit logging for now to avoid constraint issues)
-      console.log('Audit log: Deleted internal message', {
-        description: `Deleted internal message`,
-        message_id: messageId
-      });
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'delete_message',
+        undefined,
+        {
+          description: 'Deleted message',
+          message_id: messageId,
+          admin_action: true
+        }
+      );
 
       return true;
     } catch (error) {
@@ -1300,17 +1364,20 @@ export class CommunicationsService {
         console.log('Verification: All messages successfully deleted');
       }
 
-      // Skip all audit logging to avoid constraint issues
-      try {
-        console.log('Audit log: Deleted message thread', {
-          description: `Deleted message thread with ${allMessageIds.length} messages`,
+      // Log the action (without message content for privacy)
+      await AuditService.logAction(
+        userId,
+        'delete_message_thread',
+        undefined,
+        {
+          description: 'Deleted message thread',
           root_message_id: rootMessageId,
-          deleted_message_ids: allMessageIds,
-          thread_subject: targetMessage.subject
-        });
-      } catch (auditError) {
-        console.log('Audit logging skipped due to error:', auditError);
-      }
+          deleted_count: allMessageIds.length,
+          had_subject: !!targetMessage.subject,
+          admin_action: true,
+          timestamp: new Date().toISOString()
+        }
+      );
 
       return true;
     } catch (error) {

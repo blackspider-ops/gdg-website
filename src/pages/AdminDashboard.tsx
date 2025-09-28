@@ -33,6 +33,7 @@ import { NewsletterService } from '@/services/newsletterService';
 import { useTaskScheduler } from '@/hooks/useTaskScheduler';
 import { CommunicationsService } from '@/services/communicationsService';
 import { BlogCommentsService } from '@/services/blogCommentsService';
+import { AuditService } from '@/services/auditService';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -193,7 +194,21 @@ const AdminDashboard = () => {
   // Load dashboard statistics on mount
   useEffect(() => {
     loadDashboardStats();
-  }, []);
+    
+    // Log dashboard access
+    if (currentAdmin?.id) {
+      AuditService.logAction(
+        currentAdmin.id,
+        'view_admin_dashboard',
+        undefined,
+        {
+          description: 'Accessed admin dashboard',
+          role: currentAdmin.role,
+          timestamp: new Date().toISOString()
+        }
+      );
+    }
+  }, [currentAdmin?.id]);
 
   // Authentication check after all hooks
   if (!isAuthenticated) {
@@ -270,7 +285,21 @@ const AdminDashboard = () => {
           
           <div className="flex items-center space-x-3">
             <button
-              onClick={loadDashboardStats}
+              onClick={() => {
+                loadDashboardStats();
+                // Log refresh action
+                if (currentAdmin?.id) {
+                  AuditService.logAction(
+                    currentAdmin.id,
+                    'refresh_dashboard_stats',
+                    undefined,
+                    {
+                      description: 'Refreshed dashboard statistics',
+                      timestamp: new Date().toISOString()
+                    }
+                  );
+                }
+              }}
               disabled={isLoading}
               className="flex items-center space-x-2 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground disabled:opacity-50"
             >

@@ -13,9 +13,15 @@ export type AuditActionType =
   | 'create_newsletter_campaign' | 'send_newsletter' | 'schedule_newsletter' | 'delete_newsletter'
   | 'export_subscribers' | 'import_subscribers' | 'update_subscriber'
   // Communications Management
-  | 'create_announcement' | 'update_announcement' | 'delete_announcement'
-  | 'create_task' | 'update_task' | 'delete_task'
-  | 'send_message' | 'view_communications'
+  | 'create_announcement' | 'update_announcement' | 'delete_announcement' | 'mark_announcement_read'
+  | 'create_task' | 'update_task' | 'delete_task' | 'mark_task_complete' | 'assign_task' | 'check_overdue_tasks'
+  | 'send_message' | 'reply_message' | 'delete_message' | 'delete_message_thread' | 'mark_message_read'
+  | 'view_communications' | 'send_email' | 'send_bulk_email'
+  // Blog Management
+  | 'create_blog_post' | 'update_blog_post' | 'delete_blog_post' | 'publish_blog_post' | 'unpublish_blog_post'
+  | 'approve_blog_post' | 'reject_blog_post' | 'create_blog_category' | 'update_blog_category' | 'delete_blog_category'
+  | 'create_blog_comment' | 'update_blog_comment' | 'delete_blog_comment' | 'approve_blog_comment' | 'reject_blog_comment'
+  | 'view_blog_analytics' | 'export_blog_data' | 'bulk_blog_action'
   // Media Management
   | 'view_media_library' | 'create_media_folder' | 'update_media_folder' | 'delete_media_folder'
   | 'upload_media_file' | 'update_media_file' | 'delete_media_file' | 'bulk_delete_media_files'
@@ -29,12 +35,14 @@ export type AuditActionType =
   | 'change_password' | 'update_security_settings' | 'view_audit_log' | 'export_audit_log'
   // System Actions
   | 'backup_database' | 'restore_database' | 'clear_cache' | 'update_system_settings'
+  // Dashboard Actions
+  | 'view_admin_dashboard' | 'view_blog_editor_dashboard' | 'refresh_dashboard_stats'
   // Navigation & Page Access
-  | 'view_admin_dashboard' | 'view_admin_page' | 'change_admin_tab' | 'access_admin_section'
+  | 'view_admin_page' | 'change_admin_tab' | 'access_admin_section'
   | 'view_admin_users' | 'view_admin_events' | 'view_admin_team' | 'view_admin_members'
   | 'view_admin_resources' | 'view_admin_newsletter' | 'view_admin_blog' | 'view_admin_profile'
   | 'view_admin_sponsors' | 'view_admin_communications' | 'view_admin_media' | 'view_admin_guide'
-  | 'view_admin_linktree' | 'view_admin_content' | 'view_admin_security';
+  | 'view_admin_linktree' | 'view_admin_content' | 'view_admin_security' | 'view_admin_projects';
 
 export interface AuditLogEntry {
   id: string;
@@ -527,9 +535,16 @@ export class AuditService {
         'export_subscribers', 'import_subscribers', 'update_subscriber'
       ],
       'Communications Management': [
-        'create_announcement', 'update_announcement', 'delete_announcement',
-        'create_task', 'update_task', 'delete_task',
-        'send_message', 'view_communications'
+        'create_announcement', 'update_announcement', 'delete_announcement', 'mark_announcement_read',
+        'create_task', 'update_task', 'delete_task', 'mark_task_complete', 'assign_task', 'check_overdue_tasks',
+        'send_message', 'reply_message', 'delete_message', 'delete_message_thread', 'mark_message_read',
+        'view_communications', 'send_email', 'send_bulk_email'
+      ],
+      'Blog Management': [
+        'create_blog_post', 'update_blog_post', 'delete_blog_post', 'publish_blog_post', 'unpublish_blog_post',
+        'approve_blog_post', 'reject_blog_post', 'create_blog_category', 'update_blog_category', 'delete_blog_category',
+        'create_blog_comment', 'update_blog_comment', 'delete_blog_comment', 'approve_blog_comment', 'reject_blog_comment',
+        'view_blog_analytics', 'export_blog_data', 'bulk_blog_action'
       ],
       'Media Management': [
         'view_media_library', 'create_media_folder', 'update_media_folder', 'delete_media_folder',
@@ -549,12 +564,15 @@ export class AuditService {
       'System Actions': [
         'backup_database', 'restore_database', 'clear_cache', 'update_system_settings'
       ],
+      'Dashboard Access': [
+        'view_admin_dashboard', 'view_blog_editor_dashboard', 'refresh_dashboard_stats'
+      ],
       'Navigation & Access': [
-        'view_admin_dashboard', 'view_admin_page', 'change_admin_tab', 'access_admin_section',
+        'view_admin_page', 'change_admin_tab', 'access_admin_section',
         'view_admin_users', 'view_admin_events', 'view_admin_team', 'view_admin_members',
         'view_admin_resources', 'view_admin_newsletter', 'view_admin_blog', 'view_admin_profile',
         'view_admin_sponsors', 'view_admin_communications', 'view_admin_media', 'view_admin_guide',
-        'view_admin_linktree', 'view_admin_content', 'view_admin_security'
+        'view_admin_linktree', 'view_admin_content', 'view_admin_security', 'view_admin_projects'
       ]
     };
   }
@@ -607,11 +625,41 @@ export class AuditService {
       'create_announcement': 'Created team announcement',
       'update_announcement': 'Updated team announcement',
       'delete_announcement': 'Deleted team announcement',
+      'mark_announcement_read': 'Marked announcement as read',
       'create_task': 'Created new task',
       'update_task': 'Updated task details',
       'delete_task': 'Deleted task',
+      'mark_task_complete': 'Marked task as complete',
+      'assign_task': 'Assigned task to team member',
+      'check_overdue_tasks': 'Checked for overdue tasks',
       'send_message': 'Sent internal message',
+      'reply_message': 'Replied to message',
+      'delete_message': 'Deleted message',
+      'delete_message_thread': 'Deleted entire message thread',
+      'mark_message_read': 'Marked message as read',
       'view_communications': 'Viewed communications hub',
+      'send_email': 'Sent email notification',
+      'send_bulk_email': 'Sent bulk email campaign',
+      
+      // Blog Management
+      'create_blog_post': 'Created blog post',
+      'update_blog_post': 'Updated blog post',
+      'delete_blog_post': 'Deleted blog post',
+      'publish_blog_post': 'Published blog post',
+      'unpublish_blog_post': 'Unpublished blog post',
+      'approve_blog_post': 'Approved blog post',
+      'reject_blog_post': 'Rejected blog post',
+      'create_blog_category': 'Created blog category',
+      'update_blog_category': 'Updated blog category',
+      'delete_blog_category': 'Deleted blog category',
+      'create_blog_comment': 'Created blog comment',
+      'update_blog_comment': 'Updated blog comment',
+      'delete_blog_comment': 'Deleted blog comment',
+      'approve_blog_comment': 'Approved blog comment',
+      'reject_blog_comment': 'Rejected blog comment',
+      'view_blog_analytics': 'Viewed blog analytics',
+      'export_blog_data': 'Exported blog data',
+      'bulk_blog_action': 'Performed bulk blog action',
       
       // Media Management
       'view_media_library': 'Viewed media library',
@@ -649,8 +697,12 @@ export class AuditService {
       'clear_cache': 'Cleared system cache',
       'update_system_settings': 'Updated system settings',
       
-      // Navigation & Page Access
+      // Dashboard Actions
       'view_admin_dashboard': 'Accessed admin dashboard',
+      'view_blog_editor_dashboard': 'Accessed blog editor dashboard',
+      'refresh_dashboard_stats': 'Refreshed dashboard statistics',
+      
+      // Navigation & Page Access
       'view_admin_page': 'Viewed admin page',
       'change_admin_tab': 'Changed admin tab',
       'access_admin_section': 'Accessed admin section',
@@ -668,7 +720,8 @@ export class AuditService {
       'view_admin_guide': 'Viewed admin guide',
       'view_admin_linktree': 'Viewed linktree management',
       'view_admin_content': 'Viewed content management',
-      'view_admin_security': 'Viewed security management'
+      'view_admin_security': 'Viewed security management',
+      'view_admin_projects': 'Viewed projects management'
     };
 
     let description = descriptions[action] || action.replace('_', ' ');

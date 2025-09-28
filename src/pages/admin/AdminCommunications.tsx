@@ -134,6 +134,18 @@ const AdminCommunications: React.FC = () => {
     useEffect(() => {
         if (isAuthenticated && currentAdmin) {
             loadAllData();
+            
+            // Log page access
+            AuditService.logAction(
+                currentAdmin.id,
+                'view_admin_communications',
+                undefined,
+                {
+                    description: 'Accessed communications hub',
+                    active_tab: activeTab,
+                    timestamp: new Date().toISOString()
+                }
+            );
         }
     }, [isAuthenticated, currentAdmin]);
 
@@ -736,7 +748,7 @@ const AdminCommunications: React.FC = () => {
                 result = await forceCheck();
             } catch (hookError) {
                 console.warn('Hook forceCheck failed, using service directly:', hookError);
-                result = await CommunicationsService.checkOverdueTasks();
+                result = await CommunicationsService.checkOverdueTasks(currentAdmin.id);
             }
             
             if (result.success) {

@@ -24,6 +24,7 @@ import { BlogService, BlogCategory, BlogPost } from '@/services/blogService';
 import { CommunicationsService } from '@/services/communicationsService';
 import { BlogCommentsService } from '@/services/blogCommentsService';
 import BlogPostModal from '@/components/admin/BlogPostModal';
+import { AuditService } from '@/services/auditService';
 
 const BlogEditorDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -49,7 +50,21 @@ const BlogEditorDashboard = () => {
   useEffect(() => {
     loadBlogStats();
     loadRequests();
-  }, [requestFilter]);
+    
+    // Log dashboard access
+    if (currentAdmin?.id) {
+      AuditService.logAction(
+        currentAdmin.id,
+        'view_blog_editor_dashboard',
+        undefined,
+        {
+          description: 'Accessed blog editor dashboard',
+          role: currentAdmin.role,
+          timestamp: new Date().toISOString()
+        }
+      );
+    }
+  }, [requestFilter, currentAdmin?.id]);
 
   // Authentication check after all hooks
   if (!isAuthenticated || currentAdmin?.role !== 'blog_editor') {
@@ -124,6 +139,19 @@ const BlogEditorDashboard = () => {
   const refreshData = () => {
     loadBlogStats();
     loadRequests();
+    
+    // Log refresh action
+    if (currentAdmin?.id) {
+      AuditService.logAction(
+        currentAdmin.id,
+        'refresh_dashboard_stats',
+        undefined,
+        {
+          description: 'Refreshed blog editor dashboard statistics',
+          timestamp: new Date().toISOString()
+        }
+      );
+    }
   };
 
   const stats = [
