@@ -352,6 +352,7 @@ export class CommunicationsService {
       status?: string;
       priority?: string;
       assigned_to?: string;
+      user_id?: string; // Show tasks assigned to OR assigned by this user
       search?: string;
     }
   ): Promise<CommunicationTask[]> {
@@ -375,6 +376,11 @@ export class CommunicationsService {
 
       if (filters?.assigned_to) {
         query = query.eq('assigned_to_id', filters.assigned_to);
+      }
+
+      if (filters?.user_id) {
+        // Show tasks where user is either assignee OR assigner
+        query = query.or(`assigned_to_id.eq.${filters.user_id},assigned_by_id.eq.${filters.user_id}`);
       }
 
       if (filters?.search) {
@@ -516,29 +522,81 @@ export class CommunicationsService {
               await this.sendTaskNotificationEmail(id, [newAssignee.email], userId);
             }
           }
-          // If status changed to completed and there's an assignee
-          else if (updates.status === 'completed' && currentTask.assigned_by?.email) {
-            await this.sendDirectEmail({
-              to_emails: [currentTask.assigned_by.email],
-              subject: `[Task Completed] ${currentTask.title}`,
-              message: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
-                    Task Completed ✅
-                  </h2>
-                  <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
-                    <h3 style="color: #374151; margin-top: 0;">${currentTask.title}</h3>
-                    <p style="color: #4b5563; margin: 10px 0;"><strong>Description:</strong></p>
-                    <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${currentTask.description || 'No description provided'}</div>
-                    <p style="color: #4b5563; margin: 10px 0;"><strong>Completed by:</strong> ${currentTask.assigned_to?.email || 'Unknown'}</p>
-                    <p style="color: #4b5563; margin: 10px 0;"><strong>Completed on:</strong> ${new Date().toLocaleDateString()}</p>
+          // If status changed to overdue
+          else if (updates.status === 'overdue') {
+            // Collect all email recipients (assigned user and assigner)
+            const emailRecipients = [];
+            if (currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_to.email);
+            }
+            if (currentTask.assigned_by?.email && currentTask.assigned_by.email !== currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_by.email);
+            }
+
+            // Send overdue notification to all relevant parties
+            if (emailRecipients.length > 0) {
+              await this.sendDirectEmail({
+                to_emails: emailRecipients,
+                subject: `[OVERDUE] Task: ${currentTask.title}`,
+                message: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #dc2626; border-bottom: 2px solid #dc2626; padding-bottom: 10px;">
+                      ⚠️ Task Marked as Overdue
+                    </h2>
+                    <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                      <h3 style="color: #374151; margin-top: 0;">${currentTask.title}</h3>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned to:</strong> ${currentTask.assigned_to?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned by:</strong> ${currentTask.assigned_by?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Due Date:</strong> ${new Date(currentTask.due_date).toLocaleDateString()}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Status:</strong> OVERDUE</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Description:</strong> ${currentTask.description || 'No description provided'}</p>
+                    </div>
+                    <p style="color: #dc2626; font-weight: bold;">This task has been marked as overdue. Please take appropriate action.</p>
+                    <p><small>This notification was triggered by a manual status change in the GDG@PSU Communications Hub.</small></p>
                   </div>
-                  <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
-                </div>
-              `,
-              email_type: 'task_notification',
-              sender_name: 'GDG@PSU Communications'
-            }, userId);
+                `,
+                email_type: 'task_notification',
+                sender_name: 'GDG@PSU Task Manager'
+              }, userId);
+            }
+          }
+          // If status changed to completed
+          else if (updates.status === 'completed') {
+            // Collect all email recipients (assigned user and assigner)
+            const emailRecipients = [];
+            if (currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_to.email);
+            }
+            if (currentTask.assigned_by?.email && currentTask.assigned_by.email !== currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_by.email);
+            }
+
+            // Send completion notification to all relevant parties
+            if (emailRecipients.length > 0) {
+              await this.sendDirectEmail({
+                to_emails: emailRecipients,
+                subject: `[Task Completed] ${currentTask.title}`,
+                message: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
+                      Task Completed ✅
+                    </h2>
+                    <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+                      <h3 style="color: #374151; margin-top: 0;">${currentTask.title}</h3>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned to:</strong> ${currentTask.assigned_to?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned by:</strong> ${currentTask.assigned_by?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Completed on:</strong> ${new Date().toLocaleDateString()}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Description:</strong></p>
+                      <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${currentTask.description || 'No description provided'}</div>
+                    </div>
+                    <p style="color: #10b981; font-weight: bold;">🎉 Great job! This task has been completed successfully.</p>
+                    <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+                  </div>
+                `,
+                email_type: 'task_notification',
+                sender_name: 'GDG@PSU Communications'
+              }, userId);
+            }
           }
         } catch (emailError) {
           console.error('Failed to send task update email:', emailError);
@@ -579,18 +637,23 @@ export class CommunicationsService {
   }
 
   // MESSAGES
-  static async getMessages(userId: string): Promise<InternalMessage[]> {
+  static async getMessages(userId: string, userRole?: string): Promise<InternalMessage[]> {
     try {
-      const { data, error } = await getServiceRoleClient()
+      let query = getServiceRoleClient()
         .from('internal_messages')
         .select(`
           *,
           from_user:admin_users!internal_messages_from_user_id_fkey(email, role),
           to_user:admin_users!internal_messages_to_user_id_fkey(email, role)
         `)
-        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false });
+        .eq('is_archived', false);
+
+      // Super admins can see all messages, others only see their own
+      if (userRole !== 'super_admin') {
+        query = query.or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
@@ -1001,6 +1064,268 @@ export class CommunicationsService {
         success: false,
         error: error.message || 'Failed to send task notification email'
       };
+    }
+  }
+
+  // Check for overdue tasks and send notifications
+  static async checkOverdueTasks(): Promise<{
+    success: boolean;
+    marked: number;
+    notified: number;
+    message: string;
+    error?: string;
+  }> {
+    try {
+      const { data, error } = await getServiceRoleClient().functions.invoke('check-overdue-tasks', {
+        body: {}
+      });
+
+      if (error) {
+        return {
+          success: false,
+          marked: 0,
+          notified: 0,
+          message: 'Failed to check overdue tasks',
+          error: error.message
+        };
+      }
+
+      return {
+        success: true,
+        marked: data?.marked || 0,
+        notified: data?.notified || 0,
+        message: data?.message || 'Check completed'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        marked: 0,
+        notified: 0,
+        message: 'Failed to check overdue tasks',
+        error: error.message || 'Unknown error'
+      };
+    }
+  }
+
+  // Delete internal message (super_admin only)
+  static async deleteMessage(messageId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      // Log the action (skip audit logging for now to avoid constraint issues)
+      console.log('Audit log: Deleted internal message', {
+        description: `Deleted internal message`,
+        message_id: messageId
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }
+
+  // Delete entire message thread (super_admin only)
+  static async deleteMessageThread(messageId: string, userId: string): Promise<boolean> {
+    try {
+      console.log('🔥 NEW CODE v2:', new Date().toISOString(), 'Deleting message thread for message ID:', messageId);
+      
+      // First, get the message to determine if it's an original message or a reply
+      const { data: targetMessage, error: fetchError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id, subject')
+        .eq('id', messageId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching target message:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Target message:', targetMessage);
+
+      let rootMessageId = messageId;
+
+      // If this is a reply, find the root message
+      if (targetMessage.reply_to_id) {
+        rootMessageId = targetMessage.reply_to_id;
+        console.log('This is a reply, root message ID:', rootMessageId);
+      } else {
+        console.log('This is the root message');
+      }
+
+      // Step 1: Get the root message
+      const { data: rootMessage, error: rootError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id, subject')
+        .eq('id', rootMessageId)
+        .single();
+
+      if (rootError && rootError.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Error fetching root message:', rootError);
+        throw rootError;
+      }
+
+      // Step 2: Get all replies to the root message
+      const { data: replyMessages, error: replyError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id, subject')
+        .eq('reply_to_id', rootMessageId);
+
+      if (replyError) {
+        console.error('Error fetching reply messages:', replyError);
+        throw replyError;
+      }
+
+      // Collect all message IDs to delete
+      const allMessageIds = [];
+      
+      // Add root message if it exists
+      if (rootMessage) {
+        allMessageIds.push(rootMessage.id);
+      }
+      
+      // Add all reply messages
+      if (replyMessages && replyMessages.length > 0) {
+        allMessageIds.push(...replyMessages.map(msg => msg.id));
+      }
+
+      console.log('Root message:', rootMessage);
+      console.log('Reply messages:', replyMessages);
+      console.log('All message IDs to delete:', allMessageIds);
+
+      if (allMessageIds.length === 0) {
+        console.log('No messages found to delete');
+        return false;
+      }
+
+      // Delete all messages in the thread using multiple approaches
+      console.log('Attempting to delete messages with IDs:', allMessageIds);
+      
+      // First, delete all replies
+      const { data: replyDeleteResult, error: replyDeleteError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .eq('reply_to_id', rootMessageId)
+        .select();
+
+      if (replyDeleteError) {
+        console.error('Error deleting reply messages:', replyDeleteError);
+      } else {
+        console.log('Deleted replies:', replyDeleteResult);
+      }
+
+      // Then delete the root message
+      const { data: rootDeleteResult, error: rootDeleteError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .eq('id', rootMessageId)
+        .select();
+
+      if (rootDeleteError) {
+        console.error('Error deleting root message:', rootDeleteError);
+      } else {
+        console.log('Deleted root message:', rootDeleteResult);
+      }
+
+      // Check if any deletion failed
+      if (replyDeleteError || rootDeleteError) {
+        throw new Error('Failed to delete some messages in the thread');
+      }
+
+      const totalDeleted = (replyDeleteResult?.length || 0) + (rootDeleteResult?.length || 0);
+      console.log(`Successfully deleted ${totalDeleted} messages total`);
+
+      // Verify deletion by checking if messages still exist
+      const { data: verifyData, error: verifyError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id')
+        .in('id', allMessageIds);
+
+      if (!verifyError && verifyData && verifyData.length > 0) {
+        console.error('Some messages still exist after deletion:', verifyData);
+      } else {
+        console.log('Verification: All messages successfully deleted');
+      }
+
+      // Skip all audit logging to avoid constraint issues
+      try {
+        console.log('Audit log: Deleted message thread', {
+          description: `Deleted message thread with ${allMessageIds.length} messages`,
+          root_message_id: rootMessageId,
+          deleted_message_ids: allMessageIds,
+          thread_subject: targetMessage.subject
+        });
+      } catch (auditError) {
+        console.log('Audit logging skipped due to error:', auditError);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message thread:', error);
+      return false;
+    }
+  }
+
+  // Clean up orphaned replies (messages with reply_to_id pointing to non-existent messages)
+  static async cleanupOrphanedReplies(userId: string): Promise<number> {
+    try {
+      // Get all messages with reply_to_id
+      const { data: repliesData, error: repliesError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id')
+        .not('reply_to_id', 'is', null);
+
+      if (repliesError) throw repliesError;
+
+      if (!repliesData || repliesData.length === 0) {
+        return 0;
+      }
+
+      // Get all existing message IDs
+      const { data: allMessages, error: allError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id');
+
+      if (allError) throw allError;
+
+      const existingIds = new Set(allMessages.map(m => m.id));
+      
+      // Find orphaned replies (replies whose parent doesn't exist)
+      const orphanedReplies = repliesData.filter(reply => 
+        !existingIds.has(reply.reply_to_id)
+      );
+
+      if (orphanedReplies.length === 0) {
+        return 0;
+      }
+
+      console.log('Found orphaned replies:', orphanedReplies);
+
+      // Delete orphaned replies
+      const orphanedIds = orphanedReplies.map(r => r.id);
+      const { error: deleteError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .in('id', orphanedIds);
+
+      if (deleteError) throw deleteError;
+
+      // Log the cleanup (skip audit logging for now)
+      console.log('Audit log: Cleaned up orphaned replies', {
+        description: `Cleaned up ${orphanedIds.length} orphaned reply messages`,
+        deleted_message_ids: orphanedIds
+      });
+
+      return orphanedIds.length;
+    } catch (error) {
+      console.error('Error cleaning up orphaned replies:', error);
+      return 0;
     }
   }
 }

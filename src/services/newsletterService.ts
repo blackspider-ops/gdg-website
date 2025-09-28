@@ -46,7 +46,6 @@ export class NewsletterService {
     try {
       // Generate confirmation token
       const confirmationToken = crypto.randomUUID();
-
       const { data, error } = await supabase
         .from('newsletter_subscribers')
         .insert({
@@ -71,7 +70,8 @@ export class NewsletterService {
       try {
         await this.sendConfirmationEmail(email, name, confirmationToken);
       } catch (emailError) {
-        // Don't fail the subscription if email fails
+        // If email fails, don't fail the entire subscription
+        // The user is still subscribed and can be manually confirmed if needed
       }
 
       return data;

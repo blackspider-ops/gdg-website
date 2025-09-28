@@ -19,14 +19,20 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Edge function called - send-email');
+    console.log('RESEND_API_KEY exists:', !!RESEND_API_KEY);
+    
     if (!RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not set in edge function environment');
       throw new Error('RESEND_API_KEY is not set')
     }
 
     const emailData: EmailRequest = await req.json()
+    console.log('Email request data:', { to: emailData.to, subject: emailData.subject });
 
     // Validate required fields
     if (!emailData.to || !emailData.subject || !emailData.content) {
+      console.error('Missing required fields:', { to: !!emailData.to, subject: !!emailData.subject, content: !!emailData.content });
       return new Response(
         JSON.stringify({ error: 'Missing required fields: to, subject, content' }),
         { 
@@ -58,6 +64,7 @@ serve(async (req) => {
     )
 
     // Send email via Resend API
+    console.log('Sending email to Resend API...');
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -78,8 +85,10 @@ serve(async (req) => {
     })
 
     const result = await response.json()
+    console.log('Resend API response:', { status: response.status, result });
 
     if (response.ok) {
+      console.log('Email sent successfully:', result.id);
       return new Response(
         JSON.stringify({ success: true, id: result.id }),
         { 
@@ -88,6 +97,7 @@ serve(async (req) => {
         }
       )
     } else {
+      console.error('Resend API error:', result);
       return new Response(
         JSON.stringify({ success: false, error: result.message || 'Unknown error' }),
         { 

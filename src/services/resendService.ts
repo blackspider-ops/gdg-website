@@ -15,6 +15,8 @@ export class ResendService {
   private static readonly FROM_NAME = import.meta.env.VITE_FROM_NAME || 'GDG@PSU Newsletter';
   private static readonly DOMAIN = import.meta.env.VITE_DOMAIN || 'decryptpsu.me';
 
+
+
   static async sendEmail(emailData: ResendEmailData): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       // Import supabase client
@@ -33,24 +35,59 @@ export class ResendService {
       });
 
       if (error) {
-        return { 
-          success: false, 
-          error: error.message || 'Failed to send email' 
-        };
+        // Try fallback to Vercel API if edge function fails
+        return await this.sendEmailViaVercelAPI(emailData);
       }
 
       if (data && data.success) {
         return { success: true, id: data.id };
       } else {
+        // Try fallback to Vercel API if edge function returns failure
+        return await this.sendEmailViaVercelAPI(emailData);
+      }
+    } catch (error) {
+      // Try fallback to Vercel API if edge function throws error
+      return await this.sendEmailViaVercelAPI(emailData);
+    }
+  }
+
+  // Fallback method using direct Resend API call
+  private static async sendEmailViaVercelAPI(emailData: ResendEmailData): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      // Try the Vercel API
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: emailData.to,
+          subject: emailData.subject,
+          content: emailData.content,
+          html_content: emailData.html_content,
+          subscriber_name: emailData.subscriber_name,
+          unsubscribe_url: emailData.unsubscribe_url
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        return { success: true, id: result.id };
+      } else {
         return { 
           success: false, 
-          error: data?.error || 'Unknown error from email service' 
+          error: result.error || 'Failed to send email via Vercel API' 
         };
       }
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Fallback email method failed' 
       };
     }
   }
@@ -159,6 +196,7 @@ The GDG@PSU Team`,
     };
 
     const result = await this.sendEmail(confirmationEmail);
+    
     return result.success;
   }
 

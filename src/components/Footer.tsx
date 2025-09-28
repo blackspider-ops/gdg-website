@@ -158,11 +158,23 @@ const Footer = () => {
     setSubscriptionMessage('');
     
     try {
-      await NewsletterService.subscribe(email);
-      setSubscriptionMessage('✅ Please check your email to confirm your subscription!');
-      setEmail('');
+      const result = await NewsletterService.subscribe(email);
+      
+      if (result) {
+        setSubscriptionMessage('✅ Please check your email to confirm your subscription!');
+        setEmail('');
+      } else {
+        setSubscriptionMessage('❌ Subscription failed. Please try again.');
+      }
     } catch (error: any) {
-      setSubscriptionMessage(`❌ ${error.message || 'Subscription failed. Please try again.'}`);
+      
+      // Check if the error is about email sending but subscription was created
+      if (error.message && error.message.includes('confirmation email failed')) {
+        setSubscriptionMessage('⚠️ Subscription created but confirmation email failed. Please contact support.');
+        setEmail('');
+      } else {
+        setSubscriptionMessage(`❌ ${error.message || 'Subscription failed. Please try again.'}`);
+      }
     } finally {
       setIsSubscribing(false);
       

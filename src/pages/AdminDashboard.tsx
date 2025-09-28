@@ -28,6 +28,7 @@ import { BlogService } from '@/services/blogService';
 import { ProjectsService } from '@/services/projectsService';
 import { SponsorsService } from '@/services/sponsorsService';
 import { NewsletterService } from '@/services/newsletterService';
+import { useTaskScheduler } from '@/hooks/useTaskScheduler';
 import { CommunicationsService } from '@/services/communicationsService';
 
 const AdminDashboard = () => {
@@ -49,6 +50,9 @@ const AdminDashboard = () => {
     color: string;
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Enable automatic task overdue checking globally
+  useTaskScheduler(true);
 
   const loadDashboardStats = async () => {
     setIsLoading(true);
