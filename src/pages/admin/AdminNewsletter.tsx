@@ -6,12 +6,25 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { NewsletterService, type NewsletterSubscriber, type NewsletterCampaign, type NewsletterTemplate } from '@/services/newsletterService';
 import { useNewsletterScheduler } from '@/hooks/useNewsletterScheduler';
 
+// Helper function to get time ago string
+const getTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return date.toLocaleDateString();
+};
+
 const AdminNewsletter = () => {
   const { isAuthenticated } = useAdmin();
   const [activeTab, setActiveTab] = useState('overview');
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [campaigns, setCampaigns] = useState<NewsletterCampaign[]>([]);
   const [templates, setTemplates] = useState<NewsletterTemplate[]>([]);
+  const [subscriberFilters, setSubscriberFilters] = useState<Set<'subscribed' | 'pending' | 'unsubscribed'>>(new Set(['subscribed']));
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -499,27 +512,86 @@ const AdminNewsletter = () => {
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                   <h3 className="font-semibold text-lg mb-4 text-foreground">Recent Activity</h3>
                   <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                      <div>
-                        <div className="text-sm font-medium text-foreground">Newsletter sent successfully</div>
-                        <div className="text-xs text-muted-foreground">September Newsletter • 2 hours ago</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-muted0 rounded-full mt-2"></div>
-                      <div>
-                        <div className="text-sm font-medium text-foreground">23 new subscribers</div>
-                        <div className="text-xs text-muted-foreground">This week</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                      <div>
-                        <div className="text-sm font-medium text-foreground">Template created</div>
-                        <div className="text-xs text-muted-foreground">Event Announcement • 1 day ago</div>
-                      </div>
-                    </div>
+                    {(() => {
+                      const recentActivities = [];
+                      
+                      // Recent sent campaigns
+                      const recentSentCampaigns = campaigns
+                        .filter(c => c.status === 'sent' && c.sent_at)
+                        .sort((a, b) => new Date(b.sent_at!).getTime() - new Date(a.sent_at!).getTime())
+                        .slice(0, 2);
+                      
+                      recentSentCampaigns.forEach(campaign => {
+                        const sentDate = new Date(campaign.sent_at!);
+                        const timeAgo = getTimeAgo(sentDate);
+                        recentActivities.push({
+                          type: 'sent',
+                          title: 'Newsletter sent successfully',
+                          subtitle: `${campaign.subject} • ${timeAgo}`,
+                          color: 'bg-green-500'
+                        });
+                      });
+                      
+                      // Recent subscribers (last 7 days)
+                      const weekAgo = new Date();
+                      weekAgo.setDate(weekAgo.getDate() - 7);
+                      const recentSubscribers = subscribers.filter(sub => 
+                        new Date(sub.subscribed_at) > weekAgo
+                      ).length;
+                      
+                      if (recentSubscribers > 0) {
+                        recentActivities.push({
+                          type: 'subscribers',
+                          title: `${recentSubscribers} new subscriber${recentSubscribers > 1 ? 's' : ''}`,
+                          subtitle: 'This week',
+                          color: 'bg-blue-500'
+                        });
+                      }
+                      
+                      // Recent campaigns created
+                      const recentCampaigns = campaigns
+                        .filter(c => {
+                          const createdDate = new Date(c.created_at);
+                          const threeDaysAgo = new Date();
+                          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                          return createdDate > threeDaysAgo;
+                        })
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .slice(0, 1);
+                      
+                      recentCampaigns.forEach(campaign => {
+                        const createdDate = new Date(campaign.created_at);
+                        const timeAgo = getTimeAgo(createdDate);
+                        recentActivities.push({
+                          type: 'created',
+                          title: 'Campaign created',
+                          subtitle: `${campaign.subject} • ${timeAgo}`,
+                          color: 'bg-purple-500'
+                        });
+                      });
+                      
+                      // If no recent activities, show placeholder
+                      if (recentActivities.length === 0) {
+                        return (
+                          <div className="text-center py-8">
+                            <div className="text-muted-foreground text-sm">No recent activity</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Create and send newsletters to see activity here
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return recentActivities.slice(0, 3).map((activity, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <div className={`w-2 h-2 ${activity.color} rounded-full mt-2`}></div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">{activity.title}</div>
+                            <div className="text-xs text-muted-foreground">{activity.subtitle}</div>
+                          </div>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
 
@@ -682,34 +754,114 @@ const AdminNewsletter = () => {
 
           {activeTab === 'subscribers' && (
             <div className="bg-card rounded-xl shadow-sm border border-border">
-              <div className="p-6 border-b border-border flex items-center justify-between">
-                <div>
-                  <h2 className="font-semibold text-lg text-foreground">Subscribers ({subscribers.length})</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Manage newsletter subscribers</p>
+              <div className="p-6 border-b border-border">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="font-semibold text-lg text-foreground">Subscribers ({subscribers.filter(sub => {
+                      // Default to subscribed if no filters are selected (shouldn't happen but safety check)
+                      const activeFilters = subscriberFilters.size === 0 ? new Set(['subscribed']) : subscriberFilters;
+                      return (
+                        (activeFilters.has('subscribed') && sub.is_active && sub.confirmed_at) ||
+                        (activeFilters.has('pending') && sub.is_active && !sub.confirmed_at) ||
+                        (activeFilters.has('unsubscribed') && !sub.is_active)
+                      );
+                    }).length})</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Manage newsletter subscribers</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={handleRemoveAllPending}
+                      className="flex items-center space-x-2 px-4 py-2 border border-yellow-600 text-yellow-400 rounded-lg hover:bg-yellow-600/10 transition-colors font-medium"
+                      disabled={isLoading}
+                    >
+                      <X size={16} />
+                      <span>Remove Pending</span>
+                    </button>
+                    <button 
+                      onClick={handleRemoveAllRegistered}
+                      className="flex items-center space-x-2 px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-600/10 transition-colors font-medium"
+                      disabled={isLoading}
+                    >
+                      <Trash2 size={16} />
+                      <span>Remove All</span>
+                    </button>
+                    <button 
+                      onClick={handleExportSubscribers}
+                      className="flex items-center space-x-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+                    >
+                      <Download size={16} />
+                      <span>Export CSV</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <button 
-                    onClick={handleRemoveAllPending}
-                    className="flex items-center space-x-2 px-4 py-2 border border-yellow-600 text-yellow-400 rounded-lg hover:bg-yellow-600/10 transition-colors font-medium"
-                    disabled={isLoading}
+                
+                {/* Filter Buttons */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground mr-2">Show:</span>
+                  <button
+                    onClick={() => {
+                      const newFilters = new Set(subscriberFilters);
+                      if (subscriberFilters.has('subscribed')) {
+                        // Only allow unchecking if other filters are active
+                        if (subscriberFilters.size > 1) {
+                          newFilters.delete('subscribed');
+                        }
+                      } else {
+                        newFilters.add('subscribed');
+                      }
+                      setSubscriberFilters(newFilters);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      subscriberFilters.has('subscribed')
+                        ? 'bg-green-600 text-white'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   >
-                    <X size={16} />
-                    <span>Remove Pending</span>
+                    Subscribed ({subscribers.filter(sub => sub.is_active && sub.confirmed_at).length})
                   </button>
-                  <button 
-                    onClick={handleRemoveAllRegistered}
-                    className="flex items-center space-x-2 px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-600/10 transition-colors font-medium"
-                    disabled={isLoading}
+                  <button
+                    onClick={() => {
+                      const newFilters = new Set(subscriberFilters);
+                      if (subscriberFilters.has('pending')) {
+                        newFilters.delete('pending');
+                        // If no filters remain, default to subscribed
+                        if (newFilters.size === 0) {
+                          newFilters.add('subscribed');
+                        }
+                      } else {
+                        newFilters.add('pending');
+                      }
+                      setSubscriberFilters(newFilters);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      subscriberFilters.has('pending')
+                        ? 'bg-yellow-600 text-white'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   >
-                    <Trash2 size={16} />
-                    <span>Remove All</span>
+                    Pending ({subscribers.filter(sub => sub.is_active && !sub.confirmed_at).length})
                   </button>
-                  <button 
-                    onClick={handleExportSubscribers}
-                    className="flex items-center space-x-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+                  <button
+                    onClick={() => {
+                      const newFilters = new Set(subscriberFilters);
+                      if (subscriberFilters.has('unsubscribed')) {
+                        newFilters.delete('unsubscribed');
+                        // If no filters remain, default to subscribed
+                        if (newFilters.size === 0) {
+                          newFilters.add('subscribed');
+                        }
+                      } else {
+                        newFilters.add('unsubscribed');
+                      }
+                      setSubscriberFilters(newFilters);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      subscriberFilters.has('unsubscribed')
+                        ? 'bg-red-600 text-white'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
                   >
-                    <Download size={16} />
-                    <span>Export CSV</span>
+                    Unsubscribed ({subscribers.filter(sub => !sub.is_active).length})
                   </button>
                 </div>
               </div>
@@ -719,15 +871,33 @@ const AdminNewsletter = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                   <p className="text-muted-foreground">Loading subscribers...</p>
                 </div>
-              ) : subscribers.length === 0 ? (
-                <div className="p-12 text-center">
-                  <Users size={48} className="mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold text-lg mb-2 text-foreground">No subscribers yet</h3>
-                  <p className="text-muted-foreground">Newsletter subscribers will appear here once people sign up</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-800">
-                  {subscribers.map((subscriber) => (
+              ) : (() => {
+                const filteredSubscribers = subscribers.filter(sub => {
+                  // Default to subscribed if no filters are selected (shouldn't happen but safety check)
+                  const activeFilters = subscriberFilters.size === 0 ? new Set(['subscribed']) : subscriberFilters;
+                  return (
+                    (activeFilters.has('subscribed') && sub.is_active && sub.confirmed_at) ||
+                    (activeFilters.has('pending') && sub.is_active && !sub.confirmed_at) ||
+                    (activeFilters.has('unsubscribed') && !sub.is_active)
+                  );
+                });
+                
+                return filteredSubscribers.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <h3 className="font-semibold text-lg mb-2 text-foreground">
+                      No subscribers found
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {subscriberFilters.size === 0 
+                        ? 'Please select at least one filter to view subscribers'
+                        : `No subscribers found for the selected filters: ${Array.from(subscriberFilters).join(', ')}`
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-800">
+                    {filteredSubscribers.map((subscriber) => (
                     <div key={subscriber.id} className="p-6 hover:bg-muted/50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -767,8 +937,9 @@ const AdminNewsletter = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

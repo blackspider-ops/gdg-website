@@ -3,27 +3,27 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Mail } from 'lucide-react';
 import { NewsletterService } from '@/services/newsletterService';
 
-const NewsletterConfirm = () => {
+const NewsletterUnsubscribe = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const token = searchParams.get('token');
 
   useEffect(() => {
-    const confirmSubscription = async () => {
+    const handleUnsubscribe = async () => {
       if (!token) {
         setStatus('error');
         return;
       }
 
       try {
-        const success = await NewsletterService.confirmSubscription(token);
+        const success = await NewsletterService.unsubscribe(token);
         setStatus(success ? 'success' : 'error');
       } catch (error) {
         setStatus('error');
       }
     };
 
-    confirmSubscription();
+    handleUnsubscribe();
   }, [token]);
 
   return (
@@ -32,24 +32,24 @@ const NewsletterConfirm = () => {
         {status === 'loading' && (
           <div>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <h1 className="text-2xl font-semibold mb-2">Confirming your subscription...</h1>
-            <p className="text-muted-foreground">Please wait while we process your confirmation.</p>
+            <h1 className="text-2xl font-semibold mb-2">Processing unsubscribe request...</h1>
+            <p className="text-muted-foreground">Please wait while we process your request.</p>
           </div>
         )}
 
         {status === 'success' && (
           <div>
             <CheckCircle size={48} className="text-gdg-green mx-auto mb-4" />
-            <h1 className="text-2xl font-semibold mb-2">Subscription Confirmed! 🎉</h1>
+            <h1 className="text-2xl font-semibold mb-2">Successfully Unsubscribed</h1>
             <p className="text-muted-foreground mb-6">
-              Thank you for subscribing to our newsletter. You'll now receive updates about upcoming events, workshops, and community highlights.
+              You have been successfully unsubscribed from our newsletter. We're sorry to see you go, but you can always resubscribe on our website if you change your mind.
             </p>
             <div className="space-y-3">
               <Link 
-                to="/events" 
+                to="/#newsletter" 
                 className="block w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
               >
-                View Upcoming Events
+                Resubscribe to Newsletter
               </Link>
               <Link 
                 to="/" 
@@ -64,22 +64,22 @@ const NewsletterConfirm = () => {
         {status === 'error' && (
           <div>
             <XCircle size={48} className="text-destructive mx-auto mb-4" />
-            <h1 className="text-2xl font-semibold mb-2">Confirmation Failed</h1>
+            <h1 className="text-2xl font-semibold mb-2">Unsubscribe Failed</h1>
             <p className="text-muted-foreground mb-6">
-              We couldn't confirm your newsletter subscription. The confirmation link may be invalid or expired.
+              We couldn't process your unsubscribe request. The unsubscribe link may be invalid or expired.
             </p>
             <div className="space-y-3">
               <Link 
-                to="/" 
+                to="/contact" 
                 className="block w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
               >
-                Visit Website
+                Contact Support
               </Link>
               <Link 
-                to="/contact" 
+                to="/" 
                 className="block w-full px-6 py-3 border border-border rounded-lg font-medium hover:bg-muted transition-colors"
               >
-                Contact Support
+                Visit Website
               </Link>
             </div>
           </div>
@@ -99,4 +99,4 @@ const NewsletterConfirm = () => {
   );
 };
 
-export default NewsletterConfirm;
+export default NewsletterUnsubscribe;

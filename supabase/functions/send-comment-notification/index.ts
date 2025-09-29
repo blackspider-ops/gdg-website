@@ -218,10 +218,10 @@ serve(async (req) => {
               </div>
 
               <div class="action-buttons">
-                <a href="${Deno.env.get('SITE_URL') || 'https://gdgpsu.org'}/admin/blog?tab=comments" class="btn btn-primary">
+                <a href="${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}/admin/blog?tab=comments" class="btn btn-primary">
                   Review Comments
                 </a>
-                <a href="${Deno.env.get('SITE_URL') || 'https://gdgpsu.org'}/blog/${blog_post_slug}" class="btn btn-secondary">
+                <a href="${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}/blog/${blog_post_slug}" class="btn btn-secondary">
                   View Blog Post
                 </a>
               </div>
@@ -235,8 +235,8 @@ serve(async (req) => {
             <div class="footer">
               <p>This is an automated notification from the GDG@PSU Blog Comment System.</p>
               <p>
-                <a href="${Deno.env.get('SITE_URL') || 'https://gdgpsu.org'}/admin">Admin Dashboard</a> | 
-                <a href="${Deno.env.get('SITE_URL') || 'https://gdgpsu.org'}">GDG@PSU Website</a>
+                <a href="${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}/admin">Admin Dashboard</a> | 
+                <a href="${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}">GDG@PSU Website</a>
               </p>
               <p style="margin-top: 15px; font-size: 12px; color: #9aa0a6;">
                 GDG@PSU - Google Developer Group at Penn State University
@@ -258,10 +258,10 @@ Comment:
 "${comment_content}"
 
 Please review this comment in the admin panel:
-${Deno.env.get('SITE_URL') || 'https://gdgpsu.org'}/admin/blog?tab=comments
+${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}/admin/blog?tab=comments
 
 View the blog post:
-${Deno.env.get('SITE_URL') || 'https://gdgpsu.org'}/blog/${blog_post_slug}
+${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}/blog/${blog_post_slug}
 
 Admins and blog editors can approve, reject, or flag comments from the admin panel.
 Comments remain hidden from the public until approved.

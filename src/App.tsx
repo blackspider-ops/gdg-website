@@ -42,6 +42,7 @@ import BlogEditorMedia from "./pages/admin/BlogEditorMedia";
 import BlogPost from "./pages/BlogPost";
 import Linktree from "./pages/Linktree";
 import NewsletterConfirm from "./pages/NewsletterConfirm";
+import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
 import NotFound from "./pages/NotFound";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
 import AdminTracker from "./components/admin/AdminTracker";
@@ -84,12 +85,26 @@ const ScrollToTop = () => {
   return null;
 };
 
+// Component to conditionally render navigation
+const ConditionalNavigation = () => {
+  const location = useLocation();
+  const isLinktreePage = location.pathname.startsWith('/l/');
+  const isNewsletterPage = location.pathname.startsWith('/newsletter/');
+  
+  if (isLinktreePage || isNewsletterPage) {
+    return null;
+  }
+  
+  return <Navigation />;
+};
+
 // Component to conditionally render footer
 const ConditionalFooter = () => {
   const location = useLocation();
   const isLinktreePage = location.pathname.startsWith('/l/');
+  const isNewsletterPage = location.pathname.startsWith('/newsletter/');
   
-  if (isLinktreePage) {
+  if (isLinktreePage || isNewsletterPage) {
     return null;
   }
   
@@ -111,7 +126,7 @@ const App = () => (
                   <GlobalBackground />
                   <AdminTracker />
                   <div className="min-h-screen flex flex-col relative z-10">
-                    <Navigation />
+                    <ConditionalNavigation />
                     <main className="flex-1">
                     <Routes>
                       <Route path="/" element={<Home />} />
@@ -145,6 +160,7 @@ const App = () => (
                       <Route path="/admin/blog-media" element={<BlogEditorMedia />} />
                       <Route path="/l/:username" element={<Linktree />} />
                       <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
+                      <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

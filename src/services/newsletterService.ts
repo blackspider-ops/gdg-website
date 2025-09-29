@@ -44,14 +44,16 @@ export interface NewsletterTemplate {
 export class NewsletterService {
   static async subscribe(email: string, name?: string): Promise<NewsletterSubscriber | null> {
     try {
-      // Generate confirmation token
+      // Generate confirmation and unsubscribe tokens
       const confirmationToken = crypto.randomUUID();
+      const unsubscribeToken = crypto.randomUUID();
       const { data, error } = await supabase
         .from('newsletter_subscribers')
         .insert({
           email,
           name,
           confirmation_token: confirmationToken,
+          unsubscribe_token: unsubscribeToken,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -128,7 +130,8 @@ export class NewsletterService {
 
   static async unsubscribe(token: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
+      // First try to unsubscribe by unsubscribe_token
+      let { data, error } = await supabase
         .from('newsletter_subscribers')
         .update({
           is_active: false,
@@ -137,6 +140,23 @@ export class NewsletterService {
         .eq('unsubscribe_token', token)
         .select()
         .single();
+
+      // If no match found and token looks like an email, try email fallback
+      if (error && token.includes('@')) {
+        const { data: emailData, error: emailError } = await supabase
+          .from('newsletter_subscribers')
+          .update({
+            is_active: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', token)
+          .select()
+          .single();
+
+        if (!emailError && emailData) {
+          return true;
+        }
+      }
 
       if (error || !data) {
         return false;
