@@ -6,7 +6,7 @@ import { ResourcesService } from '@/services/resourcesService';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Resources = () => {
-  const { resources, isLoadingResources, loadResources } = useContent();
+  const { resources, isLoadingResources, loadResources, getPageSection } = useContent();
 
   // Load resources when component mounts
   useEffect(() => {
@@ -44,14 +44,14 @@ const Resources = () => {
   const cloudCredits = resources.filter(r => r.type === 'cloud_credit').map(credit => ({
     ...credit,
     requirements: credit.requirements || [],
-    link: credit.url || '#'
+    link: credit.url
   }));
 
   const documentation = resources.filter(r => r.type === 'documentation').map(doc => ({
     ...doc,
     type: 'Documentation',
-    link: doc.url || '#',
-    tags: doc.tags || []
+    link: doc.url,
+    tags: doc.tags
   }));
 
   const recordings = resources.filter(r => r.type === 'recording').map(recording => ({
@@ -61,9 +61,12 @@ const Resources = () => {
       month: 'long', 
       day: 'numeric' 
     }) : 'Unknown date',
-    link: recording.url || '#',
-    views: recording.views || 0
+    link: recording.url,
+    views: recording.views
   }));
+
+  // Get page content from database
+  const pageHeader = getPageSection('resources', 'header') || {};
 
   return (
     <div className="min-h-screen relative z-10">
@@ -71,16 +74,23 @@ const Resources = () => {
       <section className="py-20 lg:py-32">
         <div className="editorial-grid">
           <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
-              Learning
-              <br />
-              <span className="text-primary">Resources</span>
-            </h1>
+            {(pageHeader.title || pageHeader.subtitle) && (
+              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
+                {pageHeader.title}
+                {pageHeader.subtitle && (
+                  <>
+                    <br />
+                    <span className="text-primary">{pageHeader.subtitle}</span>
+                  </>
+                )}
+              </h1>
+            )}
             
-            <p className="text-xl text-muted-foreground content-measure mx-auto mb-8">
-              Access study materials, cloud credits, documentation, and recorded sessions 
-              to accelerate your learning journey.
-            </p>
+            {pageHeader.description && (
+              <p className="text-xl text-muted-foreground content-measure mx-auto mb-8">
+                {pageHeader.description}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -90,7 +100,9 @@ const Resources = () => {
         <section className="py-20">
           <div className="editorial-grid">
             <div className="col-span-12">
-              <h2 className="text-3xl font-display font-bold mb-12">Study Jams</h2>
+              {pageHeader.study_materials_title && (
+                <h2 className="text-3xl font-display font-bold mb-12">{pageHeader.study_materials_title}</h2>
+              )}
               {isLoadingResources ? (
                 <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                   <LoadingSkeleton variant="card" count={4} />
@@ -101,7 +113,7 @@ const Resources = () => {
                   <div key={index} className="bg-card border border-border rounded-lg p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg bg-secondary ${jam.color || 'text-primary'}`}>
+                        <div className={`p-2 rounded-lg bg-secondary ${jam.color}`}>
                           <jam.icon size={24} />
                         </div>
                         <div>

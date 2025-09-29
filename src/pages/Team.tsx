@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Team = () => {
-    const { teamMembers, isLoadingTeam, loadTeamMembers } = useContent();
+    const { teamMembers, isLoadingTeam, loadTeamMembers, getPageSection } = useContent();
 
     // Load team members when component mounts
     useEffect(() => {
@@ -17,11 +17,11 @@ const Team = () => {
         name: member.name,
         role: member.role,
         bio: member.bio,
-        image: member.image_url || '/placeholder.svg',
+        image: member.image_url,
         social: {
             github: member.github_url,
             linkedin: member.linkedin_url,
-            email: member.email || `${member.name.toLowerCase().replace(' ', '.')}@gdgpsu.org`
+            email: member.email
         }
     }));
 
@@ -40,6 +40,9 @@ const Team = () => {
     const regularMembers = transformedMembers.filter(member => 
         !leadership.includes(member) && !advisors.includes(member)
     );
+
+    // Get page content from database
+    const pageHeader = getPageSection('team', 'header') || {};
 
     const TeamMember = ({ member, isLeadership = false }) => {
         const [isExpanded, setIsExpanded] = useState(false);
@@ -136,16 +139,23 @@ const Team = () => {
             <section className="py-16 sm:py-20 lg:py-32">
                 <div className="editorial-grid">
                     <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-                        <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
-                            Meet Our
-                            <br />
-                            <span className="text-primary">Team</span>
-                        </h1>
+                        {(pageHeader.title || pageHeader.subtitle) && (
+                          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
+                              {pageHeader.title}
+                              {pageHeader.subtitle && (
+                                <>
+                                  <br />
+                                  <span className="text-primary">{pageHeader.subtitle}</span>
+                                </>
+                              )}
+                          </h1>
+                        )}
 
-                        <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
-                            The passionate students and mentors who make GDG@PSU a thriving community
-                            for developers and tech enthusiasts.
-                        </p>
+                        {pageHeader.description && (
+                          <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
+                              {pageHeader.description}
+                          </p>
+                        )}
                     </div>
                 </div>
             </section>
@@ -154,7 +164,9 @@ const Team = () => {
             <section className="py-12 sm:py-16 lg:py-20">
                 <div className="editorial-grid">
                     <div className="col-span-12">
-                        <h2 className="text-3xl font-display font-bold text-center mb-12">Leadership Team</h2>
+                        {pageHeader.leadership_title && (
+                          <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.leadership_title}</h2>
+                        )}
                         {isLoadingTeam ? (
                             <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
                                 <LoadingSkeleton variant="team" count={3} />
@@ -181,7 +193,9 @@ const Team = () => {
                 <section className="py-12 sm:py-16 lg:py-20 bg-card/30">
                     <div className="editorial-grid">
                         <div className="col-span-12">
-                            <h2 className="text-3xl font-display font-bold text-center mb-12">Advisors & Mentors</h2>
+                            {pageHeader.organizers_title && (
+                              <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.organizers_title}</h2>
+                            )}
                             <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
                                 {advisors.map((member, index) => (
                                     <div key={index} className="w-full sm:w-80 max-w-sm min-h-[400px]">
@@ -199,7 +213,9 @@ const Team = () => {
                 <section className="py-12 sm:py-16 lg:py-20">
                     <div className="editorial-grid">
                         <div className="col-span-12">
-                            <h2 className="text-3xl font-display font-bold text-center mb-12">Team Members</h2>
+                            {pageHeader.members_title && (
+                              <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.members_title}</h2>
+                            )}
                             <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
                                 {regularMembers.map((member, index) => (
                                     <div key={index} className="w-full sm:w-72 max-w-sm min-h-[300px]">
@@ -216,9 +232,11 @@ const Team = () => {
             <section className="py-12 sm:py-16 lg:py-20">
                 <div className="editorial-grid">
                     <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-                        <h2 className="text-3xl font-display font-bold mb-4">
-                            Want to Join Our Team?
-                        </h2>
+                        {pageHeader.join_team_cta && (
+                          <h2 className="text-3xl font-display font-bold mb-4">
+                              {pageHeader.join_team_cta}
+                          </h2>
+                        )}
                         <p className="text-lg text-muted-foreground mb-8">
                             We're always looking for passionate students to help grow our community.
                             Whether you're interested in organizing events, creating content, or leading workshops,
@@ -228,7 +246,7 @@ const Team = () => {
                             to="/contact"
                             className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center focus-ring"
                         >
-                            Get Involved
+                            {pageHeader.join_team_button}
                         </Link>
                     </div>
                 </div>

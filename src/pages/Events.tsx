@@ -5,7 +5,7 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import { useContent } from '@/contexts/ContentContext';
 
 const Events = () => {
-  const { events, isLoadingEvents, loadEvents } = useContent();
+  const { events, isLoadingEvents, loadEvents, getPageSection } = useContent();
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [selectedLevel, setSelectedLevel] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -77,20 +77,25 @@ const Events = () => {
   const upcomingEvents = filteredEvents.filter(event => event.isUpcoming);
   const pastEvents = filteredEvents.filter(event => !event.isUpcoming);
 
+  // Get page content from database
+  const pageHeader = getPageSection('events', 'header') || {};
+
   return (
     <div className="min-h-screen bg-background pt-16">
       {/* Page Header */}
       <section className="py-12 sm:py-16 bg-muted/30">
         <div className="editorial-grid">
           <div className="col-span-12 lg:col-span-8">
-            <h1 className="text-display text-responsive-2xl font-semibold mb-4">
-              Events & Workshops
-            </h1>
-            <p className="text-editorial text-responsive-base text-muted-foreground content-measure">
-              Join our community for hands-on workshops, inspiring talks, and networking 
-              opportunities. From beginner-friendly introductions to advanced deep dives, 
-              there's something for every developer.
-            </p>
+            {pageHeader.title && (
+              <h1 className="text-display text-responsive-2xl font-semibold mb-4">
+                {pageHeader.title}
+              </h1>
+            )}
+            {pageHeader.description && (
+              <p className="text-editorial text-responsive-base text-muted-foreground content-measure">
+                {pageHeader.description}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -190,7 +195,9 @@ const Events = () => {
               <div className="flex items-center space-x-4 mb-8">
                 <div className="flex items-center space-x-2">
                   <Calendar size={20} className="text-gdg-blue" />
-                  <h2 className="text-display text-2xl font-semibold">Upcoming Events</h2>
+                  {pageHeader.upcoming_section_title && (
+                    <h2 className="text-display text-2xl font-semibold">{pageHeader.upcoming_section_title}</h2>
+                  )}
                 </div>
                 <div className="h-px flex-1 bg-border"></div>
                 <span className="text-sm text-muted-foreground">
@@ -216,7 +223,9 @@ const Events = () => {
               <div className="flex items-center space-x-4 mb-8">
                 <div className="flex items-center space-x-2">
                   <MapPin size={20} className="text-muted-foreground" />
-                  <h2 className="text-display text-2xl font-semibold">Past Events</h2>
+                  {pageHeader.past_section_title && (
+                    <h2 className="text-display text-2xl font-semibold">{pageHeader.past_section_title}</h2>
+                  )}
                 </div>
                 <div className="h-px flex-1 bg-border"></div>
                 <span className="text-sm text-muted-foreground">
@@ -243,9 +252,11 @@ const Events = () => {
                 <Search size={24} className="text-muted-foreground" />
               </div>
               <h3 className="font-display font-semibold text-lg mb-2">No Events Found</h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search terms or filters to find what you're looking for.
-              </p>
+              {pageHeader.no_events_message && (
+                <p className="text-muted-foreground">
+                  {pageHeader.no_events_message}
+                </p>
+              )}
             </div>
           </div>
         </section>

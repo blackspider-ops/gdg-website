@@ -25,8 +25,8 @@ const Navigation = () => {
     icon: iconMap[item.icon] || BookOpen
   }));
 
-  const siteTitle = getSiteSetting('site_title') || 'GDG@PSU';
-  const siteSubtitle = getSiteSetting('site_subtitle') || 'Penn State University';
+  const siteTitle = getSiteSetting('site_title');
+  const siteSubtitle = getSiteSetting('site_subtitle');
 
   const isActive = (path: string) => location.pathname === path;
 

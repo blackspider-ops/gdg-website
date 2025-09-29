@@ -131,7 +131,7 @@ export class NewsletterService {
   static async unsubscribe(token: string): Promise<boolean> {
     try {
       // First try to unsubscribe by unsubscribe_token
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('newsletter_subscribers')
         .update({
           is_active: false,

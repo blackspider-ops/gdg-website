@@ -54,28 +54,8 @@ const Home = () => {
   
   const upcomingEvents = getUpcomingEvents();
 
-  const highlights = [
-    {
-      metric: '500+',
-      label: 'Active Members',
-      color: 'text-gdg-blue',
-    },
-    {
-      metric: '50+',
-      label: 'Events Hosted',
-      color: 'text-gdg-red',
-    },
-    {
-      metric: '15',
-      label: 'Industry Partners',
-      color: 'text-gdg-yellow',
-    },
-    {
-      metric: '100%',
-      label: 'Student-Led',
-      color: 'text-gdg-green',
-    },
-  ];
+  // Highlights are not managed through admin panel for now
+  const highlights = [];
 
   // Get recent projects from the projects system
   const getRecentProjects = () => {
@@ -112,7 +92,7 @@ const Home = () => {
   // Map dynamic tracks to include proper icon components
   const tracks = dynamicTracks.map((track: any) => ({
     ...track,
-    icon: iconMap[track.icon] || Code // fallback to Code icon
+    icon: iconMap[track.icon] || iconMap['Code'] // use Code icon if not found
   }));
 
   return (
@@ -289,14 +269,15 @@ const Home = () => {
                   </div>
                 )}
               </>
-            ) : (
+            ) : null}
+
+            {upcomingEvents.length === 0 && eventsContent.no_events_message && (
               <div className="col-span-12 text-center py-8 sm:py-12">
                 <div className="max-w-md mx-auto px-4">
                   <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No Upcoming Events</h3>
-                  <p className="text-muted-foreground mb-6">
-                    We're planning exciting events for our community. Check back soon or follow us for updates!
-                  </p>
+                  <div className="text-muted-foreground mb-6">
+                    {eventsContent.no_events_message}
+                  </div>
                   {eventsContent.cta_text && eventsContent.cta_link && (
                     <Link 
                       to={eventsContent.cta_link}
@@ -363,14 +344,15 @@ const Home = () => {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : null}
+
+            {recentProjects.length === 0 && projectsContent.no_projects_message && (
               <div className="col-span-12 text-center py-12 mb-12">
                 <div className="max-w-md mx-auto">
                   <Code size={48} className="text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No Projects Yet</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Our community is working on exciting projects. Check back soon to see what we're building!
-                  </p>
+                  <div className="text-muted-foreground mb-6">
+                    {projectsContent.no_projects_message}
+                  </div>
                 </div>
               </div>
             )}

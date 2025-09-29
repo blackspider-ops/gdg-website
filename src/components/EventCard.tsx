@@ -245,7 +245,7 @@ const EventCard: React.FC<EventCardProps> = ({
           isOpen={showRegistrationModal}
           onClose={() => setShowRegistrationModal(false)}
           event={{
-            id: eventId || `temp-${title.replace(/\s+/g, '-').toLowerCase()}`,
+            id: eventId,
             title,
             date,
             time,
@@ -269,7 +269,7 @@ const EventCard: React.FC<EventCardProps> = ({
             handleRegister();
           } : undefined}
           event={{
-            id: eventId || '',
+            id: eventId,
             title,
             description,
             date,

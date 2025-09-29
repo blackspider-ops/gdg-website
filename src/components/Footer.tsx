@@ -80,7 +80,7 @@ const Footer = () => {
       const centralizedLinks = getAllLinks('Social') || [];
       
       return centralizedLinks.map((link, index) => {
-        const platformName = (link.name || '').toLowerCase();
+        const platformName = link.name ? link.name.toLowerCase() : '';
         let icon = Mail;
         
         if (platformName.includes('discord')) icon = MessageCircle;
@@ -173,7 +173,7 @@ const Footer = () => {
         setSubscriptionMessage('⚠️ Subscription created but confirmation email failed. Please contact support.');
         setEmail('');
       } else {
-        setSubscriptionMessage(`❌ ${error.message || 'Subscription failed. Please try again.'}`);
+        setSubscriptionMessage(`❌ ${error.message}`);
       }
     } finally {
       setIsSubscribing(false);
@@ -355,7 +355,7 @@ const Footer = () => {
                   disabled={isSubscribing}
                   className="px-6 py-3 bg-primary text-black rounded-lg font-medium hover:bg-primary/90 transition-colors focus-ring whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubscribing ? 'Subscribing...' : (newsletterContent.buttonText || 'Subscribe')}
+                  {isSubscribing ? 'Subscribing...' : newsletterContent.buttonText}
                 </button>
               </form>
               

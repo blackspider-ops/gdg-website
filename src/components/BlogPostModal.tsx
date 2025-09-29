@@ -113,11 +113,11 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
   };
 
   const getAuthor = () => {
-    return currentPost.author_name || 'GDG Author';
+    return currentPost.author_name;
   };
 
   const getPublishDate = () => {
-    return formatDate(currentPost.published_at) || '';
+    return formatDate(currentPost.published_at);
   };
 
   const handleLike = async () => {

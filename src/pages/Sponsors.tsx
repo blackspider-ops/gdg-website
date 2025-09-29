@@ -6,7 +6,7 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import SafeImage from '@/components/ui/SafeImage';
 
 const Sponsors = () => {
-  const { sponsors, isLoadingSponsors, loadSponsors } = useContent();
+  const { sponsors, isLoadingSponsors, loadSponsors, getPageSection } = useContent();
 
   // Load sponsors when component mounts
   useEffect(() => {
@@ -22,10 +22,10 @@ const Sponsors = () => {
   // Transform sponsors data to match component structure
   const transformSponsor = (sponsor: any) => ({
     name: sponsor.name,
-    logo: sponsor.logo_url || '/placeholder.svg',
+    logo: sponsor.logo_url,
     tier: sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1),
     description: `Supporting GDG@PSU through ${sponsor.tier} tier partnership.`,
-    website: sponsor.website_url || '#',
+    website: sponsor.website_url,
     benefits: [], // Could be expanded with a benefits field in the database
     partnership: `${sponsor.tier.charAt(0).toUpperCase() + sponsor.tier.slice(1)} Partner`
   });
@@ -76,6 +76,9 @@ const Sponsors = () => {
       ]
     }
   ];
+
+  // Get page content from database
+  const pageHeader = getPageSection('sponsors', 'header') || {};
 
   const SponsorCard = ({ sponsor, showBenefits = true }) => (
     <div className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-shadow">
@@ -134,16 +137,23 @@ const Sponsors = () => {
       <section className="py-20 lg:py-32">
         <div className="editorial-grid">
           <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
-              Our
-              <br />
-              <span className="text-primary">Sponsors</span>
-            </h1>
+            {(pageHeader.title || pageHeader.subtitle) && (
+              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
+                {pageHeader.title}
+                {pageHeader.subtitle && (
+                  <>
+                    <br />
+                    <span className="text-primary">{pageHeader.subtitle}</span>
+                  </>
+                )}
+              </h1>
+            )}
             
-            <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
-              We're grateful to our sponsors and partners who make our events, workshops, 
-              and community initiatives possible.
-            </p>
+            {pageHeader.description && (
+              <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
+                {pageHeader.description}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -166,7 +176,9 @@ const Sponsors = () => {
             <section className="py-20 bg-card/30">
               <div className="editorial-grid">
                 <div className="col-span-12">
-                  <h2 className="text-3xl font-display font-bold text-center mb-12">Platinum Sponsors</h2>
+                  {pageHeader.platinum_title && (
+                    <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.platinum_title}</h2>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                     {platinumSponsors.map((sponsor, index) => (
                       <SponsorCard key={index} sponsor={transformSponsor(sponsor)} />
@@ -182,7 +194,9 @@ const Sponsors = () => {
             <section className="py-20">
               <div className="editorial-grid">
                 <div className="col-span-12">
-                  <h2 className="text-3xl font-display font-bold text-center mb-12">Gold Sponsors</h2>
+                  {pageHeader.gold_title && (
+                    <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.gold_title}</h2>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                     {goldSponsors.map((sponsor, index) => (
                       <SponsorCard key={index} sponsor={transformSponsor(sponsor)} />

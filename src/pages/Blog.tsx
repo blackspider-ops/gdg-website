@@ -5,8 +5,10 @@ import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import BlogPostModal from '@/components/BlogPostModal';
 import BlogLikeButton from '@/components/BlogLikeButton';
+import { useContent } from '@/contexts/ContentContext';
 
 const Blog = () => {
+  const { getPageSection } = useContent();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,19 +106,25 @@ const Blog = () => {
 
   const displayPosts = showAllPosts ? sortedPosts : regularPosts;
 
+  // Get page content from database
+  const pageHeader = getPageSection('blog', 'header') || {};
+
   return (
     <div className="min-h-screen bg-background pt-16">
       {/* Page Header */}
       <section className="py-16 bg-muted/30">
         <div className="editorial-grid">
           <div className="col-span-12 lg:col-span-8">
-            <h1 className="text-display text-3xl sm:text-4xl lg:text-5xl font-semibold mb-4">
-              Blog & Updates
-            </h1>
-            <p className="text-editorial text-lg text-muted-foreground content-measure">
-              Insights, tutorials, and updates from our community. Learn about the latest 
-              technologies, workshop recaps, and member spotlights.
-            </p>
+            {pageHeader.title && (
+              <h1 className="text-display text-3xl sm:text-4xl lg:text-5xl font-semibold mb-4">
+                {pageHeader.title}
+              </h1>
+            )}
+            {pageHeader.description && (
+              <p className="text-editorial text-lg text-muted-foreground content-measure">
+                {pageHeader.description}
+              </p>
+            )}
           </div>
           
           {/* Controls */}

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Mail, MessageSquare, Users, Calendar, Github, Twitter, Instagram, Upload, X, FileText } from 'lucide-react';
+import { Mail, MessageSquare, Users, Calendar, Github, Twitter, Instagram, Upload, X, FileText, Clock, MapPin } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
 import { ContactService, type ContactFormData } from '@/services/contactService';
 import { BlogSubmissionService } from '@/services/blogSubmissionService';
@@ -233,15 +233,23 @@ const Contact = () => {
               <div className="w-8 sm:w-12 h-px bg-border"></div>
             </div>
             
-            <h1 className="font-display text-responsive-3xl font-bold mb-4 sm:mb-6 leading-tight text-foreground drop-shadow-lg">
-              {contactContent.title || 'Get in Touch'}
-              <br />
-              <span className="text-primary">with {getSiteSetting('site_title') || 'GDG PSU'}</span>
-            </h1>
+            {contactContent.title && (
+              <h1 className="font-display text-responsive-3xl font-bold mb-4 sm:mb-6 leading-tight text-foreground drop-shadow-lg">
+                {contactContent.title}
+                {contactContent.title_second_line && (
+                  <>
+                    <br />
+                    <span className="text-primary">{contactContent.title_second_line}</span>
+                  </>
+                )}
+              </h1>
+            )}
             
-            <p className="text-responsive-base text-muted-foreground content-measure mx-auto mb-6 sm:mb-8 drop-shadow-md">
-              {contactContent.subtitle || 'Ready to join our community? Have questions about events? Let\'s connect.'}
-            </p>
+            {contactContent.subtitle && (
+              <p className="text-responsive-base text-muted-foreground content-measure mx-auto mb-6 sm:mb-8 drop-shadow-md">
+                {contactContent.subtitle}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -250,7 +258,9 @@ const Contact = () => {
         {/* Contact Form */}
         <div className="col-span-12 lg:col-span-8">
           <div className="gdg-accent-bar pl-4 sm:pl-6">
-            <h2 className="text-display text-responsive-lg font-semibold mb-4 sm:mb-6">{contactContent.form_title || 'Send us a Message'}</h2>
+            {contactContent.form_title && (
+              <h2 className="text-display text-responsive-lg font-semibold mb-4 sm:mb-6">{contactContent.form_title}</h2>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info */}
@@ -431,7 +441,7 @@ const Contact = () => {
                     <span>Sending...</span>
                   </>
                 ) : (
-                  <span>{contactContent.button_text || 'Send Message'}</span>
+                  <span>{contactContent.button_text}</span>
                 )}
               </button>
             </form>
@@ -442,14 +452,18 @@ const Contact = () => {
         <div className="col-span-12 lg:col-span-4 lg:col-start-9 space-y-8">
           {/* Quick Contact */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="font-display font-semibold text-lg mb-4">{contactContent.quick_contact_title || 'Quick Contact'}</h3>
+            {contactContent.quick_contact_title && (
+              <h3 className="font-display font-semibold text-lg mb-4">{contactContent.quick_contact_title}</h3>
+            )}
             
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <Mail size={18} className="text-gdg-blue mt-0.5" />
                 <div>
-                  <div className="font-medium text-sm">{contactContent.email_label || 'Email'}</div>
-                  {contactContent.email_url ? (
+                  {contactContent.email_label && (
+                    <div className="font-medium text-sm">{contactContent.email_label}</div>
+                  )}
+                  {contactContent.email_url && (
                     <a 
                       href={contactContent.email_url} 
                       className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors"
@@ -460,10 +474,6 @@ const Contact = () => {
                         ? contactContent.email_url.replace('mailto:', '') 
                         : 'Contact Us'}
                     </a>
-                  ) : (
-                    <a href="mailto:contact@gdgpsu.org" className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors">
-                      contact@gdgpsu.org
-                    </a>
                   )}
                 </div>
               </div>
@@ -471,20 +481,18 @@ const Contact = () => {
               <div className="flex items-start space-x-3">
                 <MessageSquare size={18} className="text-gdg-blue mt-0.5" />
                 <div>
-                  <div className="font-medium text-sm">{contactContent.discord_label || 'Discord'}</div>
-                  {contactContent.discord_url ? (
+                  {contactContent.discord_label && (
+                    <div className="font-medium text-sm">{contactContent.discord_label}</div>
+                  )}
+                  {contactContent.discord_url && contactContent.discord_description && (
                     <a 
                       href={contactContent.discord_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-muted-foreground text-sm hover:text-gdg-blue transition-colors"
                     >
-                      {contactContent.discord_description || 'Join our server for real-time chat'}
+                      {contactContent.discord_description}
                     </a>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">
-                      {contactContent.discord_description || 'Join our server for real-time chat'}
-                    </span>
                   )}
                 </div>
               </div>
@@ -492,49 +500,89 @@ const Contact = () => {
               <div className="flex items-start space-x-3">
                 <Calendar size={18} className="text-gdg-blue mt-0.5" />
                 <div>
-                  <div className="font-medium text-sm">{contactContent.office_hours_label || 'Office Hours'}</div>
-                  <span className="text-muted-foreground text-sm">
-                    {contactContent.office_hours_info || 'Wednesdays 4-6 PM, IST Building'}
-                  </span>
+                  {contactContent.office_hours_label && (
+                    <div className="font-medium text-sm">{contactContent.office_hours_label}</div>
+                  )}
+                  {contactContent.office_hours_info && (
+                    <span className="text-muted-foreground text-sm">
+                      {contactContent.office_hours_info}
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {/* Dynamic Contact Links */}
-              {contactContent.contact_links && contactContent.contact_links.length > 0 && (
-                <>
-                  <div className="border-t border-border pt-4 mt-4">
-                    <div className="text-sm font-medium text-muted-foreground mb-3">
-                      {contactContent.additional_links_title || 'Additional Links'}
-                    </div>
-                  </div>
-                  {contactContent.contact_links.map((link: any) => (
-                    <div key={link.id} className="flex items-start space-x-3">
-                      <div className="w-[18px] h-[18px] mt-0.5 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-gdg-blue rounded-full"></div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">
-                          <a 
-                            href={link.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="hover:text-gdg-blue transition-colors"
-                          >
-                            {link.name}
-                          </a>
-                        </div>
-                        {link.description && (
-                          <span className="text-muted-foreground text-sm">
-                            {link.description}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
             </div>
           </div>
+
+          {/* When & Where We Meet */}
+          {(contactContent.meeting_time || contactContent.meeting_location) && (
+            <div className="bg-card border border-border rounded-lg p-6">
+              <h3 className="font-display font-semibold text-lg mb-4">When & Where We Meet</h3>
+              
+              <div className="space-y-4">
+                {contactContent.meeting_time && (
+                  <div className="flex items-start space-x-3">
+                    <Clock size={18} className="text-gdg-blue mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">Regular Meetings</div>
+                      <span className="text-muted-foreground text-sm">
+                        {contactContent.meeting_time}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {contactContent.meeting_location && (
+                  <div className="flex items-start space-x-3">
+                    <MapPin size={18} className="text-gdg-blue mt-0.5" />
+                    <div>
+                      <div className="font-medium text-sm">Location</div>
+                      <span className="text-muted-foreground text-sm">
+                        {contactContent.meeting_location}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Additional Links */}
+          {contactContent.contact_links && contactContent.contact_links.length > 0 && (
+            <div className="bg-card border border-border rounded-lg p-6">
+              {contactContent.additional_links_title && (
+                <h3 className="font-display font-semibold text-lg mb-4">
+                  {contactContent.additional_links_title}
+                </h3>
+              )}
+              
+              <div className="space-y-4">
+                {contactContent.contact_links.map((link: { id: string; name: string; url: string; description?: string }) => (
+                  <div key={link.id} className="flex items-start space-x-3">
+                    <div className="w-[18px] h-[18px] mt-0.5 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-gdg-blue rounded-full"></div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">
+                        <a 
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:text-gdg-blue transition-colors"
+                        >
+                          {link.name}
+                        </a>
+                      </div>
+                      {link.description && (
+                        <span className="text-muted-foreground text-sm">
+                          {link.description}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
 
 

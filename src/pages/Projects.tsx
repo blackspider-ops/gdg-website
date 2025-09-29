@@ -6,7 +6,7 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import { ProjectStarsService } from '@/services/projectStarsService';
 
 const Projects = () => {
-  const { projects, isLoadingProjects, loadProjects } = useContent();
+  const { projects, isLoadingProjects, loadProjects, getPageSection } = useContent();
   const [selectedCategory, setSelectedCategory] = React.useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = React.useState('All');
   const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({});
@@ -79,22 +79,32 @@ const Projects = () => {
     return matchesCategory && matchesDifficulty;
   });
 
+  // Get page content from database
+  const pageHeader = getPageSection('projects', 'header') || {};
+
   return (
     <div className="min-h-screen relative z-10">
       {/* Hero Section */}
       <section className="py-20 lg:py-32">
         <div className="editorial-grid">
           <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
-              Student
-              <br />
-              <span className="text-primary">Projects</span>
-            </h1>
+            {(pageHeader.title || pageHeader.subtitle) && (
+              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold mb-6">
+                {pageHeader.title}
+                {pageHeader.subtitle && (
+                  <>
+                    <br />
+                    <span className="text-primary">{pageHeader.subtitle}</span>
+                  </>
+                )}
+              </h1>
+            )}
             
-            <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
-              Discover innovative projects built by our community members. From mobile apps to AI research, 
-              see what happens when students collaborate and create.
-            </p>
+            {pageHeader.description && (
+              <p className="text-lg sm:text-xl text-muted-foreground content-measure mx-auto mb-8">
+                {pageHeader.description}
+              </p>
+            )}
 
             <div className="space-y-4">
               {/* Category Filters */}
@@ -190,7 +200,7 @@ const Projects = () => {
                 <div key={project.id} className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-muted relative">
                     <img 
-                      src={project.image_url || '/placeholder.svg'} 
+                      src={project.image_url} 
                       alt={project.title}
                       className="w-full h-full object-cover"
                     />
@@ -322,9 +332,11 @@ const Projects = () => {
       <section className="py-20 bg-card/30">
         <div className="editorial-grid">
           <div className="col-span-12 lg:col-span-8 lg:col-start-3 text-center">
-            <h2 className="text-3xl font-display font-bold mb-4">
-              Have a Project Idea?
-            </h2>
+            {pageHeader.contribute_cta && (
+              <h2 className="text-3xl font-display font-bold mb-4">
+                {pageHeader.contribute_cta}
+              </h2>
+            )}
             <p className="text-lg text-muted-foreground mb-8">
               Join our community and turn your ideas into reality. Get support, find collaborators, 
               and access resources to build something amazing.
@@ -333,7 +345,7 @@ const Projects = () => {
               to="/contact"
               className="magnetic-button px-8 py-4 bg-primary text-primary-foreground rounded-lg font-medium inline-flex items-center focus-ring"
             >
-              Start Your Project
+              {pageHeader.contribute_button}
             </Link>
           </div>
         </div>
