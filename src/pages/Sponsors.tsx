@@ -6,12 +6,12 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import SafeImage from '@/components/ui/SafeImage';
 
 const Sponsors = () => {
-  const { sponsors, isLoadingSponsors, loadSponsors, getPageSection } = useContent();
+  const { sponsors, isLoadingSponsors, loadSponsors, getPageSection, lastUpdated } = useContent();
 
   // Load sponsors when component mounts
   useEffect(() => {
     loadSponsors();
-  }, [loadSponsors]);
+  }, [loadSponsors, lastUpdated]);
 
   // Group sponsors by tier
   const platinumSponsors = sponsors.filter(s => s.tier === 'platinum');

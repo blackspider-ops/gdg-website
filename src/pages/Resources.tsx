@@ -6,12 +6,12 @@ import { ResourcesService } from '@/services/resourcesService';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Resources = () => {
-  const { resources, isLoadingResources, loadResources, getPageSection } = useContent();
+  const { resources, isLoadingResources, loadResources, getPageSection, lastUpdated } = useContent();
 
   // Load resources when component mounts
   useEffect(() => {
     loadResources();
-  }, [loadResources]);
+  }, [loadResources, lastUpdated]);
 
   const handleResourceClick = async (resourceId: string, url?: string) => {
     // Increment view count

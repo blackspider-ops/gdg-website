@@ -8,7 +8,7 @@ import BlogLikeButton from '@/components/BlogLikeButton';
 import { useContent } from '@/contexts/ContentContext';
 
 const Blog = () => {
-  const { getPageSection } = useContent();
+  const { getPageSection, lastUpdated } = useContent();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +21,7 @@ const Blog = () => {
   useEffect(() => {
     loadBlogPosts();
     loadCategories();
-  }, []);
+  }, [lastUpdated]);
 
   const loadCategories = async () => {
     try {

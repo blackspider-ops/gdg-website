@@ -96,11 +96,8 @@ export class ContentService {
                 onConflict: 'key'
             });
 
-        if (!error) {
-            // Invalidate cache after successful update
-            await invalidateContentCache('siteSettings', { forceReload: false });
-        }
-
+        // Don't invalidate cache here - let the calling function handle it
+        // This prevents race conditions during batch saves
         return !error;
     }
 
@@ -150,11 +147,7 @@ export class ContentService {
                 onConflict: 'page_slug,section_key'
             });
 
-        if (!error) {
-            // Invalidate cache after successful update
-            await invalidateContentCache('pageContent', { forceReload: false });
-        }
-
+        // Don't invalidate cache here - let the calling function handle it
         return !error;
     }
 
@@ -179,11 +172,7 @@ export class ContentService {
                 updated_at: new Date().toISOString()
             });
 
-        if (!error) {
-            // Invalidate cache after successful update
-            await invalidateContentCache('navigationItems', { forceReload: false });
-        }
-
+        // Don't invalidate cache here - let the calling function handle it
         return !error;
     }
 

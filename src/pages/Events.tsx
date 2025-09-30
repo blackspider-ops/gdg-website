@@ -5,15 +5,15 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import { useContent } from '@/contexts/ContentContext';
 
 const Events = () => {
-  const { events, isLoadingEvents, loadEvents, getPageSection } = useContent();
+  const { events, isLoadingEvents, loadEvents, getPageSection, lastUpdated } = useContent();
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [selectedLevel, setSelectedLevel] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  // Load events when component mounts - force reload to get accurate attendee counts
+  // Load events when component mounts or content updates
   useEffect(() => {
     loadEvents(true); // Force reload to ensure accurate attendee counts
-  }, []);
+  }, [lastUpdated]); // Re-run when content is updated
 
   // Transform events data to match component structure
   const allEvents = events.map(event => {
@@ -77,7 +77,7 @@ const Events = () => {
   const upcomingEvents = filteredEvents.filter(event => event.isUpcoming);
   const pastEvents = filteredEvents.filter(event => !event.isUpcoming);
 
-  // Get page content from database
+  // Get page content from database (will be fresh after lastUpdated changes)
   const pageHeader = getPageSection('events', 'header') || {};
 
   return (

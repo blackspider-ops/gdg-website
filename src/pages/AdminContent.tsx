@@ -26,6 +26,8 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { ContentService } from '@/services/contentService';
 import { OptimizedContentService } from '@/services/optimizedContentService';
 import { supabase } from '@/lib/supabase';
+import { debouncedCacheInvalidation } from '@/utils/cacheUtils';
+import { toast } from 'sonner';
 
 const AdminContent = () => {
   const { isAuthenticated, currentAdmin } = useAdmin();
@@ -376,6 +378,12 @@ const AdminContent = () => {
   const [activeCategory, setActiveCategory] = useState('general');
   const [activeTab, setActiveTab] = useState('site-settings');
 
+  // Simple cache invalidation - just like site settings
+  const invalidateCacheAndRefresh = () => {
+    OptimizedContentService.invalidateCache('pageContent');
+    refreshContent();
+  };
+
   // Helper function to get category for a tab
   const getCategoryForTab = (tabId: string) => {
     for (const category of tabCategories) {
@@ -400,22 +408,32 @@ const AdminContent = () => {
       const promises = Object.entries(siteSettingsForm).map(([key, value]) =>
         ContentService.updateSiteSetting(key, value, currentAdmin?.id)
       );
-
       await Promise.all(promises);
 
       setIsEditing(false);
+      toast.success('Site settings saved successfully!');
       
-      // Show success feedback
+      // Debounced cache invalidation
+      debouncedCacheInvalidation(() => {
+        OptimizedContentService.invalidateCache('siteSettings');
+        refreshContent();
+      });
+      
     } catch (error) {
-      // Error handling implemented
+      console.error('Error saving site settings:', error);
+      toast.error('Error saving site settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Simple save function that bypasses all cache systems
+  // Simple save function for page content
   const savePageContentDirect = async (pageSlug: string, sectionKey: string, content: Record<string, unknown>) => {
-    const { error } = await supabase
+    if (!currentAdmin?.id) {
+      throw new Error('Admin not authenticated');
+    }
+    
+    const { error, data } = await supabase
       .from('page_content')
       .upsert({
         page_slug: pageSlug,
@@ -423,14 +441,15 @@ const AdminContent = () => {
         content,
         is_active: true,
         order_index: 0,
-        updated_by: currentAdmin?.id,
+        updated_by: currentAdmin.id,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'page_slug,section_key'
-      });
+      })
+      .select();
     
     if (error) throw error;
-    return true;
+    return data;
   };
 
   const handleSaveHomePage = async () => {
@@ -478,18 +497,14 @@ const AdminContent = () => {
       ]);
 
       setIsEditing(false);
+      toast.success('Home page saved successfully!');
       
-      // Safe cache invalidation after successful save
-      setTimeout(() => {
-        // Clear page content cache so public site gets fresh data
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-        
-        // Show success feedback
-      }, 500);
+      // Cache invalidation with force refresh
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
       
     } catch (error) {
-      // Handle error silently
+      console.error('Error saving home page:', error);
+      toast.error('Error saving home page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -523,16 +538,14 @@ const AdminContent = () => {
       }
 
       setIsEditing(false);
+      toast.success('Contact page saved successfully!');
       
-      // Clear cache
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      // Cache invalidation with force refresh
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
       
     } catch (error) {
       console.error('Error saving contact page:', error);
-      alert('Error saving contact page. Please try again.');
+      toast.error('Error saving contact page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -543,12 +556,11 @@ const AdminContent = () => {
     try {
       await savePageContentDirect('events', 'header', eventsPageForm);
       setIsEditing(false);
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      toast.success('Events page saved successfully!');
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
     } catch (error) {
-      // Silently handle errors
+      console.error('Error saving events page:', error);
+      toast.error('Error saving events page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -559,12 +571,12 @@ const AdminContent = () => {
     try {
       await savePageContentDirect('projects', 'header', projectsPageForm);
       setIsEditing(false);
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      toast.success('Projects page saved successfully!');
+      
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
     } catch (error) {
-      // Silently handle errors
+      console.error('Error saving projects page:', error);
+      toast.error('Error saving projects page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -575,12 +587,12 @@ const AdminContent = () => {
     try {
       await savePageContentDirect('team', 'header', teamPageForm);
       setIsEditing(false);
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      toast.success('Team page saved successfully!');
+      
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
     } catch (error) {
-      // Silently handle errors
+      console.error('Error saving team page:', error);
+      toast.error('Error saving team page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -591,12 +603,12 @@ const AdminContent = () => {
     try {
       await savePageContentDirect('blog', 'header', blogPageForm);
       setIsEditing(false);
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      toast.success('Blog page saved successfully!');
+      
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
     } catch (error) {
-      // Silently handle errors
+      console.error('Error saving blog page:', error);
+      toast.error('Error saving blog page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -607,12 +619,12 @@ const AdminContent = () => {
     try {
       await savePageContentDirect('sponsors', 'header', sponsorsPageForm);
       setIsEditing(false);
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      toast.success('Sponsors page saved successfully!');
+      
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
     } catch (error) {
-      // Silently handle errors
+      console.error('Error saving sponsors page:', error);
+      toast.error('Error saving sponsors page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -623,12 +635,12 @@ const AdminContent = () => {
     try {
       await savePageContentDirect('resources', 'header', resourcesPageForm);
       setIsEditing(false);
-      setTimeout(() => {
-        OptimizedContentService.invalidateCache('pageContent');
-        OptimizedContentService.clearAllCaches();
-      }, 500);
+      toast.success('Resources page saved successfully!');
+      
+      debouncedCacheInvalidation(invalidateCacheAndRefresh);
     } catch (error) {
-      // Silently handle errors
+      console.error('Error saving resources page:', error);
+      toast.error('Error saving resources page. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -645,9 +657,18 @@ const AdminContent = () => {
       );
 
       setIsEditing(false);
+      toast.success('Links saved successfully!');
+      
+      // Debounced cache invalidation
+      debouncedCacheInvalidation(() => {
+        OptimizedContentService.invalidateCache('siteSettings');
+        refreshContent();
+      });
+      
     } catch (error) {
-    // Silently handle errors
-  } finally {
+      console.error('Error saving links:', error);
+      toast.error('Error saving links. Please try again.');
+    } finally {
       setIsSaving(false);
     }
   };
@@ -768,9 +789,18 @@ const AdminContent = () => {
       await Promise.all([...deletePromises, ...updatePromises]);
       
       setIsEditing(false);
+      toast.success('Navigation saved successfully!');
+      
+      // Debounced cache invalidation
+      debouncedCacheInvalidation(() => {
+        OptimizedContentService.invalidateCache('navigationItems');
+        refreshContent();
+      });
+      
     } catch (error) {
-    // Silently handle errors
-  } finally {
+      console.error('Error saving navigation:', error);
+      toast.error('Error saving navigation. Please try again.');
+    } finally {
       setIsSaving(false);
     }
   };
@@ -799,9 +829,18 @@ const AdminContent = () => {
       await ContentService.updateFooterContent('newsletter', JSON.stringify(footerForm.newsletter), currentAdmin?.id);
 
       setIsEditing(false);
+      toast.success('Footer content saved successfully!');
+      
+      // Debounced cache invalidation
+      debouncedCacheInvalidation(() => {
+        OptimizedContentService.invalidateCache('footerContent');
+        refreshContent();
+      });
+      
     } catch (error) {
-    // Silently handle errors
-  } finally {
+      console.error('Error saving footer content:', error);
+      toast.error('Error saving footer content. Please try again.');
+    } finally {
       setIsSaving(false);
     }
   };
@@ -1156,6 +1195,8 @@ const AdminContent = () => {
       actions={
         isEditing && (
           <div className="flex items-center space-x-3">
+
+
             <button
               onClick={() => setIsEditing(false)}
               className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
@@ -1178,8 +1219,12 @@ const AdminContent = () => {
                 if (activeTab === 'footer') handleSaveFooter();
               }}
               disabled={isSaving}
-              data-saving={isSaving}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
+              data-saving={isSaving ? "true" : "false"}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+                isSaving 
+                  ? 'bg-gray-400 text-gray-700 cursor-not-allowed opacity-50' 
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+              }`}
             >
               <Save size={16} />
               <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>

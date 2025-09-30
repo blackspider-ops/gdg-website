@@ -27,6 +27,8 @@ interface ContentContextType {
   isLoadingResources: boolean;
   lastUpdated: number;
   refreshContent: () => Promise<void>;
+  refreshPageContent: (pageSlug?: string) => Promise<void>;
+  forceRefreshPageContent: (pageSlug?: string) => Promise<void>;
   loadEvents: (forceReload?: boolean) => Promise<void>;
   loadTeamMembers: () => Promise<void>;
   loadProjects: () => Promise<void>;
@@ -139,7 +141,16 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     if (loadedSections.has(pageSlug)) return;
 
     try {
-      const content = await OptimizedContentService.getPageContent(pageSlug);
+      // Query database directly to avoid OptimizedContentService caching issues
+      const { data: content, error } = await supabase
+        .from('page_content')
+        .select('*')
+        .eq('page_slug', pageSlug)
+        .eq('is_active', true)
+        .order('order_index');
+      
+      if (error) throw error;
+      
       const contentMap = content.reduce((acc: Record<string, any>, item: any) => {
         acc[item.section_key] = item.content;
         return acc;
@@ -237,9 +248,144 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     }
   }, [resources.length]);
 
+  // Define refresh functions first
+  const refreshContent = async () => {
+    // Clear all caches
+    OptimizedContentService.clearAllCaches();
+    
+    // Clear page content state and loaded sections to force fresh reload
+    setLoadedSections(new Set());
+    setPageContent({});
+    
+    // Add a small delay to ensure database write is committed
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Reload essential content (site settings, nav, footer, home)
+    await loadEssentialContent();
+    
+    // Force reload events with accurate counts
+    await loadEvents(true);
+    
+    // Force update timestamp to trigger re-renders
+    setLastUpdated(Date.now());
+  };
+
+  // Specific function to refresh page content
+  const refreshPageContent = async (pageSlug?: string) => {
+    console.log(`ContentContext: Refreshing page content for: ${pageSlug || 'all pages'}`);
+    
+    if (pageSlug) {
+      // Clear specific page cache from all sources
+      OptimizedContentService.invalidateCache('pageContent', pageSlug);
+      
+      // Clear service worker cache for this page
+      await clearSpecificCache(`pageContent_${pageSlug}`);
+      
+      // Remove from loaded sections to force reload
+      setLoadedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pageSlug);
+        return newSet;
+      });
+      
+      // Clear specific page content from state
+      setPageContent(prev => {
+        const newContent = { ...prev };
+        delete newContent[pageSlug];
+        return newContent;
+      });
+      
+      // Reload the specific page
+      await loadPageContent(pageSlug);
+    } else {
+      // Clear all page content from all sources
+      OptimizedContentService.invalidateCache('pageContent');
+      await clearContentCache();
+      
+      setLoadedSections(new Set());
+      setPageContent({});
+      
+      // Reload essential content which includes home page
+      await loadEssentialContent();
+    }
+    
+    // Force update the last updated timestamp to trigger re-renders
+    setLastUpdated(Date.now());
+    
+    console.log(`ContentContext: Page content refresh completed for: ${pageSlug || 'all pages'}`);
+  };
+
+  // Force refresh with aggressive cache clearing
+  const forceRefreshPageContent = async (pageSlug?: string) => {
+    console.log(`ContentContext: Force refreshing page content for: ${pageSlug || 'all pages'}`);
+    
+    // Clear all caches aggressively
+    OptimizedContentService.clearAllCaches();
+    await clearContentCache();
+    
+    // Clear browser cache by adding timestamp
+    const timestamp = Date.now();
+    
+    if (pageSlug) {
+      // Clear specific page
+      setLoadedSections(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pageSlug);
+        return newSet;
+      });
+      
+      setPageContent(prev => {
+        const newContent = { ...prev };
+        delete newContent[pageSlug];
+        return newContent;
+      });
+      
+      // Force reload with cache busting
+      await loadPageContent(pageSlug);
+    } else {
+      // Clear everything
+      setLoadedSections(new Set());
+      setPageContent({});
+      setSiteSettings({});
+      setNavigationItems([]);
+      setFooterContent({});
+      
+      // Reload everything
+      await loadEssentialContent();
+    }
+    
+    // Force update timestamp
+    setLastUpdated(timestamp);
+    
+    console.log(`ContentContext: Force refresh completed for: ${pageSlug || 'all pages'}`);
+  };
+
   // Load essential content on mount
   useEffect(() => {
     loadEssentialContent();
+  }, []);
+
+
+
+  // Listen for force refresh events from admin
+  useEffect(() => {
+    const handleForceRefresh = (event: CustomEvent) => {
+      const { pageSlug } = event.detail;
+      console.log('ContentContext: Received force refresh event for:', pageSlug);
+      
+      // Force refresh the specific page content
+      if (pageSlug) {
+        forceRefreshPageContent(pageSlug);
+      } else {
+        forceRefreshPageContent();
+      }
+    };
+
+    window.addEventListener('forceContentRefresh', handleForceRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('forceContentRefresh', handleForceRefresh as EventListener);
+    };
   }, []);
 
   // Optimized real-time subscriptions - only for critical content
@@ -249,7 +395,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       supabase
         .channel('essential_content_changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
-          // Debounced reload of essential content only
           setTimeout(() => loadEssentialContent(), 500);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'navigation_items' }, () => {
@@ -259,18 +404,10 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
           setTimeout(() => loadEssentialContent(), 500);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'page_content' }, () => {
-          // Smart update: only refresh if no one is currently editing
           setTimeout(() => {
-            // Check if any editing is happening by looking for edit buttons or forms
-            const editingElements = document.querySelectorAll('[data-editing="true"], .editing-active');
-            const savingElements = document.querySelectorAll('[data-saving="true"]');
-            
-            // Only update if no editing or saving is happening
-            if (editingElements.length === 0 && savingElements.length === 0) {
-              OptimizedContentService.invalidateCache('pageContent');
-              loadEssentialContent();
-            }
-          }, 2000); // 2 second delay for safety
+            OptimizedContentService.invalidateCache('pageContent');
+            loadEssentialContent();
+          }, 1000);
         })
         .subscribe(),
 
@@ -308,16 +445,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     };
   }, [events.length, teamMembers.length, projects.length, loadEvents, loadTeamMembers, loadProjects]);
 
-  const refreshContent = async () => {
-    // Clear all caches and reload essential content
-    OptimizedContentService.clearAllCaches();
-    setLoadedSections(new Set());
-    
-    // Force reload events with accurate counts
-    await loadEvents(true);
-    await loadEssentialContent();
-  };
-
   const getSiteSetting = (key: string) => {
     return siteSettings[key] || null;
   };
@@ -327,6 +454,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     if (!loadedSections.has(pageSlug)) {
       loadPageContent(pageSlug);
     }
+    
     return pageContent[pageSlug]?.[sectionKey] || null;
   };
 
@@ -405,6 +533,8 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     isLoadingResources,
     lastUpdated,
     refreshContent,
+    refreshPageContent,
+    forceRefreshPageContent,
     loadEvents,
     loadTeamMembers,
     loadProjects,

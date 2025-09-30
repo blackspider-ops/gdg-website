@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 const HeroScene = React.lazy(() => import('@/components/HeroScene'));
 
 const Contact = () => {
-  const { getPageSection, getSiteSetting, getLink } = useContent();
+  const { getPageSection, getSiteSetting, getLink, lastUpdated } = useContent();
   
   // Parse contact links and social links if they exist
   const contactContent = React.useMemo(() => {
@@ -38,7 +38,7 @@ const Contact = () => {
     }
     
     return content;
-  }, [getPageSection]);
+  }, [getPageSection, lastUpdated]);
   
 
   

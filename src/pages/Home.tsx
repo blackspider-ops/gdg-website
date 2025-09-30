@@ -7,7 +7,8 @@ import { useContent } from '@/contexts/ContentContext';
 
 const Home = () => {
   const { 
-    getPageSection, 
+    getPageSection,
+    lastUpdated, 
     events, 
     projects, 
     isLoadingEvents, 
@@ -20,7 +21,7 @@ const Home = () => {
   useEffect(() => {
     loadEvents();
     loadProjects();
-  }, [loadEvents, loadProjects]);
+  }, [loadEvents, loadProjects, lastUpdated]);
   
   // Get dynamic content from admin panel
   const heroContent = getPageSection('home', 'hero') || {};

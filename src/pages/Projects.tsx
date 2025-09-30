@@ -6,7 +6,7 @@ import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import { ProjectStarsService } from '@/services/projectStarsService';
 
 const Projects = () => {
-  const { projects, isLoadingProjects, loadProjects, getPageSection } = useContent();
+  const { projects, isLoadingProjects, loadProjects, getPageSection, lastUpdated } = useContent();
   const [selectedCategory, setSelectedCategory] = React.useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = React.useState('All');
   const [starredProjects, setStarredProjects] = useState<Record<string, boolean>>({});
@@ -16,7 +16,7 @@ const Projects = () => {
   // Load projects when component mounts
   useEffect(() => {
     loadProjects();
-  }, [loadProjects]);
+  }, [loadProjects, lastUpdated]);
 
   // Update local projects when projects from context change
   useEffect(() => {

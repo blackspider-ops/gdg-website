@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 const Team = () => {
-    const { teamMembers, isLoadingTeam, loadTeamMembers, getPageSection } = useContent();
+    const { teamMembers, isLoadingTeam, loadTeamMembers, getPageSection, lastUpdated } = useContent();
 
     // Load team members when component mounts
     useEffect(() => {
         loadTeamMembers();
-    }, [loadTeamMembers]);
+    }, [loadTeamMembers, lastUpdated]);
 
     // Transform team members data to match component structure
     const transformedMembers = teamMembers.map(member => ({
