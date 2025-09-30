@@ -132,7 +132,12 @@ const App = () => (
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
-                <BrowserRouter>
+                <BrowserRouter
+                  future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true
+                  }}
+                >
                   <ScrollToTop />
                   <SmoothScroll />
                   <ConditionalScrollToTop />

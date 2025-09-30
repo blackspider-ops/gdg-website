@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 import { AuditService } from './auditService';
 
 // Email functionality
@@ -23,36 +22,10 @@ export interface EmailResult {
   error?: string;
 }
 
-// Create service role client for communications operations
-let serviceRoleClient: any = null;
-
+// FIXED: Use the existing supabase client to avoid multiple GoTrueClient instances
 const getServiceRoleClient = () => {
-  if (serviceRoleClient) {
-    return serviceRoleClient;
-  }
-  
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  // SECURITY FIX: Service role key should only be used server-side
-  // Use anon key for client-side operations
-  const serviceRoleKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !serviceRoleKey) {
-    serviceRoleClient = supabase;
-    return supabase;
-  }
-  
-  try {
-    serviceRoleClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-  } catch (error) {
-    serviceRoleClient = supabase;
-  }
-  
-  return serviceRoleClient;
+  // Always use the main supabase client to avoid multiple instances
+  return supabase;
 };
 
 // Types

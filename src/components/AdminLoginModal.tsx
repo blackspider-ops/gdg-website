@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,9 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                         <Lock className="h-5 w-5 text-primary" />
                         Admin Access
                     </DialogTitle>
+                    <DialogDescription>
+                        Enter your admin credentials to access the dashboard.
+                    </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">

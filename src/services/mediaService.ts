@@ -1,39 +1,9 @@
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 
-// Create singleton service role client for storage operations
-let serviceRoleClient: any = null;
-let clientInitialized = false;
-
+// FIXED: Use the existing supabase client to avoid multiple GoTrueClient instances
 const getServiceRoleClient = () => {
-  if (clientInitialized) {
-    return serviceRoleClient || supabase;
-  }
-  
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  // SECURITY FIX: Service role key should only be used server-side
-  // Use anon key for client-side operations
-  const serviceRoleKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  clientInitialized = true;
-  
-  if (!supabaseUrl || !serviceRoleKey) {
-    serviceRoleClient = supabase;
-    return supabase;
-  }
-  
-  try {
-    serviceRoleClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-  } catch (error) {
-    serviceRoleClient = supabase;
-  }
-  
-  return serviceRoleClient;
+  // Always use the main supabase client to avoid multiple instances
+  return supabase;
 };
 
 // Use service role client for storage operations to bypass RLS
