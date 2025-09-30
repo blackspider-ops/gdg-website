@@ -19,7 +19,7 @@ const getTimeAgo = (date: Date): string => {
 };
 
 const AdminNewsletter = () => {
-  const { isAuthenticated } = useAdmin();
+  const { isAuthenticated, currentAdmin } = useAdmin();
   const [activeTab, setActiveTab] = useState('overview');
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>([]);
   const [campaigns, setCampaigns] = useState<NewsletterCampaign[]>([]);
@@ -769,22 +769,26 @@ const AdminNewsletter = () => {
                     <p className="text-sm text-muted-foreground mt-1">Manage newsletter subscribers</p>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button 
-                      onClick={handleRemoveAllPending}
-                      className="flex items-center space-x-2 px-4 py-2 border border-yellow-600 text-yellow-400 rounded-lg hover:bg-yellow-600/10 transition-colors font-medium"
-                      disabled={isLoading}
-                    >
-                      <X size={16} />
-                      <span>Remove Pending</span>
-                    </button>
-                    <button 
-                      onClick={handleRemoveAllRegistered}
-                      className="flex items-center space-x-2 px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-600/10 transition-colors font-medium"
-                      disabled={isLoading}
-                    >
-                      <Trash2 size={16} />
-                      <span>Remove All</span>
-                    </button>
+                    {currentAdmin?.role === 'super_admin' ? (
+                      <>
+                        <button 
+                          onClick={handleRemoveAllPending}
+                          className="flex items-center space-x-2 px-4 py-2 border border-yellow-600 text-yellow-400 rounded-lg hover:bg-yellow-600/10 transition-colors font-medium"
+                          disabled={isLoading}
+                        >
+                          <X size={16} />
+                          <span>Remove Pending</span>
+                        </button>
+                        <button 
+                          onClick={handleRemoveAllRegistered}
+                          className="flex items-center space-x-2 px-4 py-2 border border-red-600 text-red-400 rounded-lg hover:bg-red-600/10 transition-colors font-medium"
+                          disabled={isLoading}
+                        >
+                          <Trash2 size={16} />
+                          <span>Remove All</span>
+                        </button>
+                      </>
+                    ):(<></>)}
                     <button 
                       onClick={handleExportSubscribers}
                       className="flex items-center space-x-2 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
