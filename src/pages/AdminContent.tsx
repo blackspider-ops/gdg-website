@@ -36,7 +36,8 @@ const AdminContent = () => {
     pageContent,
     navigationItems,
     footerContent,
-    refreshContent
+    refreshContent,
+    getPageSection
   } = useContent();
 
   // All hooks must be called before any early returns
@@ -49,7 +50,13 @@ const AdminContent = () => {
   const [siteSettingsForm, setSiteSettingsForm] = useState({
     site_title: siteSettings.site_title || 'GDG@PSU',
     site_subtitle: siteSettings.site_subtitle || 'Penn State University',
-    site_description: siteSettings.site_description || 'A student-led community passionate about Google technologies'
+    site_description: siteSettings.site_description || 'A student-led community passionate about Google technologies',
+    // Logo settings
+    logo_text: siteSettings.logo_text || 'G',
+    logo_image_path: siteSettings.logo_image_path || '',
+    logo_bg_color: siteSettings.logo_bg_color || '#3b82f6',
+    logo_text_color: siteSettings.logo_text_color || '#ffffff',
+    logo_use_image: siteSettings.logo_use_image || false
   });
 
   const [homePageForm, setHomePageForm] = useState(() => {
@@ -123,21 +130,21 @@ const AdminContent = () => {
       title: mainContent.title || '',
       title_second_line: mainContent.title_second_line || '',
       subtitle: mainContent.subtitle || '',
-      description: mainContent.description || 'We\'d love to hear from you! Whether you\'re interested in joining our chapter, have questions about upcoming events, or want to collaborate with us.',
-      form_title: mainContent.form_title || 'Send us a message',
-      success_message: mainContent.success_message || 'Thank you for your message! We\'ll get back to you soon.',
-      button_text: mainContent.button_text || 'Send Message',
-      quick_contact_title: mainContent.quick_contact_title || 'Quick Contact',
-      email_label: mainContent.email_label || 'Email',
+      description: mainContent.description || '',
+      form_title: mainContent.form_title || '',
+      success_message: mainContent.success_message || '',
+      button_text: mainContent.button_text || '',
+      quick_contact_title: mainContent.quick_contact_title || '',
+      email_label: mainContent.email_label || '',
       email_url: mainContent.email_url || '',
-      discord_label: mainContent.discord_label || 'Discord',
+      discord_label: mainContent.discord_label || '',
       discord_url: mainContent.discord_url || '',
-      discord_description: mainContent.discord_description || 'Join our server for real-time chat',
-      office_hours_label: mainContent.office_hours_label || 'Office Hours',
-      office_hours_info: mainContent.office_hours_info || 'Wednesdays 4-6 PM, IST Building',
-      meeting_time: mainContent.meeting_time || 'Thursdays at 7:00 PM',
-      meeting_location: mainContent.meeting_location || 'Thomas Building 100',
-      additional_links_title: mainContent.additional_links_title || 'Additional Links',
+      discord_description: mainContent.discord_description || '',
+      office_hours_label: mainContent.office_hours_label || '',
+      office_hours_info: mainContent.office_hours_info || '',
+      meeting_time: mainContent.meeting_time || '',
+      meeting_location: mainContent.meeting_location || '',
+      additional_links_title: mainContent.additional_links_title || '',
       contact_links: contactLinks || []
     };
   });
@@ -147,11 +154,11 @@ const AdminContent = () => {
     const eventsContent = pageContent.events || {};
     const headerContent = eventsContent.header || {};
     return {
-      title: headerContent.title || 'Events & Workshops',
-      description: headerContent.description || 'Join our community for hands-on workshops, inspiring talks, and networking opportunities. From beginner-friendly introductions to advanced deep dives, there\'s something for every developer.',
-      upcoming_section_title: headerContent.upcoming_section_title || 'Upcoming Events',
-      past_section_title: headerContent.past_section_title || 'Past Events',
-      no_events_message: headerContent.no_events_message || 'No events scheduled at the moment. Check back soon!'
+      title: headerContent.title || '',
+      description: headerContent.description || '',
+      upcoming_section_title: headerContent.upcoming_section_title || '',
+      past_section_title: headerContent.past_section_title || '',
+      no_events_message: headerContent.no_events_message || ''
     };
   });
 
@@ -160,13 +167,13 @@ const AdminContent = () => {
     const projectsContent = pageContent.projects || {};
     const headerContent = projectsContent.header || {};
     return {
-      title: headerContent.title || 'Student Projects',
-      subtitle: headerContent.subtitle || 'Projects',
-      description: headerContent.description || 'Discover innovative projects built by our community members. From mobile apps to AI research, see what happens when students collaborate and create.',
-      featured_section_title: headerContent.featured_section_title || 'Featured Projects',
-      all_projects_title: headerContent.all_projects_title || 'All Projects',
-      contribute_cta: headerContent.contribute_cta || 'Want to showcase your project?',
-      contribute_button: headerContent.contribute_button || 'Submit Project'
+      title: headerContent.title || '',
+      subtitle: headerContent.subtitle || '',
+      description: headerContent.description || '',
+      featured_section_title: headerContent.featured_section_title || '',
+      all_projects_title: headerContent.all_projects_title || '',
+      contribute_cta: headerContent.contribute_cta || '',
+      contribute_button: headerContent.contribute_button || ''
     };
   });
 
@@ -175,14 +182,14 @@ const AdminContent = () => {
     const teamContent = pageContent.team || {};
     const headerContent = teamContent.header || {};
     return {
-      title: headerContent.title || 'Meet Our Team',
-      subtitle: headerContent.subtitle || 'Team',
-      description: headerContent.description || 'The passionate students and mentors who make GDG@PSU a thriving community for developers and tech enthusiasts.',
-      leadership_title: headerContent.leadership_title || 'Leadership Team',
-      organizers_title: headerContent.organizers_title || 'Organizers',
-      members_title: headerContent.members_title || 'Active Members',
-      join_team_cta: headerContent.join_team_cta || 'Interested in joining our team?',
-      join_team_button: headerContent.join_team_button || 'Get Involved'
+      title: headerContent.title || '',
+      subtitle: headerContent.subtitle || '',
+      description: headerContent.description || '',
+      leadership_title: headerContent.leadership_title || '',
+      organizers_title: headerContent.organizers_title || '',
+      members_title: headerContent.members_title || '',
+      join_team_cta: headerContent.join_team_cta || '',
+      join_team_button: headerContent.join_team_button || ''
     };
   });
 
@@ -191,13 +198,13 @@ const AdminContent = () => {
     const blogContent = pageContent.blog || {};
     const headerContent = blogContent.header || {};
     return {
-      title: headerContent.title || 'Blog & Updates',
-      description: headerContent.description || 'Insights, tutorials, and updates from our community. Learn about the latest technologies, workshop recaps, and member spotlights.',
-      featured_title: headerContent.featured_title || 'Featured Posts',
-      recent_title: headerContent.recent_title || 'Recent Posts',
-      categories_title: headerContent.categories_title || 'Categories',
-      search_placeholder: headerContent.search_placeholder || 'Search articles...',
-      no_posts_message: headerContent.no_posts_message || 'No blog posts available yet.'
+      title: headerContent.title || '',
+      description: headerContent.description || '',
+      featured_title: headerContent.featured_title || '',
+      recent_title: headerContent.recent_title || '',
+      categories_title: headerContent.categories_title || '',
+      search_placeholder: headerContent.search_placeholder || '',
+      no_posts_message: headerContent.no_posts_message || ''
     };
   });
 
@@ -206,15 +213,15 @@ const AdminContent = () => {
     const sponsorsContent = pageContent.sponsors || {};
     const headerContent = sponsorsContent.header || {};
     return {
-      title: headerContent.title || 'Our Sponsors',
-      subtitle: headerContent.subtitle || 'Sponsors',
-      description: headerContent.description || 'We\'re grateful to our sponsors and partners who make our events, workshops, and community initiatives possible.',
-      platinum_title: headerContent.platinum_title || 'Platinum Sponsors',
-      gold_title: headerContent.gold_title || 'Gold Sponsors',
-      silver_title: headerContent.silver_title || 'Silver Sponsors',
-      community_title: headerContent.community_title || 'Community Partners',
-      become_sponsor_cta: headerContent.become_sponsor_cta || 'Interested in sponsoring us?',
-      become_sponsor_button: headerContent.become_sponsor_button || 'Partner With Us'
+      title: headerContent.title || '',
+      subtitle: headerContent.subtitle || '',
+      description: headerContent.description || '',
+      platinum_title: headerContent.platinum_title || '',
+      gold_title: headerContent.gold_title || '',
+      silver_title: headerContent.silver_title || '',
+      community_title: headerContent.community_title || '',
+      become_sponsor_cta: headerContent.become_sponsor_cta || '',
+      become_sponsor_button: headerContent.become_sponsor_button || ''
     };
   });
 
@@ -223,14 +230,14 @@ const AdminContent = () => {
     const resourcesContent = pageContent.resources || {};
     const headerContent = resourcesContent.header || {};
     return {
-      title: headerContent.title || 'Learning Resources',
-      subtitle: headerContent.subtitle || 'Resources',
-      description: headerContent.description || 'Access study materials, cloud credits, documentation, and recorded sessions to accelerate your learning journey.',
-      study_materials_title: headerContent.study_materials_title || 'Study Materials',
-      cloud_credits_title: headerContent.cloud_credits_title || 'Cloud Credits',
-      documentation_title: headerContent.documentation_title || 'Documentation',
-      recordings_title: headerContent.recordings_title || 'Session Recordings',
-      tools_title: headerContent.tools_title || 'Developer Tools'
+      title: headerContent.title || '',
+      subtitle: headerContent.subtitle || '',
+      description: headerContent.description || '',
+      study_materials_title: headerContent.study_materials_title || '',
+      cloud_credits_title: headerContent.cloud_credits_title || '',
+      documentation_title: headerContent.documentation_title || '',
+      recordings_title: headerContent.recordings_title || '',
+      tools_title: headerContent.tools_title || ''
     };
   });
 
@@ -394,6 +401,16 @@ const AdminContent = () => {
     return 'general';
   };
 
+  // Load all page content when component mounts
+  React.useEffect(() => {
+    // Trigger loading of all page content by calling getPageSection
+    // This will ensure the lazy loading is triggered for all pages
+    const pagesToLoad = ['events', 'projects', 'team', 'blog', 'sponsors', 'resources', 'contact'];
+    pagesToLoad.forEach(page => {
+      getPageSection(page, 'header'); // This will trigger loadPageContent for each page
+    });
+  }, [getPageSection]);
+
   // Update category when tab changes (for direct tab access)
   React.useEffect(() => {
     const correctCategory = getCategoryForTab(activeTab);
@@ -401,6 +418,23 @@ const AdminContent = () => {
       setActiveCategory(correctCategory);
     }
   }, [activeTab, activeCategory, getCategoryForTab]);
+
+  // Update site settings form when siteSettings loads
+  React.useEffect(() => {
+    if (siteSettings && Object.keys(siteSettings).length > 0) {
+      setSiteSettingsForm({
+        site_title: siteSettings.site_title || 'GDG@PSU',
+        site_subtitle: siteSettings.site_subtitle || 'Penn State University',
+        site_description: siteSettings.site_description || 'A student-led community passionate about Google technologies',
+        // Logo settings
+        logo_text: siteSettings.logo_text || 'G',
+        logo_image_path: siteSettings.logo_image_path || '',
+        logo_bg_color: siteSettings.logo_bg_color || '#3b82f6',
+        logo_text_color: siteSettings.logo_text_color || '#ffffff',
+        logo_use_image: siteSettings.logo_use_image === 'true' || siteSettings.logo_use_image === true || false
+      });
+    }
+  }, [siteSettings]);
 
   const handleSaveSiteSettings = async () => {
     setIsSaving(true);
@@ -1006,21 +1040,21 @@ const AdminContent = () => {
         title: mainContent.title || '',
         title_second_line: mainContent.title_second_line || '',
         subtitle: mainContent.subtitle || '',
-        description: mainContent.description || 'We\'d love to hear from you! Whether you\'re interested in joining our chapter, have questions about upcoming events, or want to collaborate with us.',
-        form_title: mainContent.form_title || 'Send us a message',
-        success_message: mainContent.success_message || 'Thank you for your message! We\'ll get back to you soon.',
-        button_text: mainContent.button_text || 'Send Message',
-        quick_contact_title: mainContent.quick_contact_title || 'Quick Contact',
-        email_label: mainContent.email_label || 'Email',
+        description: mainContent.description || '',
+        form_title: mainContent.form_title || '',
+        success_message: mainContent.success_message || '',
+        button_text: mainContent.button_text || '',
+        quick_contact_title: mainContent.quick_contact_title || '',
+        email_label: mainContent.email_label || '',
         email_url: mainContent.email_url || '',
-        discord_label: mainContent.discord_label || 'Discord',
+        discord_label: mainContent.discord_label || '',
         discord_url: mainContent.discord_url || '',
-        discord_description: mainContent.discord_description || 'Join our server for real-time chat',
-        office_hours_label: mainContent.office_hours_label || 'Office Hours',
-        office_hours_info: mainContent.office_hours_info || 'Wednesdays 4-6 PM, IST Building',
-        meeting_time: mainContent.meeting_time || 'Thursdays at 7:00 PM',
-        meeting_location: mainContent.meeting_location || 'Thomas Building 100',
-        additional_links_title: mainContent.additional_links_title || 'Additional Links',
+        discord_description: mainContent.discord_description || '',
+        office_hours_label: mainContent.office_hours_label || '',
+        office_hours_info: mainContent.office_hours_info || '',
+        meeting_time: mainContent.meeting_time || '',
+        meeting_location: mainContent.meeting_location || '',
+        additional_links_title: mainContent.additional_links_title || '',
         contact_links: contactLinks || []
       });
     }
@@ -1084,11 +1118,11 @@ const AdminContent = () => {
       const eventsContent = pageContent.events;
       const headerContent = eventsContent.header || {};
       setEventsPageForm({
-        title: headerContent.title || 'Events & Workshops',
-        description: headerContent.description || 'Join our community for hands-on workshops, inspiring talks, and networking opportunities. From beginner-friendly introductions to advanced deep dives, there\'s something for every developer.',
-        upcoming_section_title: headerContent.upcoming_section_title || 'Upcoming Events',
-        past_section_title: headerContent.past_section_title || 'Past Events',
-        no_events_message: headerContent.no_events_message || 'No events scheduled at the moment. Check back soon!'
+        title: headerContent.title || '',
+        description: headerContent.description || '',
+        upcoming_section_title: headerContent.upcoming_section_title || '',
+        past_section_title: headerContent.past_section_title || '',
+        no_events_message: headerContent.no_events_message || ''
       });
     }
   }, [pageContent]);
@@ -1099,13 +1133,13 @@ const AdminContent = () => {
       const projectsContent = pageContent.projects;
       const headerContent = projectsContent.header || {};
       setProjectsPageForm({
-        title: headerContent.title || 'Student',
-        subtitle: headerContent.subtitle || 'Projects',
-        description: headerContent.description || 'Discover innovative projects built by our community members. From mobile apps to AI research, see what happens when students collaborate and create.',
-        featured_section_title: headerContent.featured_section_title || 'Featured Projects',
-        all_projects_title: headerContent.all_projects_title || 'All Projects',
-        contribute_cta: headerContent.contribute_cta || 'Want to showcase your project?',
-        contribute_button: headerContent.contribute_button || 'Submit Project'
+        title: headerContent.title || '',
+        subtitle: headerContent.subtitle || '',
+        description: headerContent.description || '',
+        featured_section_title: headerContent.featured_section_title || '',
+        all_projects_title: headerContent.all_projects_title || '',
+        contribute_cta: headerContent.contribute_cta || '',
+        contribute_button: headerContent.contribute_button || ''
       });
     }
   }, [pageContent]);
@@ -1116,14 +1150,14 @@ const AdminContent = () => {
       const teamContent = pageContent.team;
       const headerContent = teamContent.header || {};
       setTeamPageForm({
-        title: headerContent.title || 'Meet Our',
-        subtitle: headerContent.subtitle || 'Team',
-        description: headerContent.description || 'The passionate students and mentors who make GDG@PSU a thriving community for developers and tech enthusiasts.',
-        leadership_title: headerContent.leadership_title || 'Leadership Team',
-        organizers_title: headerContent.organizers_title || 'Organizers',
-        members_title: headerContent.members_title || 'Active Members',
-        join_team_cta: headerContent.join_team_cta || 'Interested in joining our team?',
-        join_team_button: headerContent.join_team_button || 'Get Involved'
+        title: headerContent.title || '',
+        subtitle: headerContent.subtitle || '',
+        description: headerContent.description || '',
+        leadership_title: headerContent.leadership_title || '',
+        organizers_title: headerContent.organizers_title || '',
+        members_title: headerContent.members_title || '',
+        join_team_cta: headerContent.join_team_cta || '',
+        join_team_button: headerContent.join_team_button || ''
       });
     }
   }, [pageContent]);
@@ -1134,13 +1168,13 @@ const AdminContent = () => {
       const blogContent = pageContent.blog;
       const headerContent = blogContent.header || {};
       setBlogPageForm({
-        title: headerContent.title || 'Blog & Updates',
-        description: headerContent.description || 'Insights, tutorials, and updates from our community. Learn about the latest technologies, workshop recaps, and member spotlights.',
-        featured_title: headerContent.featured_title || 'Featured Posts',
-        recent_title: headerContent.recent_title || 'Recent Posts',
-        categories_title: headerContent.categories_title || 'Categories',
-        search_placeholder: headerContent.search_placeholder || 'Search articles...',
-        no_posts_message: headerContent.no_posts_message || 'No blog posts available yet.'
+        title: headerContent.title || '',
+        description: headerContent.description || '',
+        featured_title: headerContent.featured_title || '',
+        recent_title: headerContent.recent_title || '',
+        categories_title: headerContent.categories_title || '',
+        search_placeholder: headerContent.search_placeholder || '',
+        no_posts_message: headerContent.no_posts_message || ''
       });
     }
   }, [pageContent]);
@@ -1151,15 +1185,15 @@ const AdminContent = () => {
       const sponsorsContent = pageContent.sponsors;
       const headerContent = sponsorsContent.header || {};
       setSponsorsPageForm({
-        title: headerContent.title || 'Our',
-        subtitle: headerContent.subtitle || 'Sponsors',
-        description: headerContent.description || 'We\'re grateful to our sponsors and partners who make our events, workshops, and community initiatives possible.',
-        platinum_title: headerContent.platinum_title || 'Platinum Sponsors',
-        gold_title: headerContent.gold_title || 'Gold Sponsors',
-        silver_title: headerContent.silver_title || 'Silver Sponsors',
-        community_title: headerContent.community_title || 'Community Partners',
-        become_sponsor_cta: headerContent.become_sponsor_cta || 'Interested in sponsoring us?',
-        become_sponsor_button: headerContent.become_sponsor_button || 'Partner With Us'
+        title: headerContent.title || '',
+        subtitle: headerContent.subtitle || '',
+        description: headerContent.description || '',
+        platinum_title: headerContent.platinum_title || '',
+        gold_title: headerContent.gold_title || '',
+        silver_title: headerContent.silver_title || '',
+        community_title: headerContent.community_title || '',
+        become_sponsor_cta: headerContent.become_sponsor_cta || '',
+        become_sponsor_button: headerContent.become_sponsor_button || ''
       });
     }
   }, [pageContent]);
@@ -1170,14 +1204,14 @@ const AdminContent = () => {
       const resourcesContent = pageContent.resources;
       const headerContent = resourcesContent.header || {};
       setResourcesPageForm({
-        title: headerContent.title || 'Learning',
-        subtitle: headerContent.subtitle || 'Resources',
-        description: headerContent.description || 'Access study materials, cloud credits, documentation, and recorded sessions to accelerate your learning journey.',
-        study_materials_title: headerContent.study_materials_title || 'Study Materials',
-        cloud_credits_title: headerContent.cloud_credits_title || 'Cloud Credits',
-        documentation_title: headerContent.documentation_title || 'Documentation',
-        recordings_title: headerContent.recordings_title || 'Session Recordings',
-        tools_title: headerContent.tools_title || 'Developer Tools'
+        title: headerContent.title || '',
+        subtitle: headerContent.subtitle || '',
+        description: headerContent.description || '',
+        study_materials_title: headerContent.study_materials_title || '',
+        cloud_credits_title: headerContent.cloud_credits_title || '',
+        documentation_title: headerContent.documentation_title || '',
+        recordings_title: headerContent.recordings_title || '',
+        tools_title: headerContent.tools_title || ''
       });
     }
   }, [pageContent]);
@@ -1360,10 +1394,274 @@ const AdminContent = () => {
                   </div>
                 )}
               </div>
+            </div>
 
+            {/* Logo Customization Section */}
+            <div className="mt-8 pt-8 border-t border-border">
+              <h3 className="text-lg font-semibold text-foreground mb-6">Logo Customization</h3>
+              <p className="text-sm text-muted-foreground mb-6">Customize the logo displayed in the navigation bar</p>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Logo Preview */}
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-3">Logo Preview</label>
+                  <div className="p-6 bg-muted/30 rounded-lg border border-border">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative ${siteSettingsForm.logo_bg_color === 'transparent' ? 'bg-transparent' : ''}`}
+                        style={{ backgroundColor: siteSettingsForm.logo_bg_color === 'transparent' ? 'transparent' : siteSettingsForm.logo_bg_color }}
+                      >
+                        {/* Checkerboard pattern for transparent background */}
+                        {siteSettingsForm.logo_bg_color === 'transparent' && (
+                          <div 
+                            className="absolute inset-0 rounded-xl opacity-20"
+                            style={{
+                              backgroundImage: `
+                                linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                                linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                                linear-gradient(-45deg, transparent 75%, #ccc 75%)
+                              `,
+                              backgroundSize: '8px 8px',
+                              backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                            }}
+                          />
+                        )}
+                        {siteSettingsForm.logo_use_image && siteSettingsForm.logo_image_path ? (
+                          <img 
+                            src={siteSettingsForm.logo_image_path} 
+                            alt="Logo" 
+                            className="w-8 h-8 object-contain rounded-lg"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (nextSibling) {
+                                nextSibling.style.display = 'block';
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span 
+                            className="font-display font-bold text-lg"
+                            style={{ color: siteSettingsForm.logo_text_color }}
+                          >
+                            {siteSettingsForm.logo_text}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-display font-semibold text-base leading-tight truncate">{siteSettingsForm.site_title}</span>
+                        <span className="text-muted-foreground text-xs leading-tight truncate">{siteSettingsForm.site_subtitle}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
+                {/* Logo Settings */}
+                <div className="space-y-6">
+                  {/* Logo Type Toggle */}
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-3">Logo Type</label>
+                    {isEditing ? (
+                      <div className="flex space-x-4">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="logo_type"
+                            checked={!siteSettingsForm.logo_use_image}
+                            onChange={() => setSiteSettingsForm(prev => ({ ...prev, logo_use_image: false }))}
+                            className="w-4 h-4 text-primary border-border focus:ring-primary"
+                          />
+                          <span className="text-sm">Text Logo</span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="logo_type"
+                            checked={siteSettingsForm.logo_use_image}
+                            onChange={() => setSiteSettingsForm(prev => ({ ...prev, logo_use_image: true }))}
+                            className="w-4 h-4 text-primary border-border focus:ring-primary"
+                          />
+                          <span className="text-sm">Image Logo</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
+                        {siteSettingsForm.logo_use_image ? 'Image Logo' : 'Text Logo'}
+                      </div>
+                    )}
+                  </div>
 
+                  {/* Text Logo Settings */}
+                  {!siteSettingsForm.logo_use_image && (
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Logo Text</label>
+                      <p className="text-xs text-muted-foreground mb-3">Single character or short text for the logo</p>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={siteSettingsForm.logo_text}
+                          onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, logo_text: e.target.value }))}
+                          className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
+                          placeholder="G"
+                          maxLength={3}
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
+                          {siteSettingsForm.logo_text}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
+                  {/* Image Logo Settings */}
+                  {siteSettingsForm.logo_use_image && (
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Logo Image Path</label>
+                      <p className="text-xs text-muted-foreground mb-3">Path to logo image starting with / (e.g., /images/logo.png)</p>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={siteSettingsForm.logo_image_path}
+                          onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, logo_image_path: e.target.value }))}
+                          className="w-full px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
+                          placeholder="/images/logo.png"
+                        />
+                      ) : (
+                        <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
+                          {siteSettingsForm.logo_image_path || 'No image path set'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Background Color */}
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Background Color</label>
+                    <p className="text-xs text-muted-foreground mb-3">Background color of the logo container</p>
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        {/* Transparent Option */}
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="transparent-bg"
+                            checked={siteSettingsForm.logo_bg_color === 'transparent'}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSiteSettingsForm(prev => ({ ...prev, logo_bg_color: 'transparent' }));
+                              } else {
+                                setSiteSettingsForm(prev => ({ ...prev, logo_bg_color: '#3b82f6' }));
+                              }
+                            }}
+                            className="w-4 h-4 text-primary border-border focus:ring-primary rounded"
+                          />
+                          <label htmlFor="transparent-bg" className="text-sm text-foreground cursor-pointer">
+                            Transparent Background
+                          </label>
+                        </div>
+
+                        {/* Color Picker (only show if not transparent) */}
+                        {siteSettingsForm.logo_bg_color !== 'transparent' && (
+                          <>
+                            <div className="flex space-x-3">
+                              <input
+                                type="color"
+                                value={siteSettingsForm.logo_bg_color}
+                                onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, logo_bg_color: e.target.value }))}
+                                className="w-12 h-10 border border-border rounded-lg cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={siteSettingsForm.logo_bg_color}
+                                onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, logo_bg_color: e.target.value }))}
+                                className="flex-1 px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
+                                placeholder="#3b82f6"
+                              />
+                            </div>
+                            {/* Preset Colors */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Presets:</span>
+                              {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'].map(color => (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() => setSiteSettingsForm(prev => ({ ...prev, logo_bg_color: color }))}
+                                  className="w-6 h-6 rounded border-2 border-border hover:border-primary transition-colors"
+                                  style={{ backgroundColor: color }}
+                                  title={color}
+                                />
+                              ))}
+                              {/* Transparent preset button */}
+                              <button
+                                type="button"
+                                onClick={() => setSiteSettingsForm(prev => ({ ...prev, logo_bg_color: 'transparent' }))}
+                                className="w-6 h-6 rounded border-2 border-border hover:border-primary transition-colors bg-transparent relative"
+                                title="Transparent"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-br from-red-500 via-transparent to-red-500 opacity-30 rounded"></div>
+                                <div className="absolute inset-1 border border-red-400 rounded-sm"></div>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className={`w-8 h-8 rounded border border-border ${siteSettingsForm.logo_bg_color === 'transparent' ? 'bg-transparent relative' : ''}`}
+                          style={{ backgroundColor: siteSettingsForm.logo_bg_color === 'transparent' ? 'transparent' : siteSettingsForm.logo_bg_color }}
+                        >
+                          {siteSettingsForm.logo_bg_color === 'transparent' && (
+                            <>
+                              <div className="absolute inset-0 bg-gradient-to-br from-red-500 via-transparent to-red-500 opacity-30 rounded"></div>
+                              <div className="absolute inset-1 border border-red-400 rounded-sm"></div>
+                            </>
+                          )}
+                        </div>
+                        <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
+                          {siteSettingsForm.logo_bg_color === 'transparent' ? 'Transparent' : siteSettingsForm.logo_bg_color}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text Color (only for text logos) */}
+                  {!siteSettingsForm.logo_use_image && (
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Text Color</label>
+                      <p className="text-xs text-muted-foreground mb-3">Color of the logo text</p>
+                      {isEditing ? (
+                        <div className="flex space-x-3">
+                          <input
+                            type="color"
+                            value={siteSettingsForm.logo_text_color}
+                            onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, logo_text_color: e.target.value }))}
+                            className="w-12 h-10 border border-border rounded-lg cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={siteSettingsForm.logo_text_color}
+                            onChange={(e) => setSiteSettingsForm(prev => ({ ...prev, logo_text_color: e.target.value }))}
+                            className="flex-1 px-3 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground placeholder:text-muted-foreground"
+                            placeholder="#ffffff"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className="w-8 h-8 rounded border border-border"
+                            style={{ backgroundColor: siteSettingsForm.logo_text_color }}
+                          ></div>
+                          <div className="px-3 py-2 bg-card border border-border rounded-lg text-foreground">
+                            {siteSettingsForm.logo_text_color}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

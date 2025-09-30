@@ -27,6 +27,13 @@ const Navigation = () => {
 
   const siteTitle = getSiteSetting('site_title');
   const siteSubtitle = getSiteSetting('site_subtitle');
+  
+  // Logo settings
+  const logoText = getSiteSetting('logo_text') || 'G';
+  const logoImagePath = getSiteSetting('logo_image_path') || '';
+  const logoBgColor = getSiteSetting('logo_bg_color') || '#3b82f6';
+  const logoTextColor = getSiteSetting('logo_text_color') || '#ffffff';
+  const logoUseImage = getSiteSetting('logo_use_image') === 'true' || getSiteSetting('logo_use_image') === true;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -43,8 +50,36 @@ const Navigation = () => {
         <div className="col-span-12 flex items-center justify-between py-2 sm:py-3 px-2 gap-2 sm:gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 sm:space-x-3 magnetic-button min-w-0 flex-shrink-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-display font-bold text-sm sm:text-lg">G</span>
+            <div 
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 ${logoBgColor === 'transparent' ? 'bg-transparent' : ''}`}
+              style={{ backgroundColor: logoBgColor === 'transparent' ? 'transparent' : logoBgColor }}
+            >
+              {logoUseImage && logoImagePath ? (
+                <img 
+                  src={logoImagePath} 
+                  alt="Logo" 
+                  className="w-6 h-6 sm:w-8 sm:h-8 object-contain rounded-lg"
+                  onError={(e) => {
+                    // Fallback to text logo if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    const fallbackSpan = document.createElement('span');
+                    fallbackSpan.className = 'font-display font-bold text-sm sm:text-lg';
+                    fallbackSpan.style.color = logoTextColor;
+                    fallbackSpan.textContent = logoText;
+                    const parent = e.currentTarget.parentNode as HTMLElement;
+                    if (parent) {
+                      parent.appendChild(fallbackSpan);
+                    }
+                  }}
+                />
+              ) : (
+                <span 
+                  className="font-display font-bold text-sm sm:text-lg"
+                  style={{ color: logoTextColor }}
+                >
+                  {logoText}
+                </span>
+              )}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-display font-semibold text-sm sm:text-base md:text-lg leading-tight truncate">{siteTitle}</span>
