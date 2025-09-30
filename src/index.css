@@ -82,15 +82,29 @@
 @layer base {
   * {
     @apply border-border;
+    /* Performance optimizations */
+    box-sizing: border-box;
+  }
+  
+  /* Optimize scrolling performance */
+  * {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
   
   body {
     @apply bg-background text-foreground font-body;
     background: linear-gradient(135deg, hsl(var(--background)), hsl(224 15% 5%));
+    /* Performance optimizations for smooth scrolling */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed;
+    will-change: scroll-position;
   }
 
   html {
-    scroll-behavior: smooth;
+    /* Disable native smooth scroll to prevent conflicts with Lenis */
+    scroll-behavior: auto;
   }
 }
 

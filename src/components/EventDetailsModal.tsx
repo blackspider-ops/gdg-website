@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Calendar, MapPin, Users, ExternalLink, FileText } from 'lucide-react';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import ModalScrollToTop from '@/components/ModalScrollToTop';
 
 interface EventDetailsModalProps {
     isOpen: boolean;
@@ -38,6 +39,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     onRegister,
     event
 }) => {
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    
     // Lock body scroll when modal is open
     useBodyScrollLock(isOpen);
 
@@ -87,7 +90,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 }}
             >
                 <div
-                    className="bg-card rounded-xl w-full max-w-2xl max-h-[80vh] shadow-xl overflow-hidden flex flex-col"
+                    className="bg-card rounded-xl w-full max-w-2xl max-h-[80vh] shadow-xl overflow-hidden flex flex-col relative"
                     onClick={(e) => e.stopPropagation()}
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
@@ -106,7 +109,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                     </div>
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 relative">
                         {/* Header Image */}
                         {event.imageUrl && (
                             <div className="relative -mx-6 -mt-6 mb-6">
@@ -303,6 +306,9 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                         )}
 
                     </div>
+                    
+                    {/* Scroll to Top Button */}
+                    <ModalScrollToTop containerRef={scrollContainerRef} threshold={200} />
                     
                     {/* Fixed Footer with Action Buttons */}
                     <div className="flex-shrink-0 p-6 border-t border-border bg-card rounded-b-xl">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Eye, Calendar, Tag, User, Image, Clock } from 'lucide-react';
 import { BlogService, BlogPost, BlogCategory } from '@/services/blogService';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import ModalScrollToTop from '@/components/ModalScrollToTop';
 
 interface BlogPostModalProps {
   post: BlogPost | null;
@@ -40,6 +41,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
   // Refs for focus management
   const modalRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Lock body scroll when modal is open
   useBodyScrollLock(true);
@@ -214,7 +216,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
     >
       <div 
         ref={modalRef}
-        className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
+        className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col relative"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
@@ -267,7 +269,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
           </nav>
         </div>
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto overflow-auto p-6">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-auto p-6 relative">
           {activeTab === 'content' && (
             <div className="space-y-6">
               {/* Title */}
@@ -484,6 +486,9 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
             </div>
           )}
         </div>
+        
+        {/* Scroll to Top Button */}
+        <ModalScrollToTop containerRef={scrollContainerRef} threshold={250} />
       </div>
     </div>
   );

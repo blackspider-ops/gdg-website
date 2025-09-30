@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
+import ScrollToTopButton from "@/components/ScrollToTop";
 import GlobalBackground from "@/components/GlobalBackground";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { ContentProvider } from "@/contexts/ContentContext";
@@ -58,24 +59,22 @@ const ScrollToTop = () => {
     const scrollToTop = () => {
       // Wait for the next frame and then some to ensure content is rendered
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          // Check if Lenis is available for smooth scrolling
-          const lenis = (window as any).lenis;
-          if (lenis && lenis.scrollTo) {
-            // Use Lenis for smooth scroll to top with gentler easing
-            lenis.scrollTo(0, { 
-              duration: 1.0, // Slightly longer duration for smoother feel
-              easing: (t: number) => 1 - Math.pow(1 - t, 3) // Cubic ease-out for smoother animation
-            });
-          } else {
-            // Fallback to native smooth scroll
-            window.scrollTo({ 
-              top: 0, 
-              left: 0, 
-              behavior: 'smooth' 
-            });
-          }
-        }, 50); // Reduced delay since we're using requestAnimationFrame
+        // Check if Lenis is available for smooth scrolling
+        const lenis = (window as any).lenis;
+        if (lenis && lenis.scrollTo) {
+          // Use Lenis for optimized scroll to top
+          lenis.scrollTo(0, { 
+            duration: 0.6, // Faster duration for snappier feel
+            easing: (t: number) => 1 - Math.pow(1 - t, 3) // Cubic ease-out
+          });
+        } else {
+          // Fallback to instant scroll for better performance
+          window.scrollTo({ 
+            top: 0, 
+            left: 0, 
+            behavior: 'auto' // Changed from 'smooth' to prevent double smoothing
+          });
+        }
       });
     };
 
@@ -111,6 +110,19 @@ const ConditionalFooter = () => {
   return <Footer />;
 };
 
+// Component to conditionally render scroll-to-top button
+const ConditionalScrollToTop = () => {
+  const location = useLocation();
+  const isLinktreePage = location.pathname.startsWith('/l/');
+  const isNewsletterPage = location.pathname.startsWith('/newsletter/');
+  
+  if (isLinktreePage || isNewsletterPage) {
+    return null;
+  }
+  
+  return <ScrollToTopButton />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
       <AdminProvider>
@@ -123,6 +135,7 @@ const App = () => (
                 <BrowserRouter>
                   <ScrollToTop />
                   <SmoothScroll />
+                  <ConditionalScrollToTop />
                   <GlobalBackground />
                   <AdminTracker />
                   <div className="min-h-screen flex flex-col relative z-10">

@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 import { BlogService, BlogPost } from '@/services/blogService';
+import ModalScrollToTop from '@/components/ModalScrollToTop';
 import 'highlight.js/styles/github-dark.css';
 
 interface BlogPostModalProps {
@@ -22,6 +23,7 @@ const BlogPostModal: React.FC<BlogPostModalProps> = ({
   const [isLiking, setIsLiking] = React.useState(false);
   const [hasLiked, setHasLiked] = React.useState(false);
   const [isCheckingLikeStatus, setIsCheckingLikeStatus] = React.useState(false);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Update current post when prop changes
   React.useEffect(() => {
@@ -178,7 +180,7 @@ ${post.excerpt}
         }}
       >
         <div
-          className="bg-card rounded-xl w-full max-w-4xl max-h-[85vh] shadow-xl overflow-hidden flex flex-col border border-border"
+          className="bg-card rounded-xl w-full max-w-4xl max-h-[85vh] shadow-xl overflow-hidden flex flex-col border border-border relative"
           onClick={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
@@ -238,7 +240,7 @@ ${post.excerpt}
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 relative">
             <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:border prose-pre:border-border">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -429,6 +431,9 @@ ${post.excerpt}
               </button>
             </div>
           </div>
+          
+          {/* Scroll to Top Button */}
+          <ModalScrollToTop containerRef={scrollContainerRef} threshold={300} />
         </div>
       </div>
     </div>
