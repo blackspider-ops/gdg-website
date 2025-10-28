@@ -326,7 +326,7 @@ const Linktree = () => {
                     </div>
 
                     <div className="flex-shrink-0 ml-2 sm:ml-3 flex items-center space-x-1 sm:space-x-2">
-                      {link.click_count > 0 && (
+                      {link.show_click_count && link.click_count > 0 && (
                         <div className="bg-white/20 backdrop-blur-sm rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium">
                           {link.click_count}
                         </div>

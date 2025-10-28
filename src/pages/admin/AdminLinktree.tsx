@@ -343,6 +343,9 @@ const AdminLinktree = () => {
                                           <Badge variant="outline">
                                             <Eye className="w-3 h-3 mr-1" />
                                             {link.click_count}
+                                            {!link.show_click_count && (
+                                              <span className="ml-1 text-xs opacity-60">(hidden)</span>
+                                            )}
                                           </Badge>
                                           <Badge variant={link.is_active ? 'default' : 'secondary'}>
                                             {link.is_active ? 'Active' : 'Inactive'}

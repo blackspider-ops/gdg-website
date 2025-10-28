@@ -26,6 +26,7 @@ export interface LinktreeLink {
   button_color: string;
   text_color: string;
   embed_type?: 'none' | 'google_form' | 'iframe';
+  show_click_count: boolean;
   is_active: boolean;
   sort_order: number;
   click_count: number;

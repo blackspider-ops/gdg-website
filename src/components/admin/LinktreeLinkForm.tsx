@@ -29,6 +29,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
         button_color: link?.button_color || '#ffffff',
         text_color: link?.text_color || '#000000',
         embed_type: link?.embed_type || 'none' as 'none' | 'google_form' | 'iframe',
+        show_click_count: link?.show_click_count ?? true,
         is_active: link?.is_active ?? true,
         sort_order: link?.sort_order || 0
     });
@@ -442,7 +443,18 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                                         </div>
                                                     )}
                                                 </div>
-                                                <ExternalLink className="w-4 h-4 opacity-60 ml-3" />
+                                                <div className="flex items-center space-x-2 ml-3">
+                                                    {formData.show_click_count && (
+                                                        <div className="bg-white/20 backdrop-blur-sm rounded-full px-2 py-1 text-xs font-medium">
+                                                            42
+                                                        </div>
+                                                    )}
+                                                    {formData.embed_type && formData.embed_type !== 'none' ? (
+                                                        <Monitor className="w-4 h-4 opacity-60" />
+                                                    ) : (
+                                                        <ExternalLink className="w-4 h-4 opacity-60" />
+                                                    )}
+                                                </div>
                                             </div>
                                         </button>
                                     </div>
@@ -464,6 +476,20 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                         id="is_active"
                                         checked={formData.is_active}
                                         onCheckedChange={(checked) => handleInputChange('is_active', checked)}
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <Label htmlFor="show_click_count">Show Click Count</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Display the number of clicks as a badge on the link
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="show_click_count"
+                                        checked={formData.show_click_count}
+                                        onCheckedChange={(checked) => handleInputChange('show_click_count', checked)}
                                     />
                                 </div>
                             </div>

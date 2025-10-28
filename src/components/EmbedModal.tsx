@@ -15,6 +15,7 @@ interface EmbedModalProps {
 const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = false, profileName }: EmbedModalProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
 
   if (!isOpen) return null;
 
@@ -24,13 +25,30 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
   };
 
   const handleIframeError = () => {
-    setIsLoading(false);
-    setHasError(true);
+    // Try alternative URL formats for Google Forms
+    if (embedType === 'google_form' && attemptCount < 2) {
+      setAttemptCount(prev => prev + 1);
+      setIsLoading(true);
+      setHasError(false);
+      
+      // Force iframe reload with different URL format
+      setTimeout(() => {
+        const iframe = document.getElementById('google-form-iframe') as HTMLIFrameElement;
+        if (iframe) {
+          const newUrl = getAlternativeEmbedUrl(attemptCount + 1);
+          iframe.src = newUrl;
+        }
+      }, 500);
+    } else {
+      setIsLoading(false);
+      setHasError(true);
+    }
   };
 
   const handleRefresh = () => {
     setIsLoading(true);
     setHasError(false);
+    setAttemptCount(0);
     // Force iframe reload by changing src
     const iframe = document.getElementById('google-form-iframe') as HTMLIFrameElement;
     if (iframe) {
@@ -51,11 +69,12 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
     if (embedType === 'google_form') {
       // Handle Google Forms URLs
       if (url.includes('docs.google.com/forms')) {
-        // Extract form ID and convert to embed URL
+        // Try multiple URL formats for better compatibility
         const formIdMatch = url.match(/\/forms\/d\/([a-zA-Z0-9-_]+)/);
         if (formIdMatch) {
           const formId = formIdMatch[1];
-          return `https://docs.google.com/forms/d/e/${formId}/viewform?embedded=true`;
+          // Try the most compatible format first
+          return `https://docs.google.com/forms/d/e/${formId}/viewform?embedded=true&usp=pp_url`;
         }
         
         // If already in embed format, return as-is
@@ -65,12 +84,13 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
         
         // Add embedded parameter to existing URL
         const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}embedded=true`;
+        return `${url}${separator}embedded=true&usp=pp_url`;
       }
       
-      // Handle forms.gle short URLs
+      // Handle forms.gle short URLs - add parameters for embedding
       if (url.includes('forms.gle')) {
-        return url; // Let iframe handle the redirect
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}embedded=true`;
       }
     }
     
@@ -78,7 +98,26 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
     return url;
   };
 
-  const embedUrl = getEmbedUrl();
+  // Get alternative embed URLs for fallback attempts
+  const getAlternativeEmbedUrl = (attempt: number) => {
+    if (embedType === 'google_form' && url.includes('docs.google.com/forms')) {
+      const formIdMatch = url.match(/\/forms\/d\/([a-zA-Z0-9-_]+)/);
+      if (formIdMatch) {
+        const formId = formIdMatch[1];
+        switch (attempt) {
+          case 1:
+            return `https://docs.google.com/forms/d/${formId}/viewform?embedded=true`;
+          case 2:
+            return `https://docs.google.com/forms/d/${formId}/viewform?usp=sf_link`;
+          default:
+            return getEmbedUrl();
+        }
+      }
+    }
+    return getEmbedUrl();
+  };
+
+  const embedUrl = attemptCount > 0 ? getAlternativeEmbedUrl(attemptCount) : getEmbedUrl();
 
   return (
     <div 
@@ -172,13 +211,36 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
                   Unable to load content
                 </h3>
                 <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-                  This content cannot be embedded. You can still access it by opening it in a new tab.
+                  {embedType === 'google_form' 
+                    ? "This Google Form cannot be embedded due to privacy settings. The form owner may need to adjust sharing permissions, or you can open it directly."
+                    : "This content cannot be embedded. You can still access it by opening it in a new tab."
+                  }
                 </p>
                 <div className="space-y-2 sm:space-y-3">
                   <Button onClick={handleRefresh} className="w-full text-sm sm:text-base">
                     <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Try Again
                   </Button>
+                  {embedType === 'google_form' && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        // Open in a popup window for better Google Forms experience
+                        const popup = window.open(
+                          url, 
+                          'googleform', 
+                          'width=800,height=600,scrollbars=yes,resizable=yes'
+                        );
+                        if (popup) {
+                          popup.focus();
+                        }
+                      }} 
+                      className="w-full text-sm sm:text-base"
+                    >
+                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                      Open in Popup
+                    </Button>
+                  )}
                   <Button variant="outline" onClick={handleOpenExternal} className="w-full text-sm sm:text-base">
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Open in New Tab
