@@ -6,52 +6,52 @@ export const useOnlineStatus = () => {
 
   useEffect(() => {
     const handleOnline = () => {
+      console.log('Browser online event triggered - navigator.onLine:', navigator.onLine);
       setIsOnline(true);
       // If we were offline and now we're online, we might want to show a notification
       if (wasOffline) {
         console.log('Back online!');
-        // You could show a toast notification here
       }
       setWasOffline(false);
     };
 
     const handleOffline = () => {
+      console.log('Browser offline event triggered - navigator.onLine:', navigator.onLine);
       setIsOnline(false);
       setWasOffline(true);
-      console.log('Gone offline!');
     };
 
-    // Listen for online/offline events
+    // Listen for online/offline events - these are reliable and don't cause false positives
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Additional check with a ping to ensure we're really online
-    const checkConnection = async () => {
-      if (navigator.onLine) {
-        try {
-          // Try to fetch a small resource to verify connection
-          const response = await fetch('/favicon.ico', {
-            method: 'HEAD',
-            cache: 'no-cache'
-          });
-          setIsOnline(response.ok);
-        } catch {
-          setIsOnline(false);
-          setWasOffline(true);
-        }
-      }
-    };
-
-    // Check connection every 30 seconds
-    const interval = setInterval(checkConnection, 30000);
+    // Only do connection verification when the user actively tries to use the app
+    // Remove the periodic checking that was causing false offline detections
 
     // Cleanup
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
     };
   }, [wasOffline]);
 
-  return { isOnline, wasOffline };
+  // Method to manually check connection (used by retry buttons)
+  const checkRealConnection = async (): Promise<boolean> => {
+    if (!navigator.onLine) {
+      return false;
+    }
+
+    try {
+      const response = await fetch('/favicon.ico', {
+        method: 'HEAD',
+        cache: 'no-cache',
+        signal: AbortSignal.timeout(5000)
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  return { isOnline, wasOffline, checkRealConnection };
 };

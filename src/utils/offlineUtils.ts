@@ -47,6 +47,14 @@ if (import.meta.env.DEV) {
   (window as any).offlineUtils = {
     simulateOffline,
     simulateOnline,
-    checkRealConnection
+    checkRealConnection,
+    // Debug utilities
+    getNavigatorOnline: () => navigator.onLine,
+    checkCurrentStatus: () => {
+      console.log('Current status:');
+      console.log('- navigator.onLine:', navigator.onLine);
+      console.log('- Connection type:', (navigator as any).connection?.effectiveType);
+      console.log('- User agent:', navigator.userAgent);
+    }
   };
 }
