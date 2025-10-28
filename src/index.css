@@ -5,6 +5,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Performance optimizations for smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimize scrolling performance */
+* {
+  /* Improve text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize transitions to use specific properties instead of 'all' */
+.transition-all {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Optimize canvas rendering */
+canvas {
+  /* Prevent canvas from blocking scrolling */
+  pointer-events: none;
+  /* Optimize rendering */
+  image-rendering: optimizeSpeed;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable 3D background for reduced motion */
+  #bg-canvas {
+    display: none !important;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

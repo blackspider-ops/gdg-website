@@ -6,12 +6,16 @@ const ScrollToTopButton = () => {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Show button when page is scrolled down with smooth transition
+  // Show button when page is scrolled down with optimized throttling
   useEffect(() => {
     let ticking = false;
+    let lastScrollTime = 0;
+    const throttleDelay = 16; // ~60fps max
 
     const handleScroll = () => {
-      if (!ticking) {
+      const now = performance.now();
+      
+      if (!ticking && (now - lastScrollTime) > throttleDelay) {
         requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
           setScrollY(currentScrollY);
@@ -22,6 +26,7 @@ const ScrollToTopButton = () => {
             setIsVisible(shouldShow);
           }
           
+          lastScrollTime = now;
           ticking = false;
         });
         ticking = true;
