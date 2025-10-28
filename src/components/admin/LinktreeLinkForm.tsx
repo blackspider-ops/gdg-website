@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { X, Link as LinkIcon, ExternalLink, Monitor, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
         button_style: link?.button_style || 'default' as 'default' | 'outline' | 'filled' | 'minimal',
         button_color: link?.button_color || '#ffffff',
         text_color: link?.text_color || '#000000',
+        embed_type: link?.embed_type || 'none' as 'none' | 'google_form' | 'iframe',
         is_active: link?.is_active ?? true,
         sort_order: link?.sort_order || 0
     });
@@ -108,6 +109,14 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
+
+        // Auto-detect embed type when URL changes
+        if (field === 'url' && typeof value === 'string') {
+            const url = value.toLowerCase();
+            if ((url.includes('docs.google.com/forms') || url.includes('forms.gle')) && formData.embed_type === 'none') {
+                setFormData(prev => ({ ...prev, embed_type: 'google_form' }));
+            }
+        }
     };
 
     const IconPreview = ({ iconValue }: { iconValue: string }) => {
@@ -151,19 +160,19 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
 
     return (
         <div 
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50"
             onClick={onCancel}
         >
             <div 
-                className="bg-card rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col animate-fade-in"
+                className="bg-card rounded-lg sm:rounded-xl shadow-xl border border-border w-full max-w-2xl max-h-[95vh] sm:max-h-[80vh] overflow-hidden flex flex-col animate-fade-in"
                 onClick={(e) => e.stopPropagation()}
                 onWheel={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
             >
                 {/* Fixed Header */}
-                <div className="flex-shrink-0 p-6 border-b border-border">
+                <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold text-foreground">
+                        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
                             {link ? 'Edit Link' : 'Create New Link'}
                         </h2>
                         <Button variant="ghost" size="sm" onClick={onCancel}>
@@ -173,7 +182,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Basic Information */}
                             <div className="space-y-4">
@@ -217,6 +226,57 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                         rows={2}
                                     />
                                 </div>
+
+                                {/* Embed Options */}
+                                <div>
+                                    <Label>Embed Behavior</Label>
+                                    <div className="space-y-2 mt-2">
+                                        {[
+                                            {
+                                                value: 'none',
+                                                label: 'Open in new tab',
+                                                description: 'Default behavior - opens link in new browser tab',
+                                                icon: ExternalLink
+                                            },
+                                            {
+                                                value: 'iframe',
+                                                label: 'Embed in modal',
+                                                description: 'Opens content in an embedded modal on your page',
+                                                icon: Monitor
+                                            },
+                                            {
+                                                value: 'google_form',
+                                                label: 'Google Form (optimized)',
+                                                description: 'Optimized embedding for Google Forms with mobile support',
+                                                icon: FileText
+                                            }
+                                        ].map((option) => {
+                                            const IconComponent = option.icon;
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    className={`w-full p-3 sm:p-4 rounded-lg border-2 text-left hover:bg-muted active:bg-muted transition-colors touch-manipulation ${
+                                                        formData.embed_type === option.value 
+                                                            ? 'border-primary bg-primary/10' 
+                                                            : 'border-border'
+                                                    }`}
+                                                    onClick={() => handleInputChange('embed_type', option.value)}
+                                                >
+                                                    <div className="flex items-start space-x-3">
+                                                        <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-medium text-sm sm:text-base">{option.label}</div>
+                                                            <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                                                                {option.description}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Icon Selection */}
@@ -242,7 +302,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
 
                                 <div>
                                     <Label>Icon</Label>
-                                    <div className="grid grid-cols-6 gap-2 mt-2">
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
                                         {iconOptions
                                             .filter(icon =>
                                                 formData.icon_type === 'link' ? icon.category === 'general' :
@@ -271,7 +331,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
 
                                 <div>
                                     <Label>Style</Label>
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                                         {buttonStyles.map((style) => (
                                             <button
                                                 key={style.value}
@@ -289,7 +349,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                 {/* Color Presets */}
                                 <div>
                                     <Label>Color Presets</Label>
-                                    <div className="grid grid-cols-6 gap-2 mt-2 mb-4">
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2 mb-4">
                                         {[
                                             { name: 'Blue', button: '#3b82f6', text: '#ffffff' },
                                             { name: 'Green', button: '#10b981', text: '#ffffff' },
@@ -321,7 +381,7 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="button_color">Button Color</Label>
                                         <div className="flex space-x-2">
@@ -409,11 +469,11 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                             </div>
 
                             {/* Actions */}
-                            <div className="flex justify-end space-x-2 pt-4 border-t">
-                                <Button type="button" variant="outline" onClick={onCancel}>
+                            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4 border-t">
+                                <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
                                     Cancel
                                 </Button>
-                                <Button type="submit">
+                                <Button type="submit" className="w-full sm:w-auto">
                                     {link ? 'Update Link' : 'Create Link'}
                                 </Button>
                             </div>

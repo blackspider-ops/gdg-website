@@ -25,6 +25,7 @@ export interface LinktreeLink {
   button_style: 'default' | 'outline' | 'filled' | 'minimal';
   button_color: string;
   text_color: string;
+  embed_type?: 'none' | 'google_form' | 'iframe';
   is_active: boolean;
   sort_order: number;
   click_count: number;
@@ -253,3 +254,4 @@ class LinktreeService {
 }
 
 export const linktreeService = new LinktreeService();
+
