@@ -45,6 +45,8 @@ import Linktree from "./pages/Linktree";
 import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
 import NotFound from "./pages/NotFound";
+import Offline from "./pages/Offline";
+import OfflineDetector from "./components/OfflineDetector";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
 import AdminTracker from "./components/admin/AdminTracker";
 
@@ -143,9 +145,10 @@ const App = () => (
                   <ConditionalScrollToTop />
                   <GlobalBackground />
                   <AdminTracker />
-                  <div className="min-h-screen flex flex-col relative z-10">
-                    <ConditionalNavigation />
-                    <main className="flex-1">
+                  <OfflineDetector>
+                    <div className="min-h-screen flex flex-col relative z-10">
+                      <ConditionalNavigation />
+                      <main className="flex-1">
                     <Routes>
                       <Route path="/" element={<Home />} />
                       <Route path="/events" element={<Events />} />
@@ -179,12 +182,14 @@ const App = () => (
                       <Route path="/l/:username" element={<Linktree />} />
                       <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                       <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
+                      <Route path="/offline" element={<Offline />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                    </main>
-                    <ConditionalFooter />
-                  </div>
+                      </main>
+                      <ConditionalFooter />
+                    </div>
+                  </OfflineDetector>
                 </BrowserRouter>
               </TooltipProvider>
             </PerformanceOptimizer>
