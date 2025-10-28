@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ExternalLink, RefreshCw, User } from 'lucide-react';
+import { X, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface EmbedModalProps {
@@ -69,12 +69,27 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
     if (embedType === 'google_form') {
       // Handle Google Forms URLs
       if (url.includes('docs.google.com/forms')) {
-        // Try multiple URL formats for better compatibility
-        const formIdMatch = url.match(/\/forms\/d\/([a-zA-Z0-9-_]+)/);
-        if (formIdMatch) {
-          const formId = formIdMatch[1];
-          // Try the most compatible format first
-          return `https://docs.google.com/forms/d/e/${formId}/viewform?embedded=true&usp=pp_url`;
+        // Extract form ID from various URL formats
+        let formId = '';
+        
+        // Try different patterns to extract form ID
+        const patterns = [
+          /\/forms\/d\/([a-zA-Z0-9-_]+)/,
+          /\/forms\/d\/e\/([a-zA-Z0-9-_]+)/,
+          /\/forms\/([a-zA-Z0-9-_]+)/
+        ];
+        
+        for (const pattern of patterns) {
+          const match = url.match(pattern);
+          if (match) {
+            formId = match[1];
+            break;
+          }
+        }
+        
+        if (formId) {
+          // Use the most reliable embed format
+          return `https://docs.google.com/forms/d/e/${formId}/viewform?embedded=true`;
         }
         
         // If already in embed format, return as-is
@@ -84,13 +99,30 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
         
         // Add embedded parameter to existing URL
         const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}embedded=true&usp=pp_url`;
+        return `${url}${separator}embedded=true`;
       }
       
-      // Handle forms.gle short URLs - add parameters for embedding
+      // Handle forms.gle short URLs
       if (url.includes('forms.gle')) {
-        const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}embedded=true`;
+        // For short URLs, we need to let them redirect first, then add embed params
+        return url;
+      }
+    }
+    
+    // For YouTube URLs, convert to embed format
+    if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
+      let videoId = '';
+      
+      if (url.includes('youtube.com/watch')) {
+        const match = url.match(/[?&]v=([^&]+)/);
+        if (match) videoId = match[1];
+      } else if (url.includes('youtu.be/')) {
+        const match = url.match(/youtu\.be\/([^?&]+)/);
+        if (match) videoId = match[1];
+      }
+      
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
       }
     }
     
@@ -101,20 +133,36 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
   // Get alternative embed URLs for fallback attempts
   const getAlternativeEmbedUrl = (attempt: number) => {
     if (embedType === 'google_form' && url.includes('docs.google.com/forms')) {
-      const formIdMatch = url.match(/\/forms\/d\/([a-zA-Z0-9-_]+)/);
-      if (formIdMatch) {
-        const formId = formIdMatch[1];
+      // Extract form ID from various URL formats
+      let formId = '';
+      const patterns = [
+        /\/forms\/d\/([a-zA-Z0-9-_]+)/,
+        /\/forms\/d\/e\/([a-zA-Z0-9-_]+)/,
+        /\/forms\/([a-zA-Z0-9-_]+)/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) {
+          formId = match[1];
+          break;
+        }
+      }
+      
+      if (formId) {
         switch (attempt) {
           case 1:
             return `https://docs.google.com/forms/d/${formId}/viewform?embedded=true`;
           case 2:
-            return `https://docs.google.com/forms/d/${formId}/viewform?usp=sf_link`;
+            return `https://docs.google.com/forms/d/e/${formId}/viewform?embedded=true`;
           default:
-            return getEmbedUrl();
+            return url; // Fall back to original URL
         }
       }
     }
-    return getEmbedUrl();
+    
+    // For other types, just return the original URL
+    return url;
   };
 
   const embedUrl = attemptCount > 0 ? getAlternativeEmbedUrl(attemptCount) : getEmbedUrl();
@@ -142,23 +190,6 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
           </div>
           
           <div className="flex items-center space-x-1 sm:space-x-2 ml-2 sm:ml-4">
-            {isAutoEmbed && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  // Reload page with view=profile parameter to show the profile instead of auto-embed
-                  const url = new URL(window.location.href);
-                  url.searchParams.set('view', 'profile');
-                  window.location.href = url.toString();
-                }}
-                className="text-gray-600 hover:text-gray-900 p-1 sm:p-2"
-                title={`View ${profileName || 'profile'} page`}
-              >
-                <User className="w-3 h-3 sm:w-4 sm:h-4" />
-              </Button>
-            )}
-            
             <Button
               variant="ghost"
               size="sm"
@@ -221,26 +252,24 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
                     <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Try Again
                   </Button>
-                  {embedType === 'google_form' && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        // Open in a popup window for better Google Forms experience
-                        const popup = window.open(
-                          url, 
-                          'googleform', 
-                          'width=800,height=600,scrollbars=yes,resizable=yes'
-                        );
-                        if (popup) {
-                          popup.focus();
-                        }
-                      }} 
-                      className="w-full text-sm sm:text-base"
-                    >
-                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Open in Popup
-                    </Button>
-                  )}
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      // Open in a popup window for better experience
+                      const popup = window.open(
+                        url, 
+                        'embeddedcontent', 
+                        'width=900,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no'
+                      );
+                      if (popup) {
+                        popup.focus();
+                      }
+                    }} 
+                    className="w-full text-sm sm:text-base"
+                  >
+                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                    Open in Popup
+                  </Button>
                   <Button variant="outline" onClick={handleOpenExternal} className="w-full text-sm sm:text-base">
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Open in New Tab
@@ -257,8 +286,8 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
             onLoad={handleIframeLoad}
             onError={handleIframeError}
             title={title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
             style={{ 
               // Improve mobile scrolling within iframe
               WebkitOverflowScrolling: 'touch',
@@ -271,22 +300,12 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
         {/* Footer */}
         <div className="p-2 sm:p-3 border-t bg-gray-50 text-center">
           <p className="text-xs text-gray-500">
-            {isAutoEmbed ? (
-              <span className="flex items-center justify-center flex-wrap gap-1">
-                <span className="hidden sm:inline">Press</span>
-                <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs hidden sm:inline">Esc</kbd>
-                <span className="hidden sm:inline">to view profile •</span>
-                <User className="w-3 h-3 inline" />
-                <span className="text-xs">Auto-opened from {profileName || 'profile'}</span>
-              </span>
-            ) : (
-              <span>
-                <span className="hidden sm:inline">Press </span>
-                <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs hidden sm:inline">Esc</kbd>
-                <span className="hidden sm:inline"> to close</span>
-                <span className="sm:hidden">Tap outside to close</span>
-              </span>
-            )}
+            <span>
+              <span className="hidden sm:inline">Press </span>
+              <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs hidden sm:inline">Esc</kbd>
+              <span className="hidden sm:inline"> to close</span>
+              <span className="sm:hidden">Tap outside to close</span>
+            </span>
           </p>
         </div>
       </div>
