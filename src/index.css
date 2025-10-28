@@ -30,6 +30,18 @@ canvas {
   pointer-events: none;
   /* Optimize rendering */
   image-rendering: optimizeSpeed;
+  /* Use GPU acceleration */
+  transform: translateZ(0);
+  /* Optimize compositing */
+  will-change: transform;
+}
+
+/* Optimize scroll performance */
+body {
+  /* Enable smooth scrolling */
+  overflow-x: hidden;
+  /* Optimize scroll behavior */
+  scroll-behavior: smooth;
 }
 
 /* Reduce motion for users who prefer it */

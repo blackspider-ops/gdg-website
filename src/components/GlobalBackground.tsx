@@ -90,11 +90,11 @@ const isDesktop = () => window.innerWidth >= 1024;
 const isLowPowerDevice = () => navigator.hardwareConcurrency <= 4;
 const getDevicePixelRatio = () => Math.min(window.devicePixelRatio || 1, 2);
 
-// Responsive particle counts - reduced for better performance
+// Responsive particle counts - optimized for smooth performance
 const getParticleCount = () => {
-  if (isMobile()) return 300; // Reduced from 600
-  if (isTablet()) return 600; // Reduced from 900
-  return 900; // Reduced from 1200
+  if (isMobile()) return 400; // Balanced for mobile
+  if (isTablet()) return 700; // Balanced for tablet
+  return 1000; // Balanced for desktop
 };
 
 // Responsive particle sizes
@@ -130,7 +130,6 @@ const GlobalScene = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [scrollY, setScrollY] = useState(0);
-  const [isScrolling, setIsScrolling] = useState(false);
   
   // Responsive configuration
   const deviceConfig = useMemo(() => getDeviceConfig(), []);
@@ -163,30 +162,14 @@ const GlobalScene = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Scroll tracking with scroll state detection for performance
+  // Smooth scroll tracking for parallax
   useEffect(() => {
     let ticking = false;
-    let lastScrollTime = 0;
-    let scrollTimeout: NodeJS.Timeout;
-    const throttleDelay = 16; // ~60fps max
     
     const handleScroll = () => {
-      const now = performance.now();
-      
-      if (!ticking && (now - lastScrollTime) > throttleDelay) {
+      if (!ticking) {
         requestAnimationFrame(() => {
           setScrollY(window.scrollY);
-          setIsScrolling(true);
-          
-          // Clear existing timeout
-          clearTimeout(scrollTimeout);
-          
-          // Set scrolling to false after scroll ends
-          scrollTimeout = setTimeout(() => {
-            setIsScrolling(false);
-          }, 150);
-          
-          lastScrollTime = now;
           ticking = false;
         });
         ticking = true;
@@ -194,10 +177,7 @@ const GlobalScene = () => {
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Particle System with responsive sizing
@@ -281,20 +261,17 @@ const GlobalScene = () => {
     );
   };
 
-  // Main animation loop with optimized scroll parallax
+  // Main animation loop with smooth performance optimization
   useFrame((state) => {
     if (!isTabVisible || prefersReducedMotion) return;
     
     const time = state.clock.elapsedTime;
 
-    // Reduce animation frequency during scroll for better performance
-    const animationIntensity = isScrolling ? 0.2 : 1.0; // Significantly reduce animation during scroll
-
-    // Responsive scroll-aware parallax with reduced frequency
+    // Smooth scroll parallax without glitchy animation changes
     const target = scrollY * deviceConfig.parallaxStrength;
-    parallaxZ.current = THREE.MathUtils.lerp(parallaxZ.current, target, 0.05); // Slower lerp
+    parallaxZ.current = THREE.MathUtils.lerp(parallaxZ.current, target, 0.08);
 
-    // Animate particle system with reduced complexity during scroll
+    // Animate particle system with consistent performance
     if (particleSystemRef.current) {
       const positions = particleSystemRef.current.geometry.attributes.position.array as Float32Array;
       const velocities = particleSystemRef.current.geometry.attributes.velocity.array as Float32Array;
@@ -304,68 +281,68 @@ const GlobalScene = () => {
 
       const maxParallax = deviceConfig.maxParallax;
 
-      // Skip particle updates during heavy scrolling for performance
-      if (!isScrolling || state.clock.elapsedTime % 0.1 < 0.016) {
-        for (let i = 0; i < positions.length; i += 3) {
-          const noiseX = noise.noise2D(time * 0.05 + i * 0.008, 0) * 0.0002 * animationIntensity;
-          const noiseY = noise.noise2D(0, time * 0.05 + i * 0.008) * 0.0001 * animationIntensity;
-          const noiseZ = noise.noise2D(time * 0.03 + i * 0.008, time * 0.03) * 0.0003 * animationIntensity;
-          
-          positions[i] += velocities[i] * animationIntensity + noiseX;
-          positions[i + 1] += velocities[i + 1] * animationIntensity + noiseY;
-          positions[i + 2] += velocities[i + 2] * animationIntensity + noiseZ;
+      // Optimized particle animation with reduced noise calculations
+      for (let i = 0; i < positions.length; i += 3) {
+        // Reduce noise calculation frequency for better performance
+        const particleIndex = i / 3;
+        const noiseScale = 0.01;
+        
+        const noiseX = noise.noise2D(time * 0.05 + particleIndex * noiseScale, 0) * 0.0002;
+        const noiseY = noise.noise2D(0, time * 0.05 + particleIndex * noiseScale) * 0.0001;
+        const noiseZ = noise.noise2D(time * 0.03 + particleIndex * noiseScale, time * 0.03) * 0.0003;
+        
+        positions[i] += velocities[i] + noiseX;
+        positions[i + 1] += velocities[i + 1] + noiseY;
+        positions[i + 2] += velocities[i + 2] + noiseZ;
 
-          // Wrap particles
-          if (positions[i] > 12) positions[i] = -12;
-          if (positions[i] < -12) positions[i] = 12;
-          if (positions[i + 1] > 10) positions[i + 1] = -10;
-          if (positions[i + 1] < -10) positions[i + 1] = 10;
-          if (positions[i + 2] > 10) positions[i + 2] = -10;
-          if (positions[i + 2] < -10) positions[i + 2] = 10;
+        // Wrap particles
+        if (positions[i] > 12) positions[i] = -12;
+        if (positions[i] < -12) positions[i] = 12;
+        if (positions[i + 1] > 10) positions[i + 1] = -10;
+        if (positions[i + 1] < -10) positions[i + 1] = 10;
+        if (positions[i + 2] > 10) positions[i + 2] = -10;
+        if (positions[i + 2] < -10) positions[i + 2] = 10;
 
-          // Reduced mouse interaction during scroll
-          if (!isScrolling) {
-            const mouseInfluence = 0.0002;
-            const distanceX = smoothPointer.current.x * viewport.width * 0.06 - positions[i];
-            const distanceY = smoothPointer.current.y * viewport.height * 0.06 - positions[i + 1];
-            
-            if (Math.abs(distanceX) < 1.2 && Math.abs(distanceY) < 1.2) {
-              const cappedInfluenceX = Math.sign(distanceX) * Math.min(Math.abs(distanceX * mouseInfluence), maxParallax / 1500);
-              const cappedInfluenceY = Math.sign(distanceY) * Math.min(Math.abs(distanceY * mouseInfluence), maxParallax / 1500);
-              positions[i] += cappedInfluenceX;
-              positions[i + 1] += cappedInfluenceY;
-            }
-          }
+        // Smooth mouse interaction
+        const mouseInfluence = 0.0003;
+        const distanceX = smoothPointer.current.x * viewport.width * 0.08 - positions[i];
+        const distanceY = smoothPointer.current.y * viewport.height * 0.08 - positions[i + 1];
+        
+        if (Math.abs(distanceX) < 1.5 && Math.abs(distanceY) < 1.5) {
+          const cappedInfluenceX = Math.sign(distanceX) * Math.min(Math.abs(distanceX * mouseInfluence), maxParallax / 1000);
+          const cappedInfluenceY = Math.sign(distanceY) * Math.min(Math.abs(distanceY * mouseInfluence), maxParallax / 1000);
+          positions[i] += cappedInfluenceX;
+          positions[i + 1] += cappedInfluenceY;
         }
-
-        particleSystemRef.current.geometry.attributes.position.needsUpdate = true;
       }
+
+      particleSystemRef.current.geometry.attributes.position.needsUpdate = true;
       
-      // Gentle rotation and positioning with reduced intensity during scroll
-      const rotationSpeed = 0.015 * animationIntensity;
+      // Smooth rotation and positioning
+      const rotationSpeed = 0.018;
       particleSystemRef.current.rotation.y = time * rotationSpeed;
       
-      const maxMove = maxParallax / 20000;
+      const maxMove = maxParallax / 15000;
       particleSystemRef.current.position.x = THREE.MathUtils.clamp(
-        smoothPointer.current.x * viewport.width * 0.0005 * animationIntensity,
+        smoothPointer.current.x * viewport.width * 0.0008,
         -maxMove,
         maxMove
       );
       particleSystemRef.current.position.y = THREE.MathUtils.clamp(
-        smoothPointer.current.y * viewport.height * 0.0005 * animationIntensity,
+        smoothPointer.current.y * viewport.height * 0.0008,
         -maxMove,
         maxMove
       );
     }
 
-    // Apply scroll parallax to entire group with reduced frequency
+    // Apply scroll parallax to entire group smoothly
     if (groupRef.current) {
       groupRef.current.position.z = baseZ.current + parallaxZ.current;
       
-      // Reduced overall movement during scroll
-      groupRef.current.rotation.y = time * 0.008 * animationIntensity;
-      groupRef.current.position.x = smoothPointer.current.x * viewport.width * (isMobile() ? 0.0002 : 0.0003) * animationIntensity;
-      groupRef.current.position.y = smoothPointer.current.y * viewport.height * (isMobile() ? 0.0002 : 0.0003) * animationIntensity;
+      // Consistent overall movement
+      groupRef.current.rotation.y = time * 0.01;
+      groupRef.current.position.x = smoothPointer.current.x * viewport.width * (isMobile() ? 0.0003 : 0.0005);
+      groupRef.current.position.y = smoothPointer.current.y * viewport.height * (isMobile() ? 0.0003 : 0.0005);
     }
   });
 
