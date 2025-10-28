@@ -465,9 +465,9 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold">Settings</h3>
 
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/20">
                                     <div>
-                                        <Label htmlFor="is_active">Active</Label>
+                                        <Label htmlFor="is_active" className="font-medium">Active</Label>
                                         <p className="text-sm text-muted-foreground">
                                             When active, this link will be visible on the profile
                                         </p>
@@ -479,9 +479,9 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                     />
                                 </div>
 
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/20">
                                     <div>
-                                        <Label htmlFor="show_click_count">Show Click Count</Label>
+                                        <Label htmlFor="show_click_count" className="font-medium">Show Click Count</Label>
                                         <p className="text-sm text-muted-foreground">
                                             Display the number of clicks as a badge on the link
                                         </p>
@@ -489,7 +489,10 @@ const LinktreeLinkForm = ({ profileId, link, onSubmit, onCancel }: LinktreeLinkF
                                     <Switch
                                         id="show_click_count"
                                         checked={formData.show_click_count}
-                                        onCheckedChange={(checked) => handleInputChange('show_click_count', checked)}
+                                        onCheckedChange={(checked) => {
+                                            console.log('Toggle clicked:', checked);
+                                            handleInputChange('show_click_count', checked);
+                                        }}
                                     />
                                 </div>
                             </div>

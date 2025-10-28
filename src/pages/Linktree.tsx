@@ -18,6 +18,7 @@ const Linktree = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isAutoEmbedding, setIsAutoEmbedding] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [embedModal, setEmbedModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -256,12 +257,21 @@ const Linktree = () => {
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-10 animate-fade-in px-4">
-          <Avatar className="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 ring-4 ring-white/20">
-            <AvatarImage src={profile.avatar_url} alt={profile.display_name} />
-            <AvatarFallback className="text-2xl sm:text-3xl bg-white/20 text-white">
-              {profile.display_name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 ring-4 ring-white/20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+            {profile.avatar_url && !imageError ? (
+              <img 
+                src={profile.avatar_url} 
+                alt={profile.display_name}
+                className="max-w-full max-h-full object-contain"
+                onError={() => setImageError(true)}
+                onLoad={() => setImageError(false)}
+              />
+            ) : (
+              <div className="text-2xl sm:text-3xl text-white font-semibold">
+                {profile.display_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
           
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3 drop-shadow-lg">
             {profile.display_name}
