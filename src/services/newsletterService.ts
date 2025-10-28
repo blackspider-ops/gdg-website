@@ -94,8 +94,6 @@ export class NewsletterService {
         throw new Error('Invalid email format');
       }
 
-      console.log('Sending confirmation email to:', email);
-
       // Use Resend for newsletter confirmation emails
       const { ResendService } = await import('@/services/resendService');
       
@@ -108,8 +106,6 @@ export class NewsletterService {
       if (!success) {
         throw new Error('Failed to send confirmation email. Please check your email configuration.');
       }
-
-      console.log('Confirmation email sent successfully to:', email);
     } catch (error) {
       console.error('Error sending confirmation email:', error);
       throw error;

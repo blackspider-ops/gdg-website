@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -17,16 +17,56 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
   const [hasError, setHasError] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
 
+  // For Google Forms, show the alternative interface immediately after a short delay
+  useEffect(() => {
+    if (isOpen && embedType === 'google_form') {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+        setHasError(true);
+      }, 1500); // Give it 1.5 seconds to try loading, then show alternatives
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, embedType]);
+
   if (!isOpen) return null;
 
   const handleIframeLoad = () => {
     setIsLoading(false);
     setHasError(false);
+    
+    // For Google Forms, check if the content actually loaded properly
+    if (embedType === 'google_form') {
+      setTimeout(() => {
+        const iframe = document.getElementById('google-form-iframe') as HTMLIFrameElement;
+        if (iframe) {
+          try {
+            // Try to access iframe content to see if it's blocked
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (!iframeDoc) {
+              // If we can't access the document, it might be blocked
+              setHasError(true);
+              setIsLoading(false);
+            }
+          } catch (error) {
+            // Cross-origin error means the form loaded but we can't access it (which is normal)
+            // This is actually a good sign for Google Forms
+          }
+        }
+      }, 2000); // Give it 2 seconds to load
+    }
   };
 
   const handleIframeError = () => {
-    // Try alternative URL formats for Google Forms
-    if (embedType === 'google_form' && attemptCount < 2) {
+    // For Google Forms, immediately show error since they often block embedding
+    if (embedType === 'google_form') {
+      setIsLoading(false);
+      setHasError(true);
+      return;
+    }
+    
+    // Try alternative URL formats for other content types
+    if (attemptCount < 2) {
       setAttemptCount(prev => prev + 1);
       setIsLoading(true);
       setHasError(false);
@@ -227,7 +267,9 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
             <div className="absolute inset-0 flex items-center justify-center bg-white">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading form...</p>
+                <p className="text-gray-600">
+                  {embedType === 'google_form' ? 'Checking form availability...' : 'Loading content...'}
+                </p>
               </div>
             </div>
           )}
@@ -235,25 +277,46 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
           {hasError && (
             <div className="absolute inset-0 flex items-center justify-center bg-white p-4">
               <div className="text-center max-w-sm sm:max-w-md mx-auto">
-                <div className="text-red-500 mb-4">
-                  <X className="w-8 h-8 sm:w-12 sm:h-12 mx-auto" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                  Unable to load content
-                </h3>
+                {embedType === 'google_form' ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4">
+                    <div className="text-blue-600 mb-4">
+                      <svg className="w-12 h-12 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {title || 'Google Form Ready'}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      This Google Form is ready to use! Google blocks embedding for security, but you can access it directly.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-red-500 mb-4">
+                    <X className="w-8 h-8 sm:w-12 sm:h-12 mx-auto" />
+                  </div>
+                )}
+                
+                {!embedType || embedType !== 'google_form' ? (
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+                    Unable to load content
+                  </h3>
+                ) : null}
+                
                 <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
                   {embedType === 'google_form' 
-                    ? "This Google Form cannot be embedded due to privacy settings. The form owner may need to adjust sharing permissions, or you can open it directly."
+                    ? "Choose how you'd like to access this form:"
                     : "This content cannot be embedded. You can still access it by opening it in a new tab."
                   }
                 </p>
                 <div className="space-y-2 sm:space-y-3">
-                  <Button onClick={handleRefresh} className="w-full text-sm sm:text-base">
-                    <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Try Again
-                  </Button>
+                  {embedType !== 'google_form' && (
+                    <Button onClick={handleRefresh} className="w-full text-sm sm:text-base">
+                      <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                      Try Again
+                    </Button>
+                  )}
                   <Button 
-                    variant="outline" 
                     onClick={() => {
                       // Open in a popup window for better experience
                       const popup = window.open(
@@ -266,13 +329,14 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
                       }
                     }} 
                     className="w-full text-sm sm:text-base"
+                    variant={embedType === 'google_form' ? 'default' : 'outline'}
                   >
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Open in Popup
+                    {embedType === 'google_form' ? 'Open Form in Popup' : 'Open in Popup'}
                   </Button>
                   <Button variant="outline" onClick={handleOpenExternal} className="w-full text-sm sm:text-base">
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Open in New Tab
+                    {embedType === 'google_form' ? 'Open Form in New Tab' : 'Open in New Tab'}
                   </Button>
                 </div>
               </div>

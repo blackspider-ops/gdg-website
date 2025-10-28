@@ -327,34 +327,54 @@ const AdminLinktree = () => {
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    className="flex items-center space-x-3 p-3 border rounded-lg bg-card"
+                                    className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 border rounded-lg bg-card min-w-0"
                                   >
                                     <div {...provided.dragHandleProps}>
                                       <GripVertical className="w-4 h-4 text-muted-foreground" />
                                     </div>
                                     
-                                    <div className="flex-1">
+                                    <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="font-medium">{link.title}</p>
-                                          <p className="text-sm text-muted-foreground">{link.url}</p>
+                                        <div className="min-w-0 flex-1 mr-4">
+                                          <p className="font-medium truncate">{link.title}</p>
+                                          <div className="flex items-center space-x-2">
+                                            <p className="text-sm text-muted-foreground truncate flex-1" title={link.url}>
+                                              {link.url}
+                                            </p>
+                                            {link.url.length > 50 && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 flex-shrink-0"
+                                                onClick={() => {
+                                                  navigator.clipboard.writeText(link.url);
+                                                  toast.success('URL copied to clipboard');
+                                                }}
+                                                title="Copy URL"
+                                              >
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                              </Button>
+                                            )}
+                                          </div>
                                         </div>
-                                        <div className="flex items-center space-x-2">
-                                          <Badge variant="outline">
+                                        <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 flex-shrink-0">
+                                          <Badge variant="outline" className="whitespace-nowrap text-xs">
                                             <Eye className="w-3 h-3 mr-1" />
                                             {link.click_count}
                                             {!link.show_click_count && (
                                               <span className="ml-1 text-xs opacity-60">(hidden)</span>
                                             )}
                                           </Badge>
-                                          <Badge variant={link.is_active ? 'default' : 'secondary'}>
+                                          <Badge variant={link.is_active ? 'default' : 'secondary'} className="whitespace-nowrap text-xs">
                                             {link.is_active ? 'Active' : 'Inactive'}
                                           </Badge>
                                         </div>
                                       </div>
                                     </div>
 
-                                    <div className="flex space-x-1">
+                                    <div className="flex space-x-1 flex-shrink-0">
                                       <Button
                                         variant="ghost"
                                         size="sm"
