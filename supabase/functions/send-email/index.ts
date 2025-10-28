@@ -43,7 +43,7 @@ serve(async (req) => {
     }
 
     // Create email template
-    const FROM_EMAIL = 'newsletter@decryptpsu.me'
+    const FROM_EMAIL = 'newsletter@gdgpsu.dev'
     const FROM_NAME = 'GDG@PSU Newsletter'
 
     // Create unsubscribe footer

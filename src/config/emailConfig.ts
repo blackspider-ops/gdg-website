@@ -8,7 +8,7 @@ export const EMAIL_CONFIG = {
   // Resend Configuration (https://resend.com/) - RECOMMENDED
   resend: {
     apiKey: import.meta.env.VITE_RESEND_API_KEY || 'your_resend_api_key',
-    senderEmail: 'newsletter@gdgpsu.com', // Must be from verified domain
+    senderEmail: 'newsletter@gdgpsu.dev', // Must be from verified domain
     senderName: 'GDG@PSU Newsletter'
   },
 
@@ -22,21 +22,21 @@ export const EMAIL_CONFIG = {
   // Brevo (formerly Sendinblue) Configuration (https://www.brevo.com/)
   brevo: {
     apiKey: import.meta.env.VITE_BREVO_API_KEY || 'your_brevo_api_key',
-    senderEmail: 'newsletter@gdgpsu.com',
+    senderEmail: 'newsletter@gdgpsu.dev',
     senderName: 'GDG@PSU Newsletter'
   },
   
   // SendGrid Configuration (https://sendgrid.com/)
   sendgrid: {
     apiKey: import.meta.env.VITE_SENDGRID_API_KEY || 'your_sendgrid_api_key',
-    senderEmail: 'newsletter@gdgpsu.com',
+    senderEmail: 'newsletter@gdgpsu.dev',
     senderName: 'GDG@PSU Newsletter'
   },
   
   // Gmail API Configuration (requires OAuth setup)
   gmail: {
     clientId: import.meta.env.VITE_GMAIL_CLIENT_ID || 'your_gmail_client_id',
-    senderEmail: 'newsletter@gdgpsu.com'
+    senderEmail: 'newsletter@gdgpsu.dev'
   }
 };
 

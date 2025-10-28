@@ -37,7 +37,8 @@ export default async function handler(req, res) {
 
     // Enable CORS - restrict to your domain in production
     const allowedOrigins = [
-        'https://decryptpsu.me',
+        'https://gdgpsu.dev',
+        'https://www.gdgpsu.dev',
         'https://gdg-website-six.vercel.app',
         'http://localhost:5173', // for development
         'http://localhost:3000'  // for development
@@ -78,7 +79,7 @@ export default async function handler(req, res) {
         }
 
         // Email configuration
-        const FROM_EMAIL = process.env.FROM_EMAIL || 'newsletter@decryptpsu.me';
+        const FROM_EMAIL = process.env.FROM_EMAIL || 'newsletter@gdgpsu.dev';
         const FROM_NAME = process.env.FROM_NAME || 'GDG@PSU Newsletter';
 
         // Create unsubscribe footer

@@ -40,7 +40,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'GDG Events <trial@decryptpsu.me>',
+        from: 'GDG Events <events@gdgpsu.dev>',
         to: [attendee_email],
         subject: `✅ Registration Confirmed: ${event_title}`,
         html: `

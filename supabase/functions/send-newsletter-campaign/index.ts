@@ -101,7 +101,7 @@ serve(async (req) => {
         }
 
         // Create email content
-        const FROM_EMAIL = 'newsletter@decryptpsu.me'
+        const FROM_EMAIL = 'newsletter@gdgpsu.dev'
         const FROM_NAME = 'GDG@PSU Newsletter'
 
         // Create email template
@@ -164,7 +164,7 @@ serve(async (req) => {
 
                 // Create unsubscribe URL
                 const unsubscribeUrl = recipient.unsubscribe_token
-                    ? `${Deno.env.get('SITE_URL') || 'https://decryptpsu.me'}/newsletter/unsubscribe?token=${recipient.unsubscribe_token}`
+                    ? `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe?token=${recipient.unsubscribe_token}`
                     : null;
 
                 const personalizedHtmlContent = createNewsletterEmailTemplate({

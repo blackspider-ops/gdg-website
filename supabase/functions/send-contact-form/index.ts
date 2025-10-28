@@ -57,7 +57,7 @@ serve(async (req) => {
     }
 
     // Create email content
-    const FROM_EMAIL = 'contact@decryptpsu.me'
+    const FROM_EMAIL = 'contact@gdgpsu.dev'
     const FROM_NAME = 'GDG@PSU Contact Form'
     const TO_EMAIL = 'gdg@psu.edu'
 

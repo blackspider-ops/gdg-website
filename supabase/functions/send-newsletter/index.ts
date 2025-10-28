@@ -25,7 +25,7 @@ serve(async (req)=>{
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'GDG Newsletter <newsletter@decryptpsu.me>',
+        from: 'GDG Newsletter <newsletter@gdgpsu.dev>',
         to: [
           subscriber_email
         ],

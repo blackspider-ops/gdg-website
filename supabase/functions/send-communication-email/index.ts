@@ -54,7 +54,7 @@ serve(async (req) => {
         }
 
         // Create email content
-        const FROM_EMAIL = 'communications@decryptpsu.me'
+        const FROM_EMAIL = 'communications@gdgpsu.dev'
         const FROM_NAME = emailData.sender_name || 'GDG@PSU Communications'
 
         // Create email template based on type

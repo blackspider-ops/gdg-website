@@ -11,9 +11,9 @@ export interface ResendEmailData {
 }
 
 export class ResendService {
-  private static readonly FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'newsletter@decryptpsu.me';
+  private static readonly FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'newsletter@gdgpsu.dev';
   private static readonly FROM_NAME = import.meta.env.VITE_FROM_NAME || 'GDG@PSU Newsletter';
-  private static readonly DOMAIN = import.meta.env.VITE_DOMAIN || 'decryptpsu.me';
+  private static readonly DOMAIN = import.meta.env.VITE_DOMAIN || 'gdgpsu.dev';
 
 
 

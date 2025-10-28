@@ -108,7 +108,7 @@ serve(async (req) => {
         }
 
         // Create email content
-        const FROM_EMAIL = 'events@decryptpsu.me'
+        const FROM_EMAIL = 'events@gdgpsu.dev'
         const FROM_NAME = 'GDG@PSU Events'
 
         const eventDate = new Date(event.date)
