@@ -49,17 +49,23 @@ const SiteStatusManager = () => {
     try {
       setSaving(true);
       
+      console.log('Saving site status with data:', formData);
+      
       const result = await SiteStatusService.updateSiteStatus(formData);
+      
+      console.log('Update result:', result);
       
       if (result) {
         setStatus(result);
         toast.success('Site status updated successfully');
+        // Reload the status to ensure we have the latest data
+        await loadSiteStatus();
       } else {
-        throw new Error('Failed to update site status');
+        throw new Error('Failed to update site status - no result returned');
       }
     } catch (error) {
       console.error('Error updating site status:', error);
-      toast.error('Failed to update site status');
+      toast.error(`Failed to update site status: ${error.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }

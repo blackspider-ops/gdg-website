@@ -55,32 +55,44 @@ class SiteStatusService {
     message?: string;
   }): Promise<SiteStatus | null> {
     try {
-      // First, try to get existing record
-      const { data: existing } = await supabase
+      // First, get the most recent record
+      const { data: existing, error: fetchError } = await supabase
         .from('site_status')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+
+      if (fetchError) {
+        console.error('Error fetching existing record:', fetchError);
+        throw fetchError;
+      }
 
       let result;
 
-      if (existing) {
-        // Update existing record
+      if (existing && existing.length > 0) {
+        // Update the most recent record
+        const latestRecord = existing[0];
         const { data, error } = await supabase
           .from('site_status')
           .update({
             ...updates,
             updated_at: new Date().toISOString()
           })
-          .eq('id', existing.id)
-          .select()
-          .single();
+          .eq('id', latestRecord.id)
+          .select();
 
-        if (error) throw error;
-        result = data;
+        if (error) {
+          console.error('Error updating record:', error);
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          throw new Error('No rows returned after update');
+        }
+
+        result = data[0];
       } else {
-        // Create new record
+        // Create new record if none exists
         const { data, error } = await supabase
           .from('site_status')
           .insert({
@@ -88,11 +100,18 @@ class SiteStatusService {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
-          .select()
-          .single();
+          .select();
 
-        if (error) throw error;
-        result = data;
+        if (error) {
+          console.error('Error creating record:', error);
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          throw new Error('No rows returned after insert');
+        }
+
+        result = data[0];
       }
 
       // Clear cache to force refresh
