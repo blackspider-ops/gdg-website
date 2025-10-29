@@ -47,6 +47,7 @@ import NewsletterConfirm from "./pages/NewsletterConfirm";
 import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
 import NotFound from "./pages/NotFound";
 import Offline from "./pages/Offline";
+import Maintenance from "./pages/Maintenance";
 import OfflineDetector from "./components/OfflineDetector";
 import SiteStatusRedirect from "./components/SiteStatusRedirect";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
@@ -187,6 +188,7 @@ const App = () => (
                       <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                       <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
                       <Route path="/offline" element={<Offline />} />
+                      <Route path="/maintenance" element={<Maintenance />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

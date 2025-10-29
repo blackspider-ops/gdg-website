@@ -49,11 +49,7 @@ const SiteStatusManager = () => {
     try {
       setSaving(true);
       
-      console.log('Saving site status with data:', formData);
-      
       const result = await SiteStatusService.updateSiteStatus(formData);
-      
-      console.log('Update result:', result);
       
       if (result) {
         setStatus(result);

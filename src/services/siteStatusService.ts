@@ -131,8 +131,11 @@ class SiteStatusService {
     redirectUrl?: string;
     message?: string;
   }> {
-    // Never redirect linktree pages or admin pages
-    if (currentPath.startsWith('/l/') || currentPath.startsWith('/admin')) {
+    // Never redirect linktree pages, admin pages, or special pages
+    if (currentPath.startsWith('/l/') || 
+        currentPath.startsWith('/admin') || 
+        currentPath === '/offline' || 
+        currentPath === '/maintenance') {
       return { shouldRedirect: false };
     }
 

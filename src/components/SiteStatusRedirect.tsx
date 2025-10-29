@@ -18,10 +18,16 @@ const SiteStatusRedirect: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const result = await SiteStatusService.shouldRedirect(location.pathname);
         
-        if (result.shouldRedirect && result.redirectUrl) {
-          // Redirect to the specified URL
-          window.location.href = result.redirectUrl;
-          return;
+        if (result.shouldRedirect) {
+          if (result.redirectUrl) {
+            // Redirect to the specified URL
+            window.location.href = result.redirectUrl;
+            return;
+          } else {
+            // No redirect URL specified, show maintenance page
+            navigate('/maintenance', { replace: true });
+            return;
+          }
         }
         
         // Site is live or this is an allowed page, render normally
