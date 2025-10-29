@@ -19,10 +19,18 @@ const SiteStatusRedirect: React.FC<{ children: React.ReactNode }> = ({ children 
         const result = await SiteStatusService.shouldRedirect(location.pathname);
         
         if (result.shouldRedirect) {
-          // Always show maintenance page first, let it handle the redirect logic
-          // Add a parameter to indicate this was an automatic redirect
-          navigate('/maintenance?auto=true', { replace: true });
-          return;
+          // Check if we should auto-redirect or show maintenance page
+          const status = await SiteStatusService.getSiteStatus();
+          
+          if (status?.auto_redirect && status.redirect_url) {
+            // Direct redirect to external URL
+            window.location.href = status.redirect_url;
+            return;
+          } else {
+            // Show maintenance page
+            navigate('/maintenance', { replace: true });
+            return;
+          }
         }
         
         // Site is live or this is an allowed page, render normally

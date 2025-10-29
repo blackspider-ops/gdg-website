@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Construction, Home, ExternalLink, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,43 +7,19 @@ import { SiteStatusService } from '@/services/siteStatusService';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [maintenanceMessage, setMaintenanceMessage] = useState('Site is currently under maintenance. Please check back soon!');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [buttonText, setButtonText] = useState('Visit Our Links');
-  const [autoRedirect, setAutoRedirect] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadMaintenanceInfo = async () => {
       try {
-        // Small delay to ensure searchParams are loaded
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
         const status = await SiteStatusService.getSiteStatus();
         if (status) {
           setMaintenanceMessage(status.message || 'Site is currently under maintenance. Please check back soon!');
           setRedirectUrl(status.redirect_url || '');
           setButtonText(status.button_text || 'Visit Our Links');
-          setAutoRedirect(status.auto_redirect !== undefined ? status.auto_redirect : true);
-          
-          // Only auto-redirect if this was an automatic redirect (not manual navigation)
-          const wasAutoRedirect = searchParams.get('auto') === 'true';
-          
-          // Debug: temporary log to see what's happening
-          console.log('Debug - Auto redirect check:', {
-            autoRedirect: status.auto_redirect,
-            redirectUrl: status.redirect_url,
-            wasAutoRedirect: wasAutoRedirect,
-            searchParams: searchParams.toString(),
-            currentUrl: window.location.href
-          });
-          
-          if (status.auto_redirect && status.redirect_url && wasAutoRedirect) {
-            console.log('Debug - Performing auto redirect');
-            window.location.href = status.redirect_url;
-            return;
-          }
         }
       } catch (error) {
         console.error('Error loading maintenance info:', error);
@@ -53,7 +29,7 @@ const MaintenancePage = () => {
     };
 
     loadMaintenanceInfo();
-  }, [searchParams]);
+  }, []);
 
   const handleGoHome = () => {
     navigate('/');
