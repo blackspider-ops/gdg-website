@@ -18,16 +18,25 @@ const MaintenancePage = () => {
     const loadMaintenanceInfo = async () => {
       try {
         const status = await SiteStatusService.getSiteStatus();
+        console.log('Maintenance page - Site status:', status);
+        console.log('Maintenance page - URL params:', searchParams.get('auto'));
+        
         if (status) {
           setMaintenanceMessage(status.message || 'Site is currently under maintenance. Please check back soon!');
           setRedirectUrl(status.redirect_url || '');
           setButtonText(status.button_text || 'Visit Our Links');
           setAutoRedirect(status.auto_redirect !== undefined ? status.auto_redirect : true);
           
+          console.log('Maintenance page - Redirect URL:', status.redirect_url);
+          console.log('Maintenance page - Auto redirect:', status.auto_redirect);
+          console.log('Maintenance page - Button text:', status.button_text);
+          
           // Only auto-redirect if this was an automatic redirect (not manual navigation)
           const wasAutoRedirect = searchParams.get('auto') === 'true';
+          console.log('Maintenance page - Was auto redirect:', wasAutoRedirect);
           
           if (status.auto_redirect && status.redirect_url && wasAutoRedirect) {
+            console.log('Maintenance page - Performing auto redirect to:', status.redirect_url);
             window.location.href = status.redirect_url;
             return;
           }
@@ -115,7 +124,7 @@ const MaintenancePage = () => {
 
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
-              {redirectUrl && !autoRedirect && (
+              {redirectUrl && (
                 <Button 
                   onClick={handleVisitLinktree} 
                   className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-sm sm:text-base py-2.5 sm:py-3"

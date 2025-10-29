@@ -94,8 +94,9 @@ const ConditionalNavigation = () => {
   const location = useLocation();
   const isLinktreePage = location.pathname.startsWith('/l/');
   const isNewsletterPage = location.pathname.startsWith('/newsletter/');
+  const isMaintenancePage = location.pathname === '/maintenance';
   
-  if (isLinktreePage || isNewsletterPage) {
+  if (isLinktreePage || isNewsletterPage || isMaintenancePage) {
     return null;
   }
   
