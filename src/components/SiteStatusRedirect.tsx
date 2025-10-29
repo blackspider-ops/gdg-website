@@ -20,7 +20,8 @@ const SiteStatusRedirect: React.FC<{ children: React.ReactNode }> = ({ children 
         
         if (result.shouldRedirect) {
           // Always show maintenance page first, let it handle the redirect logic
-          navigate('/maintenance', { replace: true });
+          // Add a parameter to indicate this was an automatic redirect
+          navigate('/maintenance?auto=true', { replace: true });
           return;
         }
         

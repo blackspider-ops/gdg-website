@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Construction, Home, ExternalLink, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { SiteStatusService } from '@/services/siteStatusService';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [maintenanceMessage, setMaintenanceMessage] = useState('Site is currently under maintenance. Please check back soon!');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [buttonText, setButtonText] = useState('Visit Our Links');
@@ -23,13 +24,10 @@ const MaintenancePage = () => {
           setButtonText(status.button_text || 'Visit Our Links');
           setAutoRedirect(status.auto_redirect !== undefined ? status.auto_redirect : true);
           
-          // Only auto-redirect if user didn't manually navigate to /maintenance
-          // Check if this was a direct navigation (user typed URL or bookmarked)
-          const isDirectNavigation = !document.referrer || 
-                                    document.referrer.includes(window.location.origin + '/maintenance') ||
-                                    performance.getEntriesByType('navigation')[0]?.type === 'navigate';
+          // Only auto-redirect if this was an automatic redirect (not manual navigation)
+          const wasAutoRedirect = searchParams.get('auto') === 'true';
           
-          if (status.auto_redirect && status.redirect_url && !isDirectNavigation) {
+          if (status.auto_redirect && status.redirect_url && wasAutoRedirect) {
             window.location.href = status.redirect_url;
             return;
           }
