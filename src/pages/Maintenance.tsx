@@ -9,6 +9,8 @@ const MaintenancePage = () => {
   const navigate = useNavigate();
   const [maintenanceMessage, setMaintenanceMessage] = useState('Site is currently under maintenance. Please check back soon!');
   const [redirectUrl, setRedirectUrl] = useState('');
+  const [buttonText, setButtonText] = useState('Visit Our Links');
+  const [autoRedirect, setAutoRedirect] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +20,14 @@ const MaintenancePage = () => {
         if (status) {
           setMaintenanceMessage(status.message || 'Site is currently under maintenance. Please check back soon!');
           setRedirectUrl(status.redirect_url || '');
+          setButtonText(status.button_text || 'Visit Our Links');
+          setAutoRedirect(status.auto_redirect !== undefined ? status.auto_redirect : true);
+          
+          // If auto redirect is enabled and we have a redirect URL, redirect immediately
+          if (status.auto_redirect && status.redirect_url) {
+            window.location.href = status.redirect_url;
+            return;
+          }
         }
       } catch (error) {
         console.error('Error loading maintenance info:', error);
@@ -102,13 +112,13 @@ const MaintenancePage = () => {
 
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
-              {redirectUrl && (
+              {redirectUrl && !autoRedirect && (
                 <Button 
                   onClick={handleVisitLinktree} 
                   className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-sm sm:text-base py-2.5 sm:py-3"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  Visit Our Links
+                  {buttonText}
                 </Button>
               )}
               <Button 

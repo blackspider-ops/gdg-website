@@ -17,7 +17,9 @@ const SiteStatusManager = () => {
   const [formData, setFormData] = useState({
     is_live: true,
     redirect_url: '',
-    message: 'Site is currently under maintenance. Please check back soon!'
+    message: 'Site is currently under maintenance. Please check back soon!',
+    button_text: 'Visit Our Links',
+    auto_redirect: true
   });
 
   useEffect(() => {
@@ -34,7 +36,9 @@ const SiteStatusManager = () => {
         setFormData({
           is_live: data.is_live,
           redirect_url: data.redirect_url || '',
-          message: data.message || 'Site is currently under maintenance. Please check back soon!'
+          message: data.message || 'Site is currently under maintenance. Please check back soon!',
+          button_text: data.button_text || 'Visit Our Links',
+          auto_redirect: data.auto_redirect !== undefined ? data.auto_redirect : true
         });
       }
     } catch (error) {
@@ -160,7 +164,7 @@ const SiteStatusManager = () => {
 
           {/* Maintenance Message */}
           <div className="space-y-2">
-            <Label htmlFor="message">Maintenance Message (Optional)</Label>
+            <Label htmlFor="message">Maintenance Message</Label>
             <Textarea
               id="message"
               value={formData.message}
@@ -171,8 +175,50 @@ const SiteStatusManager = () => {
               rows={3}
             />
             <p className="text-xs text-muted-foreground">
-              Message to display (currently not used in redirect, but stored for future use)
+              Message displayed on the maintenance page
             </p>
+          </div>
+
+          {/* Redirect Behavior Configuration */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+            <h4 className="font-medium text-foreground">Redirect Behavior</h4>
+            
+            {/* Auto Redirect Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="auto-redirect" className="text-sm font-medium">
+                  Automatic Redirect
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  When enabled, users are immediately redirected. When disabled, they see the maintenance page first.
+                </p>
+              </div>
+              <Switch
+                id="auto-redirect"
+                checked={formData.auto_redirect}
+                onCheckedChange={(checked) => 
+                  setFormData(prev => ({ ...prev, auto_redirect: checked }))
+                }
+              />
+            </div>
+
+            {/* Button Text (only shown when auto_redirect is false) */}
+            {!formData.auto_redirect && formData.redirect_url && (
+              <div className="space-y-2">
+                <Label htmlFor="button-text">Button Text</Label>
+                <Input
+                  id="button-text"
+                  value={formData.button_text}
+                  onChange={(e) => 
+                    setFormData(prev => ({ ...prev, button_text: e.target.value }))
+                  }
+                  placeholder="Visit Our Links"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Text displayed on the button that links to your redirect URL
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -207,15 +253,19 @@ const SiteStatusManager = () => {
           </div>
           <div className="flex items-start gap-2">
             <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-            <p>When disabled, visitors to any page (except linktree and admin) are redirected to the specified URL</p>
+            <p><strong>Automatic Redirect ON</strong>: Users are immediately redirected to the URL</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+            <p><strong>Automatic Redirect OFF</strong>: Users see the maintenance page with a button to visit the URL</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+            <p>Without a redirect URL, users always see the maintenance page</p>
           </div>
           <div className="flex items-start gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-            <p>Linktree pages (/l/*) and admin pages (/admin/*) are never redirected</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-            <p>Changes take effect immediately across the entire site</p>
+            <p>Linktree pages (/l/*) and admin pages (/admin/*) are never affected</p>
           </div>
         </CardContent>
       </Card>

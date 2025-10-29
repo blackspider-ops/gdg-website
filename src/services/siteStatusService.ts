@@ -5,6 +5,8 @@ export interface SiteStatus {
   is_live: boolean;
   redirect_url: string;
   message?: string;
+  button_text?: string;
+  auto_redirect?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +55,8 @@ class SiteStatusService {
     is_live: boolean;
     redirect_url?: string;
     message?: string;
+    button_text?: string;
+    auto_redirect?: boolean;
   }): Promise<SiteStatus | null> {
     try {
       // First, get the most recent record
