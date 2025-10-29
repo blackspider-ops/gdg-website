@@ -44,6 +44,14 @@ export interface NewsletterTemplate {
 export class NewsletterService {
   static async subscribe(email: string, name?: string): Promise<NewsletterSubscriber | null> {
     try {
+      // Check if site is in maintenance mode
+      const { SiteStatusService } = await import('@/services/siteStatusService');
+      const isSiteLive = await SiteStatusService.isSiteLive();
+      
+      if (!isSiteLive) {
+        throw new Error('Newsletter signups are temporarily unavailable during maintenance. Please try again later.');
+      }
+
       // Generate confirmation and unsubscribe tokens
       const confirmationToken = crypto.randomUUID();
       const unsubscribeToken = crypto.randomUUID();

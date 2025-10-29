@@ -23,8 +23,13 @@ const MaintenancePage = () => {
           setButtonText(status.button_text || 'Visit Our Links');
           setAutoRedirect(status.auto_redirect !== undefined ? status.auto_redirect : true);
           
-          // If auto redirect is enabled and we have a redirect URL, redirect immediately
-          if (status.auto_redirect && status.redirect_url) {
+          // Only auto-redirect if user didn't manually navigate to /maintenance
+          // Check if this was a direct navigation (user typed URL or bookmarked)
+          const isDirectNavigation = !document.referrer || 
+                                    document.referrer.includes(window.location.origin + '/maintenance') ||
+                                    performance.getEntriesByType('navigation')[0]?.type === 'navigate';
+          
+          if (status.auto_redirect && status.redirect_url && !isDirectNavigation) {
             window.location.href = status.redirect_url;
             return;
           }

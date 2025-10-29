@@ -156,6 +156,17 @@ class SiteStatusService {
     };
   }
 
+  // Check if site is currently live (useful for other services)
+  static async isSiteLive(): Promise<boolean> {
+    try {
+      const status = await this.getSiteStatus();
+      return status ? status.is_live : true; // Default to live if no status found
+    } catch (error) {
+      console.error('Error checking site status:', error);
+      return true; // Default to live on error (fail open)
+    }
+  }
+
   // Clear cache (useful for testing)
   static clearCache(): void {
     this.cache = null;
