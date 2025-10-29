@@ -37,6 +37,7 @@ import AdminCommunications from "./pages/admin/AdminCommunications";
 import AdminMedia from "./pages/admin/AdminMedia";
 import AdminGuide from "./pages/admin/AdminGuide";
 import AdminLinktree from "./pages/admin/AdminLinktree";
+import AdminSiteStatus from "./pages/admin/AdminSiteStatus";
 import BlogEditorDashboard from "./pages/admin/BlogEditorDashboard";
 import BlogEditorMedia from "./pages/admin/BlogEditorMedia";
 
@@ -47,6 +48,7 @@ import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
 import NotFound from "./pages/NotFound";
 import Offline from "./pages/Offline";
 import OfflineDetector from "./components/OfflineDetector";
+import SiteStatusRedirect from "./components/SiteStatusRedirect";
 import PerformanceOptimizer from "./components/PerformanceOptimizer";
 import AdminTracker from "./components/admin/AdminTracker";
 
@@ -146,9 +148,10 @@ const App = () => (
                   <GlobalBackground />
                   <AdminTracker />
                   <OfflineDetector>
-                    <div className="min-h-screen flex flex-col relative z-10">
-                      <ConditionalNavigation />
-                      <main className="flex-1">
+                    <SiteStatusRedirect>
+                      <div className="min-h-screen flex flex-col relative z-10">
+                        <ConditionalNavigation />
+                        <main className="flex-1">
                     <Routes>
                       <Route path="/" element={<Home />} />
                       <Route path="/events" element={<Events />} />
@@ -176,6 +179,7 @@ const App = () => (
                       <Route path="/admin/media" element={<AdminMedia />} />
                       <Route path="/admin/guide" element={<AdminGuide />} />
                       <Route path="/admin/linktree" element={<AdminLinktree />} />
+                      <Route path="/admin/site-status" element={<AdminSiteStatus />} />
 
                       <Route path="/admin/blog-editor" element={<BlogEditorDashboard />} />
                       <Route path="/admin/blog-media" element={<BlogEditorMedia />} />
@@ -186,9 +190,10 @@ const App = () => (
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                      </main>
-                      <ConditionalFooter />
-                    </div>
+                        </main>
+                        <ConditionalFooter />
+                      </div>
+                    </SiteStatusRedirect>
                   </OfflineDetector>
                 </BrowserRouter>
               </TooltipProvider>

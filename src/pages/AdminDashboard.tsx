@@ -18,6 +18,7 @@ import {
   RefreshCw,
   BookOpen,
   PenTool,
+  Globe,
   Link as LinkIcon,
   Clock,
   Bell,
@@ -255,6 +256,7 @@ const AdminDashboard = () => {
   // Add admin user management for super admins
   const adminActions = currentAdmin && currentAdmin.role === 'super_admin' ? [
     { label: 'Admin Users', icon: Shield, href: '/admin/users' },
+    { label: 'Site Status', icon: Globe, href: '/admin/site-status' },
   ] : [];
 
   const helpActions = [
