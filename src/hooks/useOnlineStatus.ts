@@ -6,17 +6,15 @@ export const useOnlineStatus = () => {
 
   useEffect(() => {
     const handleOnline = () => {
-      console.log('Browser online event triggered - navigator.onLine:', navigator.onLine);
       setIsOnline(true);
       // If we were offline and now we're online, we might want to show a notification
       if (wasOffline) {
-        console.log('Back online!');
+        // Back online
       }
       setWasOffline(false);
     };
 
     const handleOffline = () => {
-      console.log('Browser offline event triggered - navigator.onLine:', navigator.onLine);
       setIsOnline(false);
       setWasOffline(true);
     };
