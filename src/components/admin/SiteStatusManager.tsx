@@ -65,7 +65,13 @@ const SiteStatusManager = () => {
       }
     } catch (error) {
       console.error('Error updating site status:', error);
-      toast.error(`Failed to update site status: ${error.message || 'Unknown error'}`);
+      
+      // Check for specific database schema errors
+      if (error.message && error.message.includes('column')) {
+        toast.error('Database schema needs updating. Please run the SQL migration first.');
+      } else {
+        toast.error(`Failed to update site status: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setSaving(false);
     }
@@ -202,23 +208,21 @@ const SiteStatusManager = () => {
               />
             </div>
 
-            {/* Button Text (only shown when auto_redirect is false) */}
-            {!formData.auto_redirect && formData.redirect_url && (
-              <div className="space-y-2">
-                <Label htmlFor="button-text">Button Text</Label>
-                <Input
-                  id="button-text"
-                  value={formData.button_text}
-                  onChange={(e) => 
-                    setFormData(prev => ({ ...prev, button_text: e.target.value }))
-                  }
-                  placeholder="Visit Our Links"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Text displayed on the button that links to your redirect URL
-                </p>
-              </div>
-            )}
+            {/* Button Text */}
+            <div className="space-y-2">
+              <Label htmlFor="button-text">Button Text</Label>
+              <Input
+                id="button-text"
+                value={formData.button_text}
+                onChange={(e) => 
+                  setFormData(prev => ({ ...prev, button_text: e.target.value }))
+                }
+                placeholder="Visit Our Links"
+              />
+              <p className="text-xs text-muted-foreground">
+                Text displayed on the button (when maintenance page is shown)
+              </p>
+            </div>
           </div>
 
           {/* Action Buttons */}
