@@ -17,6 +17,9 @@ const MaintenancePage = () => {
   useEffect(() => {
     const loadMaintenanceInfo = async () => {
       try {
+        // Small delay to ensure searchParams are loaded
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const status = await SiteStatusService.getSiteStatus();
         if (status) {
           setMaintenanceMessage(status.message || 'Site is currently under maintenance. Please check back soon!');
@@ -27,7 +30,17 @@ const MaintenancePage = () => {
           // Only auto-redirect if this was an automatic redirect (not manual navigation)
           const wasAutoRedirect = searchParams.get('auto') === 'true';
           
+          // Debug: temporary log to see what's happening
+          console.log('Debug - Auto redirect check:', {
+            autoRedirect: status.auto_redirect,
+            redirectUrl: status.redirect_url,
+            wasAutoRedirect: wasAutoRedirect,
+            searchParams: searchParams.toString(),
+            currentUrl: window.location.href
+          });
+          
           if (status.auto_redirect && status.redirect_url && wasAutoRedirect) {
+            console.log('Debug - Performing auto redirect');
             window.location.href = status.redirect_url;
             return;
           }
@@ -40,7 +53,7 @@ const MaintenancePage = () => {
     };
 
     loadMaintenanceInfo();
-  }, []);
+  }, [searchParams]);
 
   const handleGoHome = () => {
     navigate('/');
