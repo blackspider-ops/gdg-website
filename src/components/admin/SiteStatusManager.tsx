@@ -16,7 +16,7 @@ const SiteStatusManager = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     is_live: true,
-    redirect_url: 'https://www.gdgpsu.dev/l/applicationcabn',
+    redirect_url: '',
     message: 'Site is currently under maintenance. Please check back soon!'
   });
 
@@ -33,7 +33,7 @@ const SiteStatusManager = () => {
         setStatus(data);
         setFormData({
           is_live: data.is_live,
-          redirect_url: data.redirect_url || 'https://www.gdgpsu.dev/l/applicationcabn',
+          redirect_url: data.redirect_url || '',
           message: data.message || 'Site is currently under maintenance. Please check back soon!'
         });
       }
@@ -141,7 +141,7 @@ const SiteStatusManager = () => {
                 onChange={(e) => 
                   setFormData(prev => ({ ...prev, redirect_url: e.target.value }))
                 }
-                placeholder="https://www.gdgpsu.dev/l/applicationcabn"
+                placeholder="Leave empty to show maintenance page (optional)"
                 className="flex-1"
               />
               <Button
@@ -154,7 +154,7 @@ const SiteStatusManager = () => {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              URL where users will be redirected when the site is in maintenance mode
+              URL where users will be redirected when the site is in maintenance mode. Leave empty to show the maintenance page instead.
             </p>
           </div>
 
