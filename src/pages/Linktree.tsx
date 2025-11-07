@@ -117,6 +117,23 @@ const Linktree = () => {
       }).catch(err => console.error('Failed to track click:', err));
     }
 
+    // Helper function to open link in new tab with fallback
+    const openInNewTab = (url: string) => {
+      // Try window.open first
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      
+      // If blocked, use anchor element trick
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    };
+
     // Handle embed types
     if (link.embed_type && link.embed_type !== 'none') {
       // On mobile, for better UX, directly open the link instead of showing embed modal
@@ -124,11 +141,7 @@ const Linktree = () => {
       
       if (isMobile) {
         // Mobile: open directly in new tab
-        const opened = window.open(link.url, '_blank', 'noopener,noreferrer');
-        if (!opened) {
-          // Fallback if popup blocked
-          window.location.href = link.url;
-        }
+        openInNewTab(link.url);
       } else {
         // Desktop: show embed modal
         setEmbedModal({
@@ -144,11 +157,7 @@ const Linktree = () => {
 
     // Default behavior: open external links in new tab, internal links in same tab
     if (link.url.startsWith('http')) {
-      const opened = window.open(link.url, '_blank', 'noopener,noreferrer');
-      if (!opened) {
-        // Fallback if popup blocked
-        window.location.href = link.url;
-      }
+      openInNewTab(link.url);
     } else {
       window.location.href = link.url;
     }
