@@ -318,21 +318,32 @@ const EmbedModal = ({ isOpen, onClose, title, url, embedType, isAutoEmbed = fals
                   )}
                   <Button 
                     onClick={() => {
-                      // Open in a popup window for better experience
-                      const popup = window.open(
-                        url, 
-                        'embeddedcontent', 
-                        'width=900,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no'
-                      );
-                      if (popup) {
-                        popup.focus();
+                      // On mobile, open directly in new tab instead of popup
+                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                      
+                      if (isMobile) {
+                        // Mobile: open in new tab
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      } else {
+                        // Desktop: try popup window
+                        const popup = window.open(
+                          url, 
+                          'embeddedcontent', 
+                          'width=900,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no'
+                        );
+                        if (popup) {
+                          popup.focus();
+                        } else {
+                          // Fallback if popup blocked
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }
                       }
                     }} 
                     className="w-full text-sm sm:text-base"
                     variant={embedType === 'google_form' ? 'default' : 'outline'}
                   >
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    {embedType === 'google_form' ? 'Open Form in Popup' : 'Open in Popup'}
+                    {embedType === 'google_form' ? 'Open Form' : 'Open Content'}
                   </Button>
                   <Button variant="outline" onClick={handleOpenExternal} className="w-full text-sm sm:text-base">
                     <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />

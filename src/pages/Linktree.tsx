@@ -109,28 +109,46 @@ const Linktree = () => {
   }, [embedModal.isOpen]);
 
   const handleLinkClick = async (link: LinktreeLink) => {
+    // Track the click first
     if (profile) {
-      await linktreeService.trackClick(profile.id, link.id, {
+      linktreeService.trackClick(profile.id, link.id, {
         user_agent: navigator.userAgent,
         referrer: document.referrer
-      });
+      }).catch(err => console.error('Failed to track click:', err));
     }
 
     // Handle embed types
     if (link.embed_type && link.embed_type !== 'none') {
-      setEmbedModal({
-        isOpen: true,
-        title: link.title,
-        url: link.url,
-        embedType: link.embed_type as 'iframe' | 'google_form',
-        isAutoEmbed: false
-      });
+      // On mobile, for better UX, directly open the link instead of showing embed modal
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Mobile: open directly in new tab
+        const opened = window.open(link.url, '_blank', 'noopener,noreferrer');
+        if (!opened) {
+          // Fallback if popup blocked
+          window.location.href = link.url;
+        }
+      } else {
+        // Desktop: show embed modal
+        setEmbedModal({
+          isOpen: true,
+          title: link.title,
+          url: link.url,
+          embedType: link.embed_type as 'iframe' | 'google_form',
+          isAutoEmbed: false
+        });
+      }
       return;
     }
 
     // Default behavior: open external links in new tab, internal links in same tab
     if (link.url.startsWith('http')) {
-      window.open(link.url, '_blank', 'noopener,noreferrer');
+      const opened = window.open(link.url, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        // Fallback if popup blocked
+        window.location.href = link.url;
+      }
     } else {
       window.location.href = link.url;
     }
@@ -308,10 +326,15 @@ const Linktree = () => {
               >
                 <button
                   onClick={() => handleLinkClick(link)}
-                  className={`w-full p-4 sm:p-5 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-white/20 hover:border-white/40 active:border-white/60 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-lg hover:shadow-xl touch-manipulation ${
+                  type="button"
+                  className={`w-full p-4 sm:p-5 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-white/20 hover:border-white/40 active:border-white/60 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-lg hover:shadow-xl touch-manipulation cursor-pointer ${
                     isAutoEmbedding && isAutoEmbedLink ? 'animate-pulse border-white/60' : ''
                   }`}
-                  style={getButtonStyle(link)}
+                  style={{
+                    ...getButtonStyle(link),
+                    WebkitTapHighlightColor: 'transparent',
+                    userSelect: 'none'
+                  }}
                   disabled={isAutoEmbedding && isAutoEmbedLink}
                 >
                   <div className="flex items-center w-full">
