@@ -1,0 +1,110 @@
+-- Update admin_users role constraint to include blog_editor
+DO $$
+BEGIN
+    -- Drop existing constraint if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
+               WHERE constraint_name = 'admin_users_role_check' 
+               AND table_name = 'admin_users') THEN
+        ALTER TABLE admin_users DROP CONSTRAINT admin_users_role_check;
+    END IF;
+    
+    -- Add new constraint with blog_editor role
+    ALTER TABLE admin_users ADD CONSTRAINT admin_users_role_check 
+      CHECK (role IN ('admin', 'super_admin', 'blog_editor'));
+END $$;
+
+-- Add approval workflow fields to blog_posts table
+DO $$
+BEGIN
+    -- Add columns only if they don't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'blog_posts' AND column_name = 'requires_approval') THEN
+        ALTER TABLE blog_posts ADD COLUMN requires_approval BOOLEAN DEFAULT FALSE;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'blog_posts' AND column_name = 'approved_by') THEN
+        ALTER TABLE blog_posts ADD COLUMN approved_by UUID REFERENCES admin_users(id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'blog_posts' AND column_name = 'approved_at') THEN
+        ALTER TABLE blog_posts ADD COLUMN approved_at TIMESTAMPTZ;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'blog_posts' AND column_name = 'rejected_by') THEN
+        ALTER TABLE blog_posts ADD COLUMN rejected_by UUID REFERENCES admin_users(id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'blog_posts' AND column_name = 'rejected_at') THEN
+        ALTER TABLE blog_posts ADD COLUMN rejected_at TIMESTAMPTZ;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'blog_posts' AND column_name = 'rejection_reason') THEN
+        ALTER TABLE blog_posts ADD COLUMN rejection_reason TEXT;
+    END IF;
+END $$;
+
+-- Create blog_likes table for authentic like tracking
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blog_likes') THEN
+        CREATE TABLE blog_likes (
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          post_id UUID NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+          user_identifier TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(post_id, user_identifier)
+        );
+    END IF;
+END $$;
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_blog_likes_post_id ON blog_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_blog_posts_requires_approval ON blog_posts(requires_approval) WHERE requires_approval = TRUE;
+
+-- Update RLS policies for blog_likes
+DO $$
+BEGIN
+    -- Enable RLS if table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blog_likes') THEN
+        ALTER TABLE blog_likes ENABLE ROW LEVEL SECURITY;
+        
+        -- Create policies only if they don't exist
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'blog_likes' AND policyname = 'Anyone can read blog likes') THEN
+            CREATE POLICY "Anyone can read blog likes" ON blog_likes
+              FOR SELECT USING (true);
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'blog_likes' AND policyname = 'Anyone can manage their own likes') THEN
+            CREATE POLICY "Anyone can manage their own likes" ON blog_likes
+              FOR ALL USING (true);
+        END IF;
+    END IF;
+END $$;
+
+-- Note: RLS policies for blog_posts will be handled at the application level
+-- since we're using service role authentication for admin operations.
+-- The role-based access control is implemented in the BlogService and admin components.
+
+-- Note: Blog approval status will be handled at the application level
+-- in the BlogService when creating/updating posts by blog editors.
+
+-- Insert some sample blog categories if they don't exist
+INSERT INTO blog_categories (name, slug, description, color, is_active, order_index)
+VALUES 
+  ('Technology', 'technology', 'Posts about latest tech trends and tutorials', '#3B82F6', true, 1),
+  ('Events', 'events', 'Event recaps and announcements', '#10B981', true, 2),
+  ('Community', 'community', 'Community spotlights and member stories', '#8B5CF6', true, 3),
+  ('Tutorials', 'tutorials', 'Step-by-step guides and how-tos', '#F59E0B', true, 4),
+  ('News', 'news', 'Latest news and updates', '#EF4444', true, 5)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Add comment explaining the approval workflow
+COMMENT ON COLUMN blog_posts.requires_approval IS 'Posts created by blog_editor role require admin approval before publishing';
+COMMENT ON COLUMN blog_posts.approved_by IS 'Admin user who approved this post';
+COMMENT ON COLUMN blog_posts.rejected_by IS 'Admin user who rejected this post';
+COMMENT ON TABLE blog_likes IS 'Authentic like tracking for blog posts using user fingerprinting';

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDG@PSU - You're Offline</title>
+    <style>
+        /* Match your dark theme colors */
+        :root {
+            --background: hsl(224, 15%, 4%);
+            --foreground: hsl(210, 11%, 91%);
+            --card: hsl(224, 15%, 6%);
+            --primary: hsl(207, 89%, 66%);
+            --destructive: hsl(0, 72%, 51%);
+            --muted: hsl(217, 10%, 15%);
+            --muted-foreground: hsl(215, 16%, 65%);
+            --border: hsl(215, 25%, 12%);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--background);
+            background-image: 
+                radial-gradient(circle at 20% 80%, hsla(207, 89%, 66%, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, hsla(4, 86%, 67%, 0.05) 0%, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--foreground);
+            line-height: 1.6;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 480px;
+            background: var(--card);
+            padding: 48px 32px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        .icon-container {
+            width: 120px;
+            height: 120px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px auto;
+            position: relative;
+        }
+        
+        .icon {
+            font-size: 64px;
+            filter: grayscale(1);
+        }
+        
+        .warning-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: var(--destructive);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        h1 {
+            margin: 0 0 12px 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--foreground);
+        }
+        
+        .subtitle {
+            margin: 0 0 32px 0;
+            color: var(--muted-foreground);
+            font-size: 18px;
+        }
+        
+        .steps {
+            text-align: left;
+            margin: 24px 0;
+            padding: 20px;
+            background: var(--muted);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .steps h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+        
+        .steps ul {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--muted-foreground);
+        }
+        
+        .steps li {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: var(--primary);
+            border: none;
+            color: var(--background);
+            padding: 16px 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin: 0 8px;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .button-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--foreground);
+        }
+        
+        .button-secondary:hover {
+            background: var(--muted);
+        }
+        
+        .status {
+            margin-top: 32px;
+            padding: 12px 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            color: var(--destructive);
+        }
+        
+        .pulse {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--destructive);
+            border-radius: 50%;
+            margin-right: 12px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            
+            .container {
+                padding: 24px 20px;
+                margin: 0;
+                max-width: 100%;
+            }
+            
+            .icon-container {
+                width: 96px;
+                height: 96px;
+                margin-bottom: 24px;
+            }
+            
+            .icon {
+                font-size: 48px;
+            }
+            
+            .warning-badge {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin-bottom: 8px;
+            }
+            
+            .subtitle {
+                font-size: 16px;
+                margin-bottom: 24px;
+            }
+            
+            .steps {
+                padding: 16px;
+                margin: 20px 0;
+            }
+            
+            .steps h3 {
+                font-size: 14px;
+                margin-bottom: 12px;
+            }
+            
+            .steps li {
+                font-size: 13px;
+                margin-bottom: 6px;
+            }
+            
+            button {
+                display: block;
+                width: 100%;
+                margin: 6px 0;
+                padding: 14px 24px;
+                font-size: 14px;
+            }
+            
+            .status {
+                margin-top: 24px;
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            
+            .container {
+                padding: 20px 16px;
+            }
+            
+            .icon-container {
+                width: 80px;
+                height: 80px;
+                margin-bottom: 20px;
+            }
+            
+            .icon {
+                font-size: 40px;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .subtitle {
+                font-size: 15px;
+            }
+            
+            .steps {
+                padding: 12px;
+            }
+            
+            button {
+                padding: 12px 20px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                max-width: 520px;
+                padding: 40px 36px;
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .container {
+                max-width: 560px;
+                padding: 48px 40px;
+            }
+            
+            h1 {
+                font-size: 36px;
+            }
+            
+            .subtitle {
+                font-size: 20px;
+            }
+        }
+        
+        /* Landscape mobile optimization */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 8px;
+            }
+            
+            .container {
+                padding: 16px 20px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .icon-container {
+                width: 60px;
+                height: 60px;
+                margin-bottom: 16px;
+            }
+            
+            .icon {
+                font-size: 32px;
+            }
+            
+            h1 {
+                font-size: 20px;
+                margin-bottom: 6px;
+            }
+            
+            .subtitle {
+                font-size: 14px;
+                margin-bottom: 16px;
+            }
+            
+            .steps {
+                padding: 12px;
+                margin: 12px 0;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 13px;
+                margin: 4px 0;
+            }
+            
+            .status {
+                margin-top: 16px;
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon-container">
+            <div class="icon">📡</div>
+            <div class="warning-badge">⚠️</div>
+        </div>
+        
+        <h1>You're Offline</h1>
+        <p class="subtitle">Looks like your internet connection took a break</p>
+        
+        <div class="steps">
+            <h3>Quick fixes to try:</h3>
+            <ul>
+                <li>Check your WiFi or mobile data connection</li>
+                <li>Make sure airplane mode is turned off</li>
+                <li>Try refreshing this page</li>
+                <li>Check if other websites are working</li>
+            </ul>
+        </div>
+        
+        <button onclick="tryReconnect()">🔄 Try Again</button>
+        <button class="button-secondary" onclick="window.location.href='/'">🏠 Go Home</button>
+        
+        <div class="status">
+            <span class="pulse"></span>
+            Connection Status: Offline
+        </div>
+    </div>
+
+    <script>
+        let isRetrying = false;
+        
+        // Smart retry function
+        async function tryReconnect() {
+            if (isRetrying) return;
+            isRetrying = true;
+            
+            const button = document.querySelector('button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '🔄 Checking...';
+            button.disabled = true;
+            
+            try {
+                // First check navigator.onLine
+                if (!navigator.onLine) {
+                    throw new Error('Navigator reports offline');
+                }
+                
+                // Then do a real connection test
+                const response = await fetch('/favicon.ico', {
+                    method: 'HEAD',
+                    cache: 'no-cache',
+                    signal: AbortSignal.timeout(5000)
+                });
+                
+                if (response.ok) {
+                    button.innerHTML = '✅ Connected! Reloading...';
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    throw new Error('Connection test failed');
+                }
+            } catch (error) {
+                button.innerHTML = '❌ Still offline';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    isRetrying = false;
+                }, 2000);
+            }
+        }
+        
+        // Auto-reload when back online
+        window.addEventListener('online', function() {
+            console.log('Navigator reports online, testing connection...');
+            tryReconnect();
+        });
+        
+        // Periodic connection check (less aggressive)
+        setInterval(function() {
+            if (navigator.onLine && !isRetrying) {
+                fetch('/favicon.ico', { 
+                    method: 'HEAD', 
+                    cache: 'no-cache',
+                    signal: AbortSignal.timeout(3000)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    }
+                })
+                .catch(() => {
+                    // Still offline, do nothing
+                });
+            }
+        }, 10000); // Check every 10 seconds instead of 5
+    </script>
+</body>
+</html>

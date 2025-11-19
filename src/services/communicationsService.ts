@@ -1,0 +1,1418 @@
+import { supabase } from '@/lib/supabase';
+import { AuditService } from './auditService';
+
+// Email functionality
+export interface DirectEmailRequest {
+  to_emails: string[];
+  subject: string;
+  message: string;
+  email_type: 'announcement' | 'task_notification' | 'direct_message' | 'custom';
+  sender_name?: string;
+}
+
+export interface EmailResult {
+  success: boolean;
+  total_sent?: number;
+  total_failed?: number;
+  results?: {
+    successful: number;
+    failed: number;
+    failed_emails: Array<{ email: string; error: string }>;
+  };
+  error?: string;
+}
+
+// FIXED: Use the existing supabase client to avoid multiple GoTrueClient instances
+const getServiceRoleClient = () => {
+  // Always use the main supabase client to avoid multiple instances
+  return supabase;
+};
+
+// Types
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  author_id: string;
+  priority: 'low' | 'medium' | 'high';
+  is_pinned: boolean;
+  is_archived: boolean;
+  target_audience: any;
+  created_at: string;
+  updated_at: string;
+  author?: {
+    email: string;
+    role: string;
+  };
+  read_count?: number;
+  total_recipients?: number;
+  is_read_by_current_user?: boolean;
+}
+
+export interface CommunicationTask {
+  id: string;
+  title: string;
+  description?: string;
+  assigned_to_id?: string;
+  assigned_by_id: string;
+  due_date?: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'overdue';
+  priority: 'low' | 'medium' | 'high';
+  tags: string[];
+  attachments: any[];
+  created_at: string;
+  updated_at: string;
+  assigned_to?: {
+    email: string;
+    role: string;
+  };
+  assigned_by?: {
+    email: string;
+    role: string;
+  };
+  comments_count?: number;
+}
+
+export interface InternalMessage {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  subject: string;
+  message: string;
+  is_read: boolean;
+  is_archived: boolean;
+  reply_to_id?: string;
+  attachments: any[];
+  created_at: string;
+  read_at?: string;
+  from_user?: {
+    email: string;
+    role: string;
+  };
+  to_user?: {
+    email: string;
+    role: string;
+  };
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  comment: string;
+  comment_type: 'comment' | 'status_change' | 'assignment_change';
+  metadata: any;
+  created_at: string;
+  user?: {
+    email: string;
+    role: string;
+  };
+}
+
+export interface CommunicationStats {
+  total_announcements: number;
+  active_announcements: number;
+  total_tasks: number;
+  pending_tasks: number;
+  overdue_tasks: number;
+  total_messages: number;
+  unread_messages: number;
+  team_members: number;
+}
+
+export class CommunicationsService {
+  // ANNOUNCEMENTS
+  static async getAnnouncements(
+    filters?: {
+      priority?: string;
+      is_pinned?: boolean;
+      is_archived?: boolean;
+      search?: string;
+    }
+  ): Promise<Announcement[]> {
+    try {
+      let query = getServiceRoleClient()
+        .from('announcements')
+        .select(`
+          *,
+          author:admin_users!announcements_author_id_fkey(email, role)
+        `)
+        .eq('is_archived', false)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (filters?.priority) {
+        query = query.eq('priority', filters.priority);
+      }
+
+      if (filters?.is_pinned !== undefined) {
+        query = query.eq('is_pinned', filters.is_pinned);
+      }
+
+      if (filters?.search) {
+        query = query.or(`title.ilike.%${filters.search}%,message.ilike.%${filters.search}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Get current user ID safely
+      const currentUser = await supabase.auth.getUser();
+      const currentUserId = currentUser.data.user?.id;
+
+      // Get total active admin users count for calculating recipients
+      const { count: totalAdminUsers } = await getServiceRoleClient()
+        .from('admin_users')
+        .select('id', { count: 'exact' })
+        .eq('is_active', true);
+
+      // Get read counts and current user read status
+      const enrichedData = await Promise.all(
+        (data || []).map(async (announcement) => {
+          const readCountResult = await getServiceRoleClient()
+            .from('announcement_reads')
+            .select('id', { count: 'exact' })
+            .eq('announcement_id', announcement.id);
+
+          let currentUserReadResult = { data: null };
+          if (currentUserId) {
+            currentUserReadResult = await getServiceRoleClient()
+              .from('announcement_reads')
+              .select('id')
+              .eq('announcement_id', announcement.id)
+              .eq('user_id', currentUserId)
+              .single();
+          }
+
+          // Calculate total recipients based on target audience
+          let totalRecipients = totalAdminUsers || 0;
+          
+          // If there's a specific target audience, calculate based on that
+          if (announcement.target_audience && announcement.target_audience.type !== 'all') {
+            // For now, default to all admin users, but this can be extended
+            // to support specific role targeting, etc.
+            totalRecipients = totalAdminUsers || 0;
+          }
+
+          return {
+            ...announcement,
+            read_count: readCountResult.count || 0,
+            total_recipients: totalRecipients,
+            is_read_by_current_user: !!currentUserReadResult.data
+          };
+        })
+      );
+
+      return enrichedData;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async createAnnouncement(
+    announcement: {
+      title: string;
+      message: string;
+      priority: 'low' | 'medium' | 'high';
+      is_pinned?: boolean;
+      target_audience?: any;
+    },
+    authorId: string
+  ): Promise<Announcement | null> {
+    try {
+      const { data, error } = await getServiceRoleClient()
+        .from('announcements')
+        .insert({
+          ...announcement,
+          author_id: authorId,
+          is_pinned: announcement.is_pinned || false,
+          target_audience: announcement.target_audience || { type: 'all' }
+        })
+        .select(`
+          *,
+          author:admin_users!announcements_author_id_fkey(email, role)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      // Log the action (without message content for privacy)
+      await AuditService.logAction(
+        authorId,
+        'create_announcement',
+        undefined,
+        {
+          description: 'Created announcement',
+          announcement_id: data.id,
+          has_title: !!announcement.title,
+          priority: announcement.priority,
+          is_pinned: announcement.is_pinned,
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      // Send email notification to all admin members
+      try {
+        await this.sendAnnouncementEmail(data.id, undefined, authorId);
+      } catch (emailError) {
+        console.error('Failed to send announcement email:', emailError);
+        // Don't fail the announcement creation if email fails
+      }
+
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async updateAnnouncement(
+    id: string,
+    updates: Partial<Announcement>,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('announcements')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Log the action (without message content for privacy)
+      await AuditService.logAction(
+        userId,
+        'update_announcement',
+        undefined,
+        {
+          description: 'Updated announcement',
+          announcement_id: id,
+          updated_fields: Object.keys(updates),
+          has_title_change: 'title' in updates,
+          has_message_change: 'message' in updates,
+          has_priority_change: 'priority' in updates,
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  static async deleteAnnouncement(id: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'delete_announcement',
+        undefined,
+        {
+          description: 'Deleted announcement',
+          announcement_id: id
+        }
+      );
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  static async markAnnouncementAsRead(announcementId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('announcement_reads')
+        .upsert({
+          announcement_id: announcementId,
+          user_id: userId
+        });
+
+      if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'mark_announcement_read',
+        undefined,
+        {
+          description: 'Marked announcement as read',
+          announcement_id: announcementId
+        }
+      );
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  static async getUnreadAnnouncementsCount(userId: string): Promise<number> {
+    try {
+      // Get all announcements
+      const { data: announcements, error: announcementsError } = await getServiceRoleClient()
+        .from('announcements')
+        .select('id')
+        .eq('is_archived', false);
+
+      if (announcementsError) throw announcementsError;
+
+      if (!announcements || announcements.length === 0) {
+        return 0;
+      }
+
+      // Get read announcements for this user
+      const { data: readAnnouncements, error: readsError } = await getServiceRoleClient()
+        .from('announcement_reads')
+        .select('announcement_id')
+        .eq('user_id', userId);
+
+      if (readsError) throw readsError;
+
+      const readAnnouncementIds = new Set(readAnnouncements?.map(r => r.announcement_id) || []);
+      const unreadCount = announcements.filter(a => !readAnnouncementIds.has(a.id)).length;
+
+      return unreadCount;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  // TASKS
+  static async getTasks(
+    filters?: {
+      status?: string;
+      priority?: string;
+      assigned_to?: string;
+      user_id?: string; // Show tasks assigned to OR assigned by this user
+      search?: string;
+    }
+  ): Promise<CommunicationTask[]> {
+    try {
+      let query = getServiceRoleClient()
+        .from('communication_tasks')
+        .select(`
+          *,
+          assigned_to:admin_users!assigned_to_id(email, role),
+          assigned_by:admin_users!assigned_by_id(email, role)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      if (filters?.priority) {
+        query = query.eq('priority', filters.priority);
+      }
+
+      if (filters?.assigned_to) {
+        query = query.eq('assigned_to_id', filters.assigned_to);
+      }
+
+      if (filters?.user_id) {
+        // Show tasks where user is either assignee OR assigner
+        query = query.or(`assigned_to_id.eq.${filters.user_id},assigned_by_id.eq.${filters.user_id}`);
+      }
+
+      if (filters?.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Get comment counts
+      const enrichedData = await Promise.all(
+        (data || []).map(async (task) => {
+          const { count } = await getServiceRoleClient()
+            .from('task_comments')
+            .select('id', { count: 'exact' })
+            .eq('task_id', task.id);
+
+          return {
+            ...task,
+            comments_count: count || 0
+          };
+        })
+      );
+
+      return enrichedData;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async createTask(
+    task: {
+      title: string;
+      description?: string;
+      assigned_to_id?: string;
+      due_date?: string;
+      priority: 'low' | 'medium' | 'high';
+      tags?: string[];
+    },
+    assignedById: string
+  ): Promise<CommunicationTask | null> {
+    try {
+      const { data, error } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .insert({
+          ...task,
+          assigned_by_id: assignedById,
+          tags: task.tags || [],
+          attachments: []
+        })
+        .select(`
+          *,
+          assigned_to:admin_users!communication_tasks_assigned_to_id_fkey(email, role),
+          assigned_by:admin_users!communication_tasks_assigned_by_id_fkey(email, role)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      // Log the action (without task content for privacy)
+      await AuditService.logAction(
+        assignedById,
+        'create_task',
+        data.assigned_to?.email,
+        {
+          description: 'Created task',
+          task_id: data.id,
+          assigned_to_id: task.assigned_to_id,
+          has_title: !!task.title,
+          has_description: !!task.description,
+          priority: task.priority,
+          has_due_date: !!task.due_date,
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      // Send email notification to assigned user
+      if (task.assigned_to_id && data.assigned_to?.email) {
+        try {
+          await this.sendTaskNotificationEmail(data.id, [data.assigned_to.email], assignedById);
+        } catch (emailError) {
+          console.error('Failed to send task assignment email:', emailError);
+          // Don't fail the task creation if email fails
+        }
+      }
+
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async updateTask(
+    id: string,
+    updates: Partial<CommunicationTask>,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      // Get current task data before update
+      const { data: currentTask } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .select(`
+          *,
+          assigned_to:admin_users!communication_tasks_assigned_to_id_fkey(email, role),
+          assigned_by:admin_users!communication_tasks_assigned_by_id_fkey(email, role)
+        `)
+        .eq('id', id)
+        .single();
+
+      const { error } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Log the action (without task content for privacy)
+      await AuditService.logAction(
+        userId,
+        'update_task',
+        undefined,
+        {
+          description: 'Updated task',
+          task_id: id,
+          updated_fields: Object.keys(updates),
+          has_title_change: 'title' in updates,
+          has_description_change: 'description' in updates,
+          has_status_change: 'status' in updates,
+          has_assignee_change: 'assigned_to_id' in updates,
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      // Send email notifications for significant changes
+      if (currentTask) {
+        try {
+          // If task was reassigned to a different person
+          if (updates.assigned_to_id && updates.assigned_to_id !== currentTask.assigned_to_id) {
+            // Get new assignee email
+            const { data: newAssignee } = await getServiceRoleClient()
+              .from('admin_users')
+              .select('email')
+              .eq('id', updates.assigned_to_id)
+              .single();
+
+            if (newAssignee?.email) {
+              await this.sendTaskNotificationEmail(id, [newAssignee.email], userId);
+            }
+          }
+          // If status changed to overdue
+          else if (updates.status === 'overdue') {
+            // Collect all email recipients (assigned user and assigner)
+            const emailRecipients = [];
+            if (currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_to.email);
+            }
+            if (currentTask.assigned_by?.email && currentTask.assigned_by.email !== currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_by.email);
+            }
+
+            // Send overdue notification to all relevant parties
+            if (emailRecipients.length > 0) {
+              await this.sendDirectEmail({
+                to_emails: emailRecipients,
+                subject: `[OVERDUE] Task: ${currentTask.title}`,
+                message: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #dc2626; border-bottom: 2px solid #dc2626; padding-bottom: 10px;">
+                      ⚠️ Task Marked as Overdue
+                    </h2>
+                    <div style="background-color: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+                      <h3 style="color: #374151; margin-top: 0;">${currentTask.title}</h3>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned to:</strong> ${currentTask.assigned_to?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned by:</strong> ${currentTask.assigned_by?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Due Date:</strong> ${new Date(currentTask.due_date).toLocaleDateString()}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Status:</strong> OVERDUE</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Description:</strong> ${currentTask.description || 'No description provided'}</p>
+                    </div>
+                    <p style="color: #dc2626; font-weight: bold;">This task has been marked as overdue. Please take appropriate action.</p>
+                    <p><small>This notification was triggered by a manual status change in the GDG@PSU Communications Hub.</small></p>
+                  </div>
+                `,
+                email_type: 'task_notification',
+                sender_name: 'GDG@PSU Task Manager'
+              }, userId);
+            }
+          }
+          // If status changed to completed
+          else if (updates.status === 'completed') {
+            // Collect all email recipients (assigned user and assigner)
+            const emailRecipients = [];
+            if (currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_to.email);
+            }
+            if (currentTask.assigned_by?.email && currentTask.assigned_by.email !== currentTask.assigned_to?.email) {
+              emailRecipients.push(currentTask.assigned_by.email);
+            }
+
+            // Send completion notification to all relevant parties
+            if (emailRecipients.length > 0) {
+              await this.sendDirectEmail({
+                to_emails: emailRecipients,
+                subject: `[Task Completed] ${currentTask.title}`,
+                message: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 10px;">
+                      Task Completed ✅
+                    </h2>
+                    <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+                      <h3 style="color: #374151; margin-top: 0;">${currentTask.title}</h3>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned to:</strong> ${currentTask.assigned_to?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Assigned by:</strong> ${currentTask.assigned_by?.email || 'Unknown'}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Completed on:</strong> ${new Date().toLocaleDateString()}</p>
+                      <p style="color: #4b5563; margin: 10px 0;"><strong>Description:</strong></p>
+                      <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${currentTask.description || 'No description provided'}</div>
+                    </div>
+                    <p style="color: #10b981; font-weight: bold;">🎉 Great job! This task has been completed successfully.</p>
+                    <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+                  </div>
+                `,
+                email_type: 'task_notification',
+                sender_name: 'GDG@PSU Communications'
+              }, userId);
+            }
+          }
+        } catch (emailError) {
+          console.error('Failed to send task update email:', emailError);
+          // Don't fail the task update if email fails
+        }
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  static async deleteTask(id: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'delete_task',
+        undefined,
+        {
+          description: 'Deleted task',
+          task_id: id
+        }
+      );
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // MESSAGES
+  static async getMessages(userId: string, userRole?: string): Promise<InternalMessage[]> {
+    try {
+      let query = getServiceRoleClient()
+        .from('internal_messages')
+        .select(`
+          *,
+          from_user:admin_users!internal_messages_from_user_id_fkey(email, role),
+          to_user:admin_users!internal_messages_to_user_id_fkey(email, role)
+        `)
+        .eq('is_archived', false);
+
+      // Super admins can see all messages, others only see their own
+      if (userRole !== 'super_admin') {
+        query = query.or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async sendMessage(
+    message: {
+      to_user_id: string;
+      subject: string;
+      message: string;
+      reply_to_id?: string;
+    },
+    fromUserId: string
+  ): Promise<InternalMessage | null> {
+    try {
+      const { data, error } = await getServiceRoleClient()
+        .from('internal_messages')
+        .insert({
+          ...message,
+          from_user_id: fromUserId,
+          attachments: []
+        })
+        .select(`
+          *,
+          from_user:admin_users!internal_messages_from_user_id_fkey(email, role),
+          to_user:admin_users!internal_messages_to_user_id_fkey(email, role)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      // Log the action (without message content for privacy)
+      await AuditService.logAction(
+        fromUserId,
+        'send_message',
+        data.to_user?.email,
+        {
+          description: 'Sent internal message',
+          message_id: data.id,
+          recipient_id: message.to_user_id,
+          has_subject: !!message.subject,
+          is_reply: !!message.reply_to_id,
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      // Send email notification to recipient
+      if (data.to_user?.email) {
+        try {
+          await this.sendDirectEmail({
+            to_emails: [data.to_user.email],
+            subject: `[Internal Message] ${message.subject}`,
+            message: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+                  New Internal Message
+                </h2>
+                <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="color: #374151; margin-top: 0;">Subject: ${message.subject}</h3>
+                  <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${message.message}</div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                  <p><strong>From:</strong> ${data.from_user?.email || 'Unknown'}</p>
+                  <p><strong>Sent:</strong> ${new Date(data.created_at).toLocaleString()}</p>
+                </div>
+                <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+              </div>
+            `,
+            email_type: 'internal_message',
+            sender_name: 'GDG@PSU Communications'
+          }, fromUserId);
+        } catch (emailError) {
+          console.error('Failed to send message notification email:', emailError);
+          // Don't fail the message sending if email fails
+        }
+      }
+
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static async markMessageAsRead(id: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('internal_messages')
+        .update({
+          is_read: true,
+          read_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('to_user_id', userId);
+
+      if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'mark_message_read',
+        undefined,
+        {
+          description: 'Marked message as read',
+          message_id: id
+        }
+      );
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // TASK COMMENTS
+  static async getTaskComments(taskId: string): Promise<TaskComment[]> {
+    try {
+      const { data, error } = await getServiceRoleClient()
+        .from('task_comments')
+        .select(`
+          *,
+          user:admin_users!task_comments_user_id_fkey(email, role)
+        `)
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async addTaskComment(
+    taskId: string,
+    comment: string,
+    userId: string,
+    commentType: 'comment' | 'status_change' | 'assignment_change' = 'comment',
+    metadata: any = {}
+  ): Promise<TaskComment | null> {
+    try {
+      const { data, error } = await getServiceRoleClient()
+        .from('task_comments')
+        .insert({
+          task_id: taskId,
+          user_id: userId,
+          comment,
+          comment_type: commentType,
+          metadata
+        })
+        .select(`
+          *,
+          user:admin_users!task_comments_user_id_fkey(email, role)
+        `)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // STATISTICS
+  static async getCommunicationStats(userId?: string): Promise<CommunicationStats> {
+    try {
+      const [
+        announcementsResult,
+        activeAnnouncementsResult,
+        tasksResult,
+        pendingTasksResult,
+        overdueTasksResult,
+        messagesResult,
+        unreadMessagesResult,
+        teamMembersResult
+      ] = await Promise.all([
+        getServiceRoleClient().from('announcements').select('id', { count: 'exact' }),
+        getServiceRoleClient().from('announcements').select('id', { count: 'exact' }).eq('is_archived', false),
+        getServiceRoleClient().from('communication_tasks').select('id', { count: 'exact' }),
+        getServiceRoleClient().from('communication_tasks').select('id', { count: 'exact' }).in('status', ['pending', 'in-progress']),
+        getServiceRoleClient().from('communication_tasks').select('id', { count: 'exact' }).eq('status', 'overdue'),
+        userId ? getServiceRoleClient().from('internal_messages').select('id', { count: 'exact' }).or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`) : { count: 0 },
+        userId ? getServiceRoleClient().from('internal_messages').select('id', { count: 'exact' }).eq('to_user_id', userId).eq('is_read', false) : { count: 0 },
+        getServiceRoleClient().from('admin_users').select('id', { count: 'exact' }).eq('is_active', true)
+      ]);
+
+      return {
+        total_announcements: announcementsResult.count || 0,
+        active_announcements: activeAnnouncementsResult.count || 0,
+        total_tasks: tasksResult.count || 0,
+        pending_tasks: pendingTasksResult.count || 0,
+        overdue_tasks: overdueTasksResult.count || 0,
+        total_messages: messagesResult.count || 0,
+        unread_messages: unreadMessagesResult.count || 0,
+        team_members: teamMembersResult.count || 0
+      };
+    } catch (error) {
+      return {
+        total_announcements: 0,
+        active_announcements: 0,
+        total_tasks: 0,
+        pending_tasks: 0,
+        overdue_tasks: 0,
+        total_messages: 0,
+        unread_messages: 0,
+        team_members: 0
+      };
+    }
+  }
+
+  // UTILITY FUNCTIONS
+  static async getAllAdminUsers(): Promise<Array<{ id: string; email: string; role: string }>> {
+    try {
+      const { data, error } = await getServiceRoleClient()
+        .from('admin_users')
+        .select('id, email, role')
+        .eq('is_active', true)
+        .order('email');
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async markOverdueTasks(): Promise<void> {
+    try {
+      await getServiceRoleClient().rpc('mark_overdue_tasks');
+    } catch (error) {
+    }
+  }
+
+  // EMAIL FUNCTIONALITY
+  static async sendDirectEmail(emailData: DirectEmailRequest, senderId: string): Promise<EmailResult> {
+    try {
+      // Use Supabase Edge Function for sending communications emails
+      const { data, error } = await supabase.functions.invoke('send-communication-email', {
+        body: {
+          to_emails: emailData.to_emails,
+          subject: emailData.subject,
+          message: emailData.message,
+          email_type: emailData.email_type,
+          sender_name: emailData.sender_name || 'GDG@PSU Communications'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to send emails');
+      }
+
+      // Log the email action (without email content for privacy)
+      try {
+        await AuditService.logAction(
+          senderId,
+          'send_email',
+          undefined,
+          {
+            description: 'Sent direct email',
+            recipients_count: emailData.to_emails.length,
+            email_type: emailData.email_type,
+            has_subject: !!emailData.subject,
+            sent_count: data?.total_sent || 0,
+            failed_count: data?.total_failed || 0,
+            timestamp: new Date().toISOString()
+          }
+        );
+      } catch (auditError) {
+        // Continue execution even if audit logging fails
+      }
+
+      return {
+        success: data?.success || false,
+        total_sent: data?.total_sent || 0,
+        total_failed: data?.total_failed || 0,
+        results: data?.results || {
+          successful: 0,
+          failed: 0,
+          failed_emails: []
+        }
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send direct email'
+      };
+    }
+  }
+
+  static async sendAnnouncementEmail(
+    announcementId: string, 
+    customEmails?: string[], 
+    senderId?: string
+  ): Promise<EmailResult> {
+    try {
+      // Get announcement details
+      const { data: announcement } = await getServiceRoleClient()
+        .from('announcements')
+        .select('*, author:admin_users!announcements_author_id_fkey(email, role)')
+        .eq('id', announcementId)
+        .single();
+
+      if (!announcement) {
+        throw new Error('Announcement not found');
+      }
+
+      // Get recipient emails
+      let recipientEmails: string[] = [];
+      
+      if (customEmails && customEmails.length > 0) {
+        recipientEmails = customEmails;
+      } else {
+        // Get all active admin users
+        const { data: adminUsers } = await getServiceRoleClient()
+          .from('admin_users')
+          .select('email')
+          .eq('is_active', true);
+        
+        recipientEmails = adminUsers?.map(user => user.email) || [];
+      }
+
+      if (recipientEmails.length === 0) {
+        throw new Error('No recipients found');
+      }
+
+      // Send email
+      const emailResult = await this.sendDirectEmail({
+        to_emails: recipientEmails,
+        subject: `[Announcement] ${announcement.title}`,
+        message: `
+          <h2>${announcement.title}</h2>
+          <p><strong>Priority:</strong> ${announcement.priority.toUpperCase()}</p>
+          <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #007bff;">
+            ${announcement.message.replace(/\n/g, '<br>')}
+          </div>
+          <p><small>Sent by: ${announcement.author?.email || 'Unknown'}</small></p>
+          <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+        `,
+        email_type: 'announcement',
+        sender_name: 'GDG@PSU Communications'
+      }, senderId || announcement.author_id);
+
+      return emailResult;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send announcement email'
+      };
+    }
+  }
+
+  static async sendTaskNotificationEmail(
+    taskId: string, 
+    customEmails?: string[],
+    senderId?: string
+  ): Promise<EmailResult> {
+    try {
+      // Get task details
+      const { data: task } = await getServiceRoleClient()
+        .from('communication_tasks')
+        .select(`
+          *,
+          assigned_to:admin_users!communication_tasks_assigned_to_id_fkey(email, role),
+          assigned_by:admin_users!communication_tasks_assigned_by_id_fkey(email, role)
+        `)
+        .eq('id', taskId)
+        .single();
+
+      if (!task) {
+        throw new Error('Task not found');
+      }
+
+      // Get recipient emails
+      let recipientEmails: string[] = [];
+      
+      if (customEmails && customEmails.length > 0) {
+        recipientEmails = customEmails;
+      } else if (task.assigned_to?.email) {
+        recipientEmails = [task.assigned_to.email];
+      } else {
+        // Get all active admin users as fallback
+        const { data: adminUsers } = await getServiceRoleClient()
+          .from('admin_users')
+          .select('email')
+          .eq('is_active', true);
+        
+        recipientEmails = adminUsers?.map(user => user.email) || [];
+      }
+
+      if (recipientEmails.length === 0) {
+        throw new Error('No recipients found');
+      }
+
+      // Create task notification email
+      const subject = `[Task] ${task.title}`;
+      const messageContent = `
+        <h2>Task Notification</h2>
+        <p><strong>Task:</strong> ${task.title}</p>
+        <p><strong>Status:</strong> ${task.status.split('-').join(' ').toUpperCase()}</p>
+        <p><strong>Priority:</strong> ${task.priority.toUpperCase()}</p>
+        ${task.due_date ? `<p><strong>Due Date:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>` : ''}
+        ${task.assigned_to?.email ? `<p><strong>Assigned to:</strong> ${task.assigned_to.email}</p>` : ''}
+        <div style="margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #007bff;">
+          ${task.description?.replace(/\n/g, '<br>') || 'No description provided.'}
+        </div>
+        <p><small>Assigned by: ${task.assigned_by?.email || 'Unknown'}</small></p>
+        <p><small>This is an automated message from the GDG@PSU Communications Hub.</small></p>
+      `;
+
+      // Send email
+      const emailResult = await this.sendDirectEmail({
+        to_emails: recipientEmails,
+        subject,
+        message: messageContent,
+        email_type: 'task_notification',
+        sender_name: 'GDG@PSU Task Manager'
+      }, senderId || task.assigned_by_id);
+
+      return emailResult;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send task notification email'
+      };
+    }
+  }
+
+  // Check for overdue tasks and send notifications
+  static async checkOverdueTasks(userId?: string): Promise<{
+    success: boolean;
+    marked: number;
+    notified: number;
+    message: string;
+    error?: string;
+  }> {
+    try {
+      const { data, error } = await getServiceRoleClient().functions.invoke('check-overdue-tasks', {
+        body: {}
+      });
+
+      if (error) {
+        return {
+          success: false,
+          marked: 0,
+          notified: 0,
+          message: 'Failed to check overdue tasks',
+          error: error.message
+        };
+      }
+
+      // Log the action if userId is provided
+      if (userId) {
+        await AuditService.logAction(
+          userId,
+          'check_overdue_tasks',
+          undefined,
+          {
+            description: 'Manually checked for overdue tasks',
+            marked_count: data?.marked || 0,
+            notified_count: data?.notified || 0,
+            result_message: data?.message || 'Check completed'
+          }
+        );
+      }
+
+      return {
+        success: true,
+        marked: data?.marked || 0,
+        notified: data?.notified || 0,
+        message: data?.message || 'Check completed'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        marked: 0,
+        notified: 0,
+        message: 'Failed to check overdue tasks',
+        error: error.message || 'Unknown error'
+      };
+    }
+  }
+
+  // Delete internal message (super_admin only)
+  static async deleteMessage(messageId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      // Log the action
+      await AuditService.logAction(
+        userId,
+        'delete_message',
+        undefined,
+        {
+          description: 'Deleted message',
+          message_id: messageId,
+          admin_action: true
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }
+
+  // Delete entire message thread (super_admin only)
+  static async deleteMessageThread(messageId: string, userId: string): Promise<boolean> {
+    try {
+      console.log('🔥 NEW CODE v2:', new Date().toISOString(), 'Deleting message thread for message ID:', messageId);
+      
+      // First, get the message to determine if it's an original message or a reply
+      const { data: targetMessage, error: fetchError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id, subject')
+        .eq('id', messageId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching target message:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Target message:', targetMessage);
+
+      let rootMessageId = messageId;
+
+      // If this is a reply, find the root message
+      if (targetMessage.reply_to_id) {
+        rootMessageId = targetMessage.reply_to_id;
+        console.log('This is a reply, root message ID:', rootMessageId);
+      } else {
+        console.log('This is the root message');
+      }
+
+      // Step 1: Get the root message
+      const { data: rootMessage, error: rootError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id, subject')
+        .eq('id', rootMessageId)
+        .single();
+
+      if (rootError && rootError.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Error fetching root message:', rootError);
+        throw rootError;
+      }
+
+      // Step 2: Get all replies to the root message
+      const { data: replyMessages, error: replyError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id, subject')
+        .eq('reply_to_id', rootMessageId);
+
+      if (replyError) {
+        console.error('Error fetching reply messages:', replyError);
+        throw replyError;
+      }
+
+      // Collect all message IDs to delete
+      const allMessageIds = [];
+      
+      // Add root message if it exists
+      if (rootMessage) {
+        allMessageIds.push(rootMessage.id);
+      }
+      
+      // Add all reply messages
+      if (replyMessages && replyMessages.length > 0) {
+        allMessageIds.push(...replyMessages.map(msg => msg.id));
+      }
+
+      console.log('Root message:', rootMessage);
+      console.log('Reply messages:', replyMessages);
+      console.log('All message IDs to delete:', allMessageIds);
+
+      if (allMessageIds.length === 0) {
+        console.log('No messages found to delete');
+        return false;
+      }
+
+      // Delete all messages in the thread using multiple approaches
+      console.log('Attempting to delete messages with IDs:', allMessageIds);
+      
+      // First, delete all replies
+      const { data: replyDeleteResult, error: replyDeleteError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .eq('reply_to_id', rootMessageId)
+        .select();
+
+      if (replyDeleteError) {
+        console.error('Error deleting reply messages:', replyDeleteError);
+      } else {
+        console.log('Deleted replies:', replyDeleteResult);
+      }
+
+      // Then delete the root message
+      const { data: rootDeleteResult, error: rootDeleteError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .eq('id', rootMessageId)
+        .select();
+
+      if (rootDeleteError) {
+        console.error('Error deleting root message:', rootDeleteError);
+      } else {
+        console.log('Deleted root message:', rootDeleteResult);
+      }
+
+      // Check if any deletion failed
+      if (replyDeleteError || rootDeleteError) {
+        throw new Error('Failed to delete some messages in the thread');
+      }
+
+      const totalDeleted = (replyDeleteResult?.length || 0) + (rootDeleteResult?.length || 0);
+      console.log(`Successfully deleted ${totalDeleted} messages total`);
+
+      // Verify deletion by checking if messages still exist
+      const { data: verifyData, error: verifyError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id')
+        .in('id', allMessageIds);
+
+      if (!verifyError && verifyData && verifyData.length > 0) {
+        console.error('Some messages still exist after deletion:', verifyData);
+      } else {
+        console.log('Verification: All messages successfully deleted');
+      }
+
+      // Log the action (without message content for privacy)
+      await AuditService.logAction(
+        userId,
+        'delete_message_thread',
+        undefined,
+        {
+          description: 'Deleted message thread',
+          root_message_id: rootMessageId,
+          deleted_count: allMessageIds.length,
+          had_subject: !!targetMessage.subject,
+          admin_action: true,
+          timestamp: new Date().toISOString()
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting message thread:', error);
+      return false;
+    }
+  }
+
+  // Clean up orphaned replies (messages with reply_to_id pointing to non-existent messages)
+  static async cleanupOrphanedReplies(userId: string): Promise<number> {
+    try {
+      // Get all messages with reply_to_id
+      const { data: repliesData, error: repliesError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id, reply_to_id')
+        .not('reply_to_id', 'is', null);
+
+      if (repliesError) throw repliesError;
+
+      if (!repliesData || repliesData.length === 0) {
+        return 0;
+      }
+
+      // Get all existing message IDs
+      const { data: allMessages, error: allError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .select('id');
+
+      if (allError) throw allError;
+
+      const existingIds = new Set(allMessages.map(m => m.id));
+      
+      // Find orphaned replies (replies whose parent doesn't exist)
+      const orphanedReplies = repliesData.filter(reply => 
+        !existingIds.has(reply.reply_to_id)
+      );
+
+      if (orphanedReplies.length === 0) {
+        return 0;
+      }
+
+      console.log('Found orphaned replies:', orphanedReplies);
+
+      // Delete orphaned replies
+      const orphanedIds = orphanedReplies.map(r => r.id);
+      const { error: deleteError } = await getServiceRoleClient()
+        .from('internal_messages')
+        .delete()
+        .in('id', orphanedIds);
+
+      if (deleteError) throw deleteError;
+
+      // Log the cleanup (skip audit logging for now)
+      console.log('Audit log: Cleaned up orphaned replies', {
+        description: `Cleaned up ${orphanedIds.length} orphaned reply messages`,
+        deleted_message_ids: orphanedIds
+      });
+
+      return orphanedIds.length;
+    } catch (error) {
+      console.error('Error cleaning up orphaned replies:', error);
+      return 0;
+    }
+  }
+}
