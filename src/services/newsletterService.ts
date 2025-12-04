@@ -58,7 +58,22 @@ export class NewsletterService {
         throw new Error('Newsletter signups are temporarily unavailable during maintenance. Please try again later.');
       }
 
-      // Check rate limit
+      // Check if email already exists FIRST (before rate limiting)
+      const { data: existingSubscriber, error: checkError } = await supabase
+        .from('newsletter_subscribers')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      // If subscriber exists and is already confirmed and active, don't count as rate limit attempt
+      if (existingSubscriber && existingSubscriber.confirmed_at && existingSubscriber.is_active) {
+        return {
+          success: false,
+          message: 'This email is already subscribed to our newsletter.'
+        };
+      }
+
+      // Check rate limit (only for non-confirmed subscribers or new signups)
       const { data: rateLimitCheck, error: rateLimitError } = await supabase
         .rpc('check_newsletter_rate_limit', { user_email: email });
 
@@ -80,22 +95,8 @@ export class NewsletterService {
         }
       }
 
-      // Check if email already exists
-      const { data: existingSubscriber, error: checkError } = await supabase
-        .from('newsletter_subscribers')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-      // If subscriber exists
+      // If subscriber exists (but not confirmed or not active)
       if (existingSubscriber) {
-        // If already confirmed and active
-        if (existingSubscriber.confirmed_at && existingSubscriber.is_active) {
-          return {
-            success: false,
-            message: 'This email is already subscribed to our newsletter.'
-          };
-        }
         
         // If pending confirmation, resend confirmation email
         if (!existingSubscriber.confirmed_at) {
