@@ -236,12 +236,13 @@ const AdminDashboard = () => {
 
   // Filter quick actions based on role
   const quickActions = [
-    // Only show Site & Content, Manage Events, and Team Management to super admins
+    // Only show Site & Content and Team Management to super admins
     ...(currentAdmin?.role === 'super_admin' ? [
       { label: 'Site & Content', icon: FileText, href: '/admin/content' },
-      { label: 'Manage Events', icon: Calendar, href: '/admin/events' },
       { label: 'Team Management', icon: Users, href: '/admin/team' }
     ] : []),
+    // Show Manage Events to both super admins and regular admins
+    { label: 'Manage Events', icon: Calendar, href: '/admin/events' },
     { label: 'Manage Projects', icon: FolderOpen, href: '/admin/projects' },
     { label: 'View Members', icon: Users, href: '/admin/members' },
     { label: 'Resources', icon: FileText, href: '/admin/resources' },
