@@ -41,8 +41,14 @@ export interface NewsletterTemplate {
   updated_at: string;
 }
 
+export interface SubscriptionResult {
+  success: boolean;
+  message: string;
+  data?: NewsletterSubscriber;
+}
+
 export class NewsletterService {
-  static async subscribe(email: string, name?: string): Promise<NewsletterSubscriber | null> {
+  static async subscribe(email: string, name?: string): Promise<SubscriptionResult> {
     try {
       // Check if site is in maintenance mode
       const { SiteStatusService } = await import('@/services/siteStatusService');
@@ -63,7 +69,10 @@ export class NewsletterService {
       if (existingSubscriber) {
         // If already confirmed and active
         if (existingSubscriber.confirmed_at && existingSubscriber.is_active) {
-          throw new Error('This email is already subscribed to our newsletter.');
+          return {
+            success: false,
+            message: 'This email is already subscribed to our newsletter.'
+          };
         }
         
         // If pending confirmation, resend confirmation email
@@ -89,7 +98,11 @@ export class NewsletterService {
             console.error('Error sending confirmation email:', emailError);
           }
 
-          throw new Error('Please confirm your email. We just sent a new confirmation link. Check your inbox and spam folder.');
+          return {
+            success: true,
+            message: 'Please confirm your email. We just sent a new confirmation link. Check your inbox and spam folder.',
+            data: existingSubscriber
+          };
         }
 
         // If unsubscribed, reactivate
@@ -117,7 +130,11 @@ export class NewsletterService {
             console.error('Error sending confirmation email:', emailError);
           }
 
-          return reactivatedData;
+          return {
+            success: true,
+            message: 'Please check your email to confirm your subscription!',
+            data: reactivatedData
+          };
         }
       }
 
@@ -150,7 +167,11 @@ export class NewsletterService {
         console.error('Error sending confirmation email:', emailError);
       }
 
-      return data;
+      return {
+        success: true,
+        message: 'Please check your email to confirm your subscription!',
+        data
+      };
     } catch (error) {
       throw error;
     }

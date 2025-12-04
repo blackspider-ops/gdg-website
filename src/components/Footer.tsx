@@ -160,11 +160,11 @@ const Footer = () => {
     try {
       const result = await NewsletterService.subscribe(email);
       
-      if (result) {
-        setSubscriptionMessage('✅ Please check your email to confirm your subscription!');
+      if (result.success) {
+        setSubscriptionMessage(`✅ ${result.message}`);
         setEmail('');
       } else {
-        setSubscriptionMessage('❌ Subscription failed. Please try again.');
+        setSubscriptionMessage(`❌ ${result.message}`);
       }
     } catch (error: any) {
       
