@@ -58,6 +58,28 @@ export class NewsletterService {
         throw new Error('Newsletter signups are temporarily unavailable during maintenance. Please try again later.');
       }
 
+      // Check rate limit
+      const { data: rateLimitCheck, error: rateLimitError } = await supabase
+        .rpc('check_newsletter_rate_limit', { user_email: email });
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+        // Continue anyway if rate limit check fails
+      } else if (rateLimitCheck && rateLimitCheck.length > 0) {
+        const limitResult = rateLimitCheck[0];
+        
+        if (limitResult.is_blocked) {
+          const blockedUntil = new Date(limitResult.blocked_until_time);
+          const now = new Date();
+          const hoursRemaining = Math.ceil((blockedUntil.getTime() - now.getTime()) / (1000 * 60 * 60));
+          
+          return {
+            success: false,
+            message: `Too many subscription attempts. Please try again in ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''}.`
+          };
+        }
+      }
+
       // Check if email already exists
       const { data: existingSubscriber, error: checkError } = await supabase
         .from('newsletter_subscribers')
