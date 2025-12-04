@@ -52,7 +52,76 @@ export class NewsletterService {
         throw new Error('Newsletter signups are temporarily unavailable during maintenance. Please try again later.');
       }
 
-      // Generate confirmation and unsubscribe tokens
+      // Check if email already exists
+      const { data: existingSubscriber, error: checkError } = await supabase
+        .from('newsletter_subscribers')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      // If subscriber exists
+      if (existingSubscriber) {
+        // If already confirmed and active
+        if (existingSubscriber.confirmed_at && existingSubscriber.is_active) {
+          throw new Error('This email is already subscribed to our newsletter.');
+        }
+        
+        // If pending confirmation, resend confirmation email
+        if (!existingSubscriber.confirmed_at) {
+          // Generate new confirmation token
+          const newConfirmationToken = crypto.randomUUID();
+          
+          // Update the subscriber with new token
+          const { error: updateError } = await supabase
+            .from('newsletter_subscribers')
+            .update({
+              confirmation_token: newConfirmationToken,
+              updated_at: new Date().toISOString()
+            })
+            .eq('email', email);
+
+          if (updateError) throw updateError;
+
+          // Send new confirmation email
+          try {
+            await this.sendConfirmationEmail(email, name || existingSubscriber.name, newConfirmationToken);
+          } catch (emailError) {
+            console.error('Error sending confirmation email:', emailError);
+          }
+
+          throw new Error('Please confirm your email. We just sent a new confirmation link. Check your inbox and spam folder.');
+        }
+
+        // If unsubscribed, reactivate
+        if (!existingSubscriber.is_active) {
+          const newConfirmationToken = crypto.randomUUID();
+          
+          const { data: reactivatedData, error: reactivateError } = await supabase
+            .from('newsletter_subscribers')
+            .update({
+              is_active: true,
+              confirmation_token: newConfirmationToken,
+              confirmed_at: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('email', email)
+            .select()
+            .single();
+
+          if (reactivateError) throw reactivateError;
+
+          // Send confirmation email
+          try {
+            await this.sendConfirmationEmail(email, name || existingSubscriber.name, newConfirmationToken);
+          } catch (emailError) {
+            console.error('Error sending confirmation email:', emailError);
+          }
+
+          return reactivatedData;
+        }
+      }
+
+      // New subscriber - create entry
       const confirmationToken = crypto.randomUUID();
       const unsubscribeToken = crypto.randomUUID();
       const { data, error } = await supabase
@@ -69,10 +138,6 @@ export class NewsletterService {
         .single();
 
       if (error) {
-        // Handle duplicate email
-        if (error.code === '23505') {
-          throw new Error('This email is already subscribed to our newsletter.');
-        }
         throw error;
       }
 
@@ -82,6 +147,7 @@ export class NewsletterService {
       } catch (emailError) {
         // If email fails, don't fail the entire subscription
         // The user is still subscribed and can be manually confirmed if needed
+        console.error('Error sending confirmation email:', emailError);
       }
 
       return data;
