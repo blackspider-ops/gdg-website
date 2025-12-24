@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminService } from '@/services/adminService';
 import { ProfileMergingService, type MergedProfile } from '@/services/profileMergingService';
+import { TeamManagementService, type AdminTeam, type TeamMembership } from '@/services/teamManagementService';
+import { PermissionsService, type ResourceType, type PermissionAction } from '@/services/permissionsService';
 import { supabase } from '@/lib/supabase';
 import type { AdminUser } from '@/lib/supabase';
 
@@ -8,6 +10,18 @@ interface AdminContextType {
   isAuthenticated: boolean;
   currentAdmin: AdminUser | null;
   mergedProfile: MergedProfile | null;
+  // Team management
+  userTeams: TeamMembership[];
+  currentTeam: AdminTeam | null;
+  setCurrentTeam: (team: AdminTeam | null) => void;
+  refreshTeams: () => Promise<void>;
+  // Permissions
+  hasPermission: (resource: ResourceType, action: PermissionAction) => Promise<boolean>;
+  canAccessPage: (path: string) => Promise<boolean>;
+  isSuperAdmin: boolean;
+  isAdmin: boolean;
+  isTeamMember: boolean;
+  // Auth
   login: (credentials: { username: string; password: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -41,8 +55,37 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [mergedProfile, setMergedProfile] = useState<MergedProfile | null>(null);
+  const [userTeams, setUserTeams] = useState<TeamMembership[]>([]);
+  const [currentTeam, setCurrentTeam] = useState<AdminTeam | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Computed role checks
+  const isSuperAdmin = currentAdmin?.role === 'super_admin';
+  const isAdmin = currentAdmin?.role === 'admin' || isSuperAdmin;
+  const isTeamMember = currentAdmin?.role === 'team_member';
+
+  // Load user teams
+  const refreshTeams = async () => {
+    if (currentAdmin) {
+      const teams = await TeamManagementService.getUserTeams(currentAdmin.id);
+      setUserTeams(teams);
+      
+      // Set first team as current if none selected
+      if (!currentTeam && teams.length > 0 && teams[0].team) {
+        setCurrentTeam(teams[0].team);
+      }
+    }
+  };
+
+  // Permission helpers
+  const hasPermission = async (resource: ResourceType, action: PermissionAction): Promise<boolean> => {
+    return PermissionsService.hasPermission(currentAdmin, resource, action);
+  };
+
+  const canAccessPage = async (path: string): Promise<boolean> => {
+    return PermissionsService.canAccessPage(currentAdmin, path);
+  };
 
   // Check for existing session on mount
   useEffect(() => {
@@ -63,6 +106,13 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
               // Get merged profile with team member data
               const profile = await ProfileMergingService.autoMergeOnLogin(admin);
               setMergedProfile(profile);
+              
+              // Load user teams
+              const teams = await TeamManagementService.getUserTeams(admin.id);
+              setUserTeams(teams);
+              if (teams.length > 0 && teams[0].team) {
+                setCurrentTeam(teams[0].team);
+              }
             } else {
               localStorage.removeItem('gdg-admin-session');
             }
@@ -103,6 +153,13 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         const profile = await ProfileMergingService.autoMergeOnLogin(admin);
         setMergedProfile(profile);
         
+        // Load user teams
+        const teams = await TeamManagementService.getUserTeams(admin.id);
+        setUserTeams(teams);
+        if (teams.length > 0 && teams[0].team) {
+          setCurrentTeam(teams[0].team);
+        }
+        
         return true;
       } else {
         setError('Invalid email or password');
@@ -129,6 +186,8 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     setIsAuthenticated(false);
     setCurrentAdmin(null);
     setMergedProfile(null);
+    setUserTeams([]);
+    setCurrentTeam(null);
     setError(null);
   };
 
@@ -165,6 +224,18 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     isAuthenticated,
     currentAdmin,
     mergedProfile,
+    // Team management
+    userTeams,
+    currentTeam,
+    setCurrentTeam,
+    refreshTeams,
+    // Permissions
+    hasPermission,
+    canAccessPage,
+    isSuperAdmin,
+    isAdmin,
+    isTeamMember,
+    // Auth
     login,
     logout,
     refreshProfile,

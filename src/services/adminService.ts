@@ -117,8 +117,10 @@ export class AdminService {
   static async createAdmin(
     email: string, 
     password: string, 
-    role: 'admin' | 'super_admin' | 'blog_editor' = 'admin',
-    isTemporary: boolean = false
+    role: 'admin' | 'super_admin' | 'team_member' | 'blog_editor' = 'admin',
+    isTemporary: boolean = false,
+    createdBy?: string,
+    displayName?: string
   ): Promise<AdminUser | null> {
     try {
       // Hash the password
@@ -132,7 +134,9 @@ export class AdminService {
           email,
           password_hash: passwordHash,
           role,
+          display_name: displayName,
           is_active: true,
+          created_by: createdBy,
           created_at: new Date().toISOString()
         })
         .select()
@@ -182,7 +186,7 @@ export class AdminService {
     try {
       const { data: admins, error } = await supabase
         .from('admin_users')
-        .select('id, email, role, is_active, created_at, last_login')
+        .select('id, email, role, display_name, is_active, created_at, created_by, last_login')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -202,7 +206,8 @@ export class AdminService {
     adminId: string, 
     updates: { 
       email?: string; 
-      role?: 'admin' | 'super_admin'; 
+      role?: 'admin' | 'super_admin' | 'team_member' | 'blog_editor'; 
+      display_name?: string;
       is_active?: boolean; 
     },
     updatedBy: string

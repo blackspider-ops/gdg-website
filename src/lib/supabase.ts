@@ -14,9 +14,11 @@ export interface AdminUser {
   id: string;
   email: string;
   password_hash: string;
-  role: 'super_admin' | 'admin' | 'blog_editor';
+  role: 'super_admin' | 'admin' | 'team_member' | 'blog_editor';
+  display_name?: string;
   is_active: boolean;
   created_at: string;
+  created_by?: string;
   last_login?: string;
 }
 

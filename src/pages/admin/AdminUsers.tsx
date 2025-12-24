@@ -67,11 +67,11 @@ const AdminUsers = () => {
   const [createForm, setCreateForm] = useState({
     email: '',
     password: '',
-    role: 'admin' as 'admin' | 'super_admin' | 'blog_editor'
+    role: 'admin' as 'admin' | 'super_admin' | 'team_member' | 'blog_editor'
   });
   const [editForm, setEditForm] = useState({
     email: '',
-    role: 'admin' as 'admin' | 'super_admin' | 'blog_editor',
+    role: 'admin' as 'admin' | 'super_admin' | 'team_member' | 'blog_editor',
     is_active: true
   });
   const [passwordForm, setPasswordForm] = useState({
@@ -81,14 +81,14 @@ const AdminUsers = () => {
   const [promoteForm, setPromoteForm] = useState({
     email: '',
     password: '',
-    role: 'admin' as 'admin' | 'super_admin' | 'blog_editor',
+    role: 'admin' as 'admin' | 'super_admin' | 'team_member' | 'blog_editor',
     useTemporaryPassword: true,
     temporaryPassword: ''
   });
   const [directAdminForm, setDirectAdminForm] = useState({
     email: '',
     password: '',
-    role: 'admin' as 'admin' | 'super_admin' | 'blog_editor',
+    role: 'admin' as 'admin' | 'super_admin' | 'team_member' | 'blog_editor',
     useTemporaryPassword: true,
     temporaryPassword: ''
   });
@@ -591,15 +591,19 @@ const AdminUsers = () => {
                               <ShieldCheck size={16} className="text-red-600" />
                             ) : admin.role === 'blog_editor' ? (
                               <Edit3 size={16} className="text-green-600" />
+                            ) : admin.role === 'team_member' ? (
+                              <Users size={16} className="text-purple-600" />
                             ) : (
                               <Shield size={16} className="text-primary" />
                             )}
                             <span className={`text-sm font-medium ${
                               admin.role === 'super_admin' ? 'text-red-700' : 
-                              admin.role === 'blog_editor' ? 'text-green-700' : 'text-blue-700'
+                              admin.role === 'blog_editor' ? 'text-green-700' : 
+                              admin.role === 'team_member' ? 'text-purple-700' : 'text-blue-700'
                             }`}>
                               {admin.role === 'super_admin' ? 'Super Admin' : 
-                               admin.role === 'blog_editor' ? 'Blog Editor' : 'Admin'}
+                               admin.role === 'blog_editor' ? 'Blog Editor' : 
+                               admin.role === 'team_member' ? 'Team Member' : 'Admin'}
                             </span>
                           </div>
                         </td>
@@ -846,11 +850,12 @@ const AdminUsers = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
                 <select
                   value={createForm.role}
-                  onChange={(e) => setCreateForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'blog_editor' }))}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'team_member' | 'blog_editor' }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
+                  <option value="team_member">Team Member</option>
                   <option value="blog_editor">Blog Editor</option>
                 </select>
               </div>
@@ -896,11 +901,12 @@ const AdminUsers = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Role</label>
                 <select
                   value={editForm.role}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'blog_editor' }))}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'team_member' | 'blog_editor' }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
+                  <option value="team_member">Team Member</option>
                   <option value="blog_editor">Blog Editor</option>
                 </select>
               </div>
@@ -1178,15 +1184,16 @@ const AdminUsers = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Admin Role</label>
                 <select
                   value={promoteForm.role}
-                  onChange={(e) => setPromoteForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'blog_editor' }))}
+                  onChange={(e) => setPromoteForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'team_member' | 'blog_editor' }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
+                  <option value="team_member">Team Member</option>
                   <option value="blog_editor">Blog Editor</option>
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Super admins have full access to all admin functions
+                  Super admins have full access. Team members have team-based permissions.
                 </p>
               </div>
             </div>
@@ -1249,7 +1256,8 @@ const AdminUsers = () => {
                     <span className="text-muted-foreground">Role:</span>
                     <span className="text-foreground font-medium">
                       {promotedAdminInfo.role === 'super_admin' ? 'Super Admin' : 
-                       promotedAdminInfo.role === 'blog_editor' ? 'Blog Editor' : 'Admin'}
+                       promotedAdminInfo.role === 'blog_editor' ? 'Blog Editor' : 
+                       promotedAdminInfo.role === 'team_member' ? 'Team Member' : 'Admin'}
                     </span>
                   </div>
                 </div>
@@ -1446,15 +1454,16 @@ const AdminUsers = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Admin Role</label>
                 <select
                   value={directAdminForm.role}
-                  onChange={(e) => setDirectAdminForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'blog_editor' }))}
+                  onChange={(e) => setDirectAdminForm(prev => ({ ...prev, role: e.target.value as 'admin' | 'super_admin' | 'team_member' | 'blog_editor' }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
                 >
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
+                  <option value="team_member">Team Member</option>
                   <option value="blog_editor">Blog Editor</option>
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Super admins have full access to all admin functions
+                  Super admins have full access. Team members have team-based permissions.
                 </p>
               </div>
             </div>

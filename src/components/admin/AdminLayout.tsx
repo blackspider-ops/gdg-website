@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         {/* Header */}
         <div className="mb-8">
           {/* Back Button */}
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <Link
               to="/admin"
               className="inline-flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -31,6 +32,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
               <ArrowLeft size={16} />
               <span className="text-sm font-medium">Back to Admin Dashboard</span>
             </Link>
+            <NotificationBell />
           </div>
 
           {/* Page Header */}

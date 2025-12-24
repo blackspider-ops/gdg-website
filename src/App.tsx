@@ -38,8 +38,14 @@ import AdminMedia from "./pages/admin/AdminMedia";
 import AdminGuide from "./pages/admin/AdminGuide";
 import AdminLinktree from "./pages/admin/AdminLinktree";
 import AdminSiteStatus from "./pages/admin/AdminSiteStatus";
+import AdminTeams from "./pages/admin/AdminTeams";
+import AdminFinances from "./pages/admin/AdminFinances";
+import AdminAuditLog from "./pages/admin/AdminAuditLog";
+import TeamDashboard from "./pages/admin/TeamDashboard";
+import AcceptInvite from "./pages/admin/AcceptInvite";
 import BlogEditorDashboard from "./pages/admin/BlogEditorDashboard";
 import BlogEditorMedia from "./pages/admin/BlogEditorMedia";
+import PageAccessGuard from "./components/admin/PageAccessGuard";
 
 import BlogPost from "./pages/BlogPost";
 import Linktree from "./pages/Linktree";
@@ -164,27 +170,32 @@ const App = () => (
                       <Route path="/team" element={<Team />} />
                       <Route path="/resources" element={<Resources />} />
                       <Route path="/sponsors" element={<Sponsors />} />
-                      <Route path="/admin" element={<AdminDashboard />} />
-                      <Route path="/admin/content" element={<AdminContent />} />
-                      <Route path="/admin/events" element={<AdminEvents />} />
-                      <Route path="/admin/team" element={<AdminTeam />} />
-                      <Route path="/admin/projects" element={<AdminProjects />} />
-                      <Route path="/admin/members" element={<AdminMembers />} />
-                      <Route path="/admin/resources" element={<AdminResources />} />
-                      <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-                      <Route path="/admin/blog" element={<AdminBlog />} />
-                      <Route path="/admin/users" element={<AdminUsers />} />
-                      <Route path="/admin/profile" element={<AdminProfile />} />
-                      <Route path="/admin/sponsors" element={<AdminSponsors />} />
-                      <Route path="/admin/communications" element={<AdminCommunications />} />
+                      <Route path="/admin" element={<PageAccessGuard><AdminDashboard /></PageAccessGuard>} />
+                      <Route path="/admin/content" element={<PageAccessGuard><AdminContent /></PageAccessGuard>} />
+                      <Route path="/admin/events" element={<PageAccessGuard><AdminEvents /></PageAccessGuard>} />
+                      <Route path="/admin/team" element={<PageAccessGuard><AdminTeam /></PageAccessGuard>} />
+                      <Route path="/admin/projects" element={<PageAccessGuard><AdminProjects /></PageAccessGuard>} />
+                      <Route path="/admin/members" element={<PageAccessGuard><AdminMembers /></PageAccessGuard>} />
+                      <Route path="/admin/resources" element={<PageAccessGuard><AdminResources /></PageAccessGuard>} />
+                      <Route path="/admin/newsletter" element={<PageAccessGuard><AdminNewsletter /></PageAccessGuard>} />
+                      <Route path="/admin/blog" element={<PageAccessGuard><AdminBlog /></PageAccessGuard>} />
+                      <Route path="/admin/users" element={<PageAccessGuard><AdminUsers /></PageAccessGuard>} />
+                      <Route path="/admin/profile" element={<PageAccessGuard><AdminProfile /></PageAccessGuard>} />
+                      <Route path="/admin/sponsors" element={<PageAccessGuard><AdminSponsors /></PageAccessGuard>} />
+                      <Route path="/admin/communications" element={<PageAccessGuard><AdminCommunications /></PageAccessGuard>} />
                       <Route path="/admin/blog-comments" element={<Navigate to="/admin/blog?tab=comments" replace />} />
-                      <Route path="/admin/media" element={<AdminMedia />} />
-                      <Route path="/admin/guide" element={<AdminGuide />} />
-                      <Route path="/admin/linktree" element={<AdminLinktree />} />
-                      <Route path="/admin/site-status" element={<AdminSiteStatus />} />
+                      <Route path="/admin/media" element={<PageAccessGuard><AdminMedia /></PageAccessGuard>} />
+                      <Route path="/admin/guide" element={<PageAccessGuard><AdminGuide /></PageAccessGuard>} />
+                      <Route path="/admin/linktree" element={<PageAccessGuard><AdminLinktree /></PageAccessGuard>} />
+                      <Route path="/admin/site-status" element={<PageAccessGuard><AdminSiteStatus /></PageAccessGuard>} />
+                      <Route path="/admin/teams" element={<PageAccessGuard><AdminTeams /></PageAccessGuard>} />
+                      <Route path="/admin/finances" element={<PageAccessGuard><AdminFinances /></PageAccessGuard>} />
+                      <Route path="/admin/audit-log" element={<PageAccessGuard><AdminAuditLog /></PageAccessGuard>} />
+                      <Route path="/admin/team/:teamId" element={<PageAccessGuard><TeamDashboard /></PageAccessGuard>} />
+                      <Route path="/admin/invite/:token" element={<AcceptInvite />} />
 
-                      <Route path="/admin/blog-editor" element={<BlogEditorDashboard />} />
-                      <Route path="/admin/blog-media" element={<BlogEditorMedia />} />
+                      <Route path="/admin/blog-editor" element={<PageAccessGuard><BlogEditorDashboard /></PageAccessGuard>} />
+                      <Route path="/admin/blog-media" element={<PageAccessGuard><BlogEditorMedia /></PageAccessGuard>} />
                       <Route path="/l/:username" element={<Linktree />} />
                       <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
                       <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />

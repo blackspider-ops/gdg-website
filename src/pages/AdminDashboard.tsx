@@ -35,6 +35,9 @@ import { useTaskScheduler } from '@/hooks/useTaskScheduler';
 import { CommunicationsService } from '@/services/communicationsService';
 import { BlogCommentsService } from '@/services/blogCommentsService';
 import { AuditService } from '@/services/auditService';
+import { TeamManagementService } from '@/services/teamManagementService';
+import { FinancesService } from '@/services/financesService';
+import MyTeamsWidget from '@/components/admin/MyTeamsWidget';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout } = useAdmin();
@@ -57,6 +60,13 @@ const AdminDashboard = () => {
     timestamp: string;
     color: string;
   }>>([]);
+  const [teamQuickStats, setTeamQuickStats] = useState<{
+    totalTeams: number;
+    activeTeams: number;
+    totalMemberships: number;
+    teamDistribution: Record<string, number>;
+    pendingFinanceApprovals: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Enable automatic task overdue checking globally
@@ -173,6 +183,22 @@ const AdminDashboard = () => {
       }
       
       setRecentActivity(activities.slice(0, 4)); // Show max 4 activities
+
+      // Load team quick stats (for admins and super admins)
+      if (currentAdmin?.role === 'super_admin' || currentAdmin?.role === 'admin') {
+        try {
+          const [teamStats, financeStats] = await Promise.all([
+            TeamManagementService.getTeamStats(),
+            FinancesService.getFinanceStats({ status: 'pending' })
+          ]);
+          setTeamQuickStats({
+            ...teamStats,
+            pendingFinanceApprovals: financeStats.pendingApprovals
+          });
+        } catch (err) {
+          console.error('Failed to load team stats:', err);
+        }
+      }
     } catch (error) {
       // Set fallback values in case of error
       setDashboardStats({
@@ -258,12 +284,19 @@ const AdminDashboard = () => {
     // Show Communications Hub for super admins in Business section, for regular admins it's prominent at top
     ...(currentAdmin?.role === 'super_admin' ? [{ label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications' }] : []),
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media' },
+    // Finances - accessible to super admins and admins
+    { label: 'Finances', icon: BarChart3, href: '/admin/finances' },
   ];
 
-  // Add admin user management for super admins
+  // Add admin user management for super admins, and teams for admins too
   const adminActions = currentAdmin && currentAdmin.role === 'super_admin' ? [
     { label: 'Admin Users', icon: Shield, href: '/admin/users' },
+    { label: 'Admin Teams', icon: Users, href: '/admin/teams' },
+    { label: 'Audit Log', icon: FileText, href: '/admin/audit-log' },
     { label: 'Site Status', icon: Globe, href: '/admin/site-status' },
+  ] : currentAdmin?.role === 'admin' ? [
+    { label: 'Admin Teams', icon: Users, href: '/admin/teams' },
+    { label: 'Audit Log', icon: FileText, href: '/admin/audit-log' },
   ] : [];
 
   const helpActions = [
@@ -536,7 +569,50 @@ const AdminDashboard = () => {
 
         {/* Recent Activity */}
         <div className="col-span-12 lg:col-span-4">
-          <div className="bg-card border border-border rounded-lg p-6">
+          {/* My Teams Widget */}
+          <MyTeamsWidget />
+
+          {/* Team Quick Stats - For Admins */}
+          {teamQuickStats && (currentAdmin?.role === 'super_admin' || currentAdmin?.role === 'admin') && (
+            <div className="bg-card border border-border rounded-lg p-6 mt-6">
+              <h2 className="font-display text-lg font-semibold mb-4 text-foreground flex items-center">
+                <BarChart3 size={18} className="mr-2 text-primary" />
+                Team Overview
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-foreground">{teamQuickStats.activeTeams}</div>
+                  <div className="text-xs text-muted-foreground">Active Teams</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-foreground">{teamQuickStats.totalMemberships}</div>
+                  <div className="text-xs text-muted-foreground">Team Members</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 col-span-2">
+                  <div className="text-2xl font-bold text-yellow-600">{teamQuickStats.pendingFinanceApprovals}</div>
+                  <div className="text-xs text-muted-foreground">Pending Finance Approvals</div>
+                </div>
+              </div>
+              {Object.keys(teamQuickStats.teamDistribution).length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Members by Team</h3>
+                  <div className="space-y-2">
+                    {Object.entries(teamQuickStats.teamDistribution)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 5)
+                      .map(([teamName, count]) => (
+                        <div key={teamName} className="flex items-center justify-between text-sm">
+                          <span className="text-foreground truncate">{teamName}</span>
+                          <span className="text-muted-foreground ml-2">{count}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="bg-card border border-border rounded-lg p-6 mt-6">
             <h2 className="font-display text-lg font-semibold mb-6 text-foreground">Recent Activity</h2>
             
             {isLoading ? (
