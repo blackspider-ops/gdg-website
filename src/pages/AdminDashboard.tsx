@@ -108,54 +108,50 @@ const AdminDashboard = () => {
   const loadDashboardStats = async () => {
     setIsLoading(true);
     try {
-      // Load stats in batches to improve perceived performance
-      const [memberStats, eventStats] = await Promise.all([
-        MembersService.getMemberStats(),
-        EventsService.getEventStats()
-      ]);
-
-      // Update UI with first batch
-      setDashboardStats(prev => ({
-        ...prev,
-        totalMembers: memberStats.total,
-        upcomingEvents: eventStats.upcoming
-      }));
-
-      // Load remaining stats
-      const [projectStats, sponsorStats, newsletterStats, blogStats, pendingApprovals] = await Promise.all([
-        ProjectsService.getProjectStats(),
-        SponsorsService.getSponsorStats(),
-        NewsletterService.getSubscriberStats(),
-        BlogService.getBlogStats(),
-        BlogService.getPendingApprovalsCount()
-      ]);
-
-      // Get pending tasks count for current user
-      const userTasks = currentAdmin?.id ? await CommunicationsService.getTasks({
-        assigned_to: currentAdmin.id,
-        status: 'pending'
-      }) : [];
-      const pendingTasks = userTasks.length;
-
-      // Get unread messages, announcements, and pending comments for current user
-      const [userMessages, userAnnouncements, commentStats] = await Promise.all([
-        currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role) : Promise.resolve([]),
-        CommunicationsService.getAnnouncements({}),
-        BlogCommentsService.getCommentStats()
+      // Load ALL stats in parallel for faster loading
+      const [
+        memberStats,
+        eventStats,
+        projectStats,
+        sponsorStats,
+        newsletterStats,
+        blogStats,
+        pendingApprovals,
+        userTasks,
+        userMessages,
+        commentStats,
+        unreadAnnouncements
+      ] = await Promise.all([
+        MembersService.getMemberStats().catch(() => ({ total: 0 })),
+        EventsService.getEventStats().catch(() => ({ upcoming: 0 })),
+        ProjectsService.getProjectStats().catch(() => ({ total: 0 })),
+        SponsorsService.getSponsorStats().catch(() => ({ active: 0 })),
+        NewsletterService.getSubscriberStats().catch(() => ({ active: 0, recent: 0 })),
+        BlogService.getBlogStats().catch(() => ({ publishedPosts: 0 })),
+        BlogService.getPendingApprovalsCount().catch(() => 0),
+        currentAdmin?.id 
+          ? CommunicationsService.getTasks({ assigned_to: currentAdmin.id, status: 'pending' }).catch(() => [])
+          : Promise.resolve([]),
+        currentAdmin?.id 
+          ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role).catch(() => [])
+          : Promise.resolve([]),
+        BlogCommentsService.getCommentStats().catch(() => ({ pending: 0 })),
+        currentAdmin?.id 
+          ? CommunicationsService.getUnreadAnnouncementsCount(currentAdmin.id).catch(() => 0)
+          : Promise.resolve(0)
       ]);
 
       const unreadMessages = userMessages.filter(msg => !msg.is_read && msg.to_user_id === currentAdmin?.id).length;
-      const unreadAnnouncements = currentAdmin?.id ? await CommunicationsService.getUnreadAnnouncementsCount(currentAdmin.id) : 0;
 
       setDashboardStats({
         totalMembers: memberStats.total,
         upcomingEvents: eventStats.upcoming,
-        newsletterSubscribers: newsletterStats.active, // Now using real data
+        newsletterSubscribers: newsletterStats.active,
         activeProjects: projectStats.total,
         totalSponsors: sponsorStats.active,
         blogPosts: blogStats.publishedPosts,
         pendingApprovals: pendingApprovals,
-        pendingTasks: pendingTasks,
+        pendingTasks: userTasks.length,
         unreadMessages: unreadMessages,
         unreadAnnouncements: unreadAnnouncements,
         pendingComments: commentStats.pending
@@ -326,7 +322,7 @@ const AdminDashboard = () => {
   // Filter business actions based on role and permissions
   const allBusinessActions = [
     { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors', roles: ['super_admin'] },
-    { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', roles: ['super_admin'] },
+    { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Finances', icon: DollarSign, href: '/admin/finances', roles: ['super_admin', 'admin', 'team_member'] },
   ];
