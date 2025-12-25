@@ -3,6 +3,7 @@ import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { NotificationService, type Notification, type NotificationType } from '@/services/notificationService';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 
 const NotificationBell: React.FC = () => {
   const { currentAdmin } = useAdmin();
@@ -16,9 +17,72 @@ const NotificationBell: React.FC = () => {
   useEffect(() => {
     if (currentAdmin) {
       loadNotifications();
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(loadUnreadCount, 30000);
-      return () => clearInterval(interval);
+      
+      // Set up real-time subscription for new notifications
+      const channel = supabase
+        .channel(`notifications-${currentAdmin.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${currentAdmin.id}`
+          },
+          async (payload) => {
+            // Add new notification to the list
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev].slice(0, 20));
+            setUnreadCount(prev => prev + 1);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${currentAdmin.id}`
+          },
+          (payload) => {
+            // Update notification in the list
+            const updatedNotification = payload.new as Notification;
+            setNotifications(prev =>
+              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+            );
+            // Recalculate unread count
+            if (payload.old.is_read !== payload.new.is_read) {
+              if (payload.new.is_read) {
+                setUnreadCount(prev => Math.max(0, prev - 1));
+              } else {
+                setUnreadCount(prev => prev + 1);
+              }
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${currentAdmin.id}`
+          },
+          (payload) => {
+            // Remove notification from the list
+            const deletedNotification = payload.old as Notification;
+            setNotifications(prev => prev.filter(n => n.id !== deletedNotification.id));
+            if (!deletedNotification.is_read) {
+              setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+          }
+        )
+        .subscribe();
+
+      // Cleanup subscription on unmount
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [currentAdmin]);
 

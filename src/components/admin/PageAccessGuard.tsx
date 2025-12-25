@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAdmin } from '@/contexts/AdminContext';
 import { PermissionsService } from '@/services/permissionsService';
 import { Shield, Lock } from 'lucide-react';
@@ -15,6 +15,7 @@ interface PageAccessGuardProps {
 const PageAccessGuard: React.FC<PageAccessGuardProps> = ({ children }) => {
   const { currentAdmin, isAuthenticated } = useAdmin();
   const location = useLocation();
+  const navigate = useNavigate();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -71,12 +72,12 @@ const PageAccessGuard: React.FC<PageAccessGuardProps> = ({ children }) => {
             You don't have permission to access this page. This page may be restricted to specific teams or roles.
           </p>
           <div className="space-y-3">
-            <a
-              href="/admin"
+            <button
+              onClick={() => navigate('/admin')}
               className="block w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               Go to Dashboard
-            </a>
+            </button>
             <p className="text-xs text-muted-foreground">
               If you believe you should have access, contact your team lead or administrator.
             </p>

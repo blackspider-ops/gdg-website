@@ -13,7 +13,7 @@ import { TeamActivityService, type TeamActivity } from '@/services/teamActivityS
 import TeamChat from '@/components/admin/TeamChat';
 
 const TeamDashboard = () => {
-  const { isAuthenticated, currentAdmin, userTeams } = useAdmin();
+  const { isAuthenticated, currentAdmin, userTeams, isSuperAdmin, isAdmin } = useAdmin();
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   
@@ -28,9 +28,9 @@ const TeamDashboard = () => {
     return <Navigate to="/" replace />;
   }
 
-  // Check if user is a member of this team
+  // Check if user is a member of this team or is a super admin/admin
   const userTeam = userTeams.find(t => t.team_id === teamId);
-  if (!userTeam && teamId) {
+  if (!userTeam && !isSuperAdmin && !isAdmin && teamId) {
     return <Navigate to="/admin" replace />;
   }
 

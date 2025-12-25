@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { TeamMessagingService, type TeamMessage } from '@/services/teamMessagingService';
+import { supabase } from '@/lib/supabase';
 
 interface TeamChatProps {
   teamId: string;
@@ -31,6 +32,70 @@ const TeamChat: React.FC<TeamChatProps> = ({ teamId, teamName, teamColor }) => {
   useEffect(() => {
     loadMessages();
     loadPinnedMessages();
+
+    // Set up real-time subscription for new messages
+    const channel = supabase
+      .channel(`team-chat-${teamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'team_messages',
+          filter: `team_id=eq.${teamId}`
+        },
+        async (payload) => {
+          // Fetch the full message with sender info
+          const newMsg = await TeamMessagingService.getMessageById(payload.new.id);
+          if (newMsg) {
+            setMessages(prev => {
+              // Avoid duplicates (in case we sent it ourselves)
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'team_messages',
+          filter: `team_id=eq.${teamId}`
+        },
+        async (payload) => {
+          // Update the message in state
+          setMessages(prev => prev.map(m => 
+            m.id === payload.new.id 
+              ? { ...m, message: payload.new.message, is_pinned: payload.new.is_pinned }
+              : m
+          ));
+          // Refresh pinned messages if pin status changed
+          if (payload.old.is_pinned !== payload.new.is_pinned) {
+            loadPinnedMessages();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'team_messages',
+          filter: `team_id=eq.${teamId}`
+        },
+        (payload) => {
+          setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+          loadPinnedMessages();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount or teamId change
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [teamId]);
 
   useEffect(() => {

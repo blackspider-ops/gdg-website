@@ -81,8 +81,10 @@ const AdminFinances = () => {
     return <Navigate to="/" replace />;
   }
 
-  // Only super admins and admins can access finances
-  if (!isAdmin) {
+  // Super admins, admins, and team members can access finances
+  // Team members will only see their team's finances
+  const isTeamMember = userTeams.length > 0;
+  if (!isAdmin && !isTeamMember) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -93,16 +95,46 @@ const AdminFinances = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // For team members, filter by their teams
+      let financeFilters = { ...filters };
+      if (!isAdmin && !isSuperAdmin) {
+        // Team members can only see finances for their teams
+        const userTeamIds = userTeams.map(t => t.team_id);
+        if (userTeamIds.length > 0) {
+          // If no team filter is set, we'll filter client-side
+          // If a team filter is set, verify it's one of their teams
+          if (financeFilters.team_id && !userTeamIds.includes(financeFilters.team_id)) {
+            financeFilters.team_id = userTeamIds[0]; // Default to first team
+          }
+        }
+      }
+
       const [financesData, budgetsData, teamsData, statsData] = await Promise.all([
-        FinancesService.getFinances(filters),
+        FinancesService.getFinances(financeFilters),
         FinancesService.getBudgetAllocations(),
         TeamManagementService.getTeams(),
-        FinancesService.getFinanceStats(filters)
+        FinancesService.getFinanceStats(financeFilters)
       ]);
       
-      setFinances(financesData);
-      setBudgets(budgetsData);
-      setTeams(teamsData);
+      // Filter finances for team members
+      let filteredFinances = financesData;
+      let filteredBudgets = budgetsData;
+      let filteredTeams = teamsData;
+      
+      if (!isAdmin && !isSuperAdmin) {
+        const userTeamIds = userTeams.map(t => t.team_id);
+        filteredFinances = financesData.filter(f => 
+          f.team_id && userTeamIds.includes(f.team_id)
+        );
+        filteredBudgets = budgetsData.filter(b => 
+          b.team_id && userTeamIds.includes(b.team_id)
+        );
+        filteredTeams = teamsData.filter(t => userTeamIds.includes(t.id));
+      }
+      
+      setFinances(filteredFinances);
+      setBudgets(filteredBudgets);
+      setTeams(filteredTeams);
       setStats(statsData);
     } catch (err) {
       setError('Failed to load financial data');
@@ -1142,9 +1174,10 @@ const AdminFinances = () => {
       {/* Transaction Modal */}
       {showTransactionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
+          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground">
                   {editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
                 </h2>
@@ -1159,7 +1192,10 @@ const AdminFinances = () => {
                   <X size={20} />
                 </button>
               </div>
+            </div>
 
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
@@ -1292,26 +1328,29 @@ const AdminFinances = () => {
                     placeholder="Additional notes..."
                   />
                 </div>
+              </div>
+            </div>
 
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowTransactionModal(false);
-                      setEditingTransaction(null);
-                      resetTransactionForm();
-                    }}
-                    className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
-                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    <Save size={16} />
-                    <span>{editingTransaction ? 'Update' : 'Create'}</span>
-                  </button>
-                </div>
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-4 border-t border-border">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowTransactionModal(false);
+                    setEditingTransaction(null);
+                    resetTransactionForm();
+                  }}
+                  className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Save size={16} />
+                  <span>{editingTransaction ? 'Update' : 'Create'}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1321,9 +1360,10 @@ const AdminFinances = () => {
       {/* Budget Modal */}
       {showBudgetModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
+          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 p-6 border-b border-border">
+              <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground">
                   {editingBudget ? 'Edit Budget' : 'Create Budget'}
                 </h2>
@@ -1338,7 +1378,10 @@ const AdminFinances = () => {
                   <X size={20} />
                 </button>
               </div>
+            </div>
 
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
@@ -1433,26 +1476,29 @@ const AdminFinances = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+            </div>
 
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowBudgetModal(false);
-                      setEditingBudget(null);
-                      resetBudgetForm();
-                    }}
-                    className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateBudget}
-                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    <Save size={16} />
-                    <span>{editingBudget ? 'Update' : 'Create'}</span>
-                  </button>
-                </div>
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 p-4 border-t border-border">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowBudgetModal(false);
+                    setEditingBudget(null);
+                    resetBudgetForm();
+                  }}
+                  className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateBudget}
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Save size={16} />
+                  <span>{editingBudget ? 'Update' : 'Create'}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1541,23 +1587,69 @@ const AdminFinances = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 flex-shrink-0">
-                        <a
-                          href={attachment.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => {
+                            // Handle both data URLs and regular URLs
+                            if (attachment.file_url.startsWith('data:')) {
+                              // For data URLs, open in new window
+                              const newWindow = window.open();
+                              if (newWindow) {
+                                newWindow.document.write(`
+                                  <html>
+                                    <head><title>${attachment.file_name}</title></head>
+                                    <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0;">
+                                      ${attachment.file_type?.startsWith('image/') 
+                                        ? `<img src="${attachment.file_url}" style="max-width:100%;max-height:100vh;" />`
+                                        : `<iframe src="${attachment.file_url}" style="width:100%;height:100vh;border:none;"></iframe>`
+                                      }
+                                    </body>
+                                  </html>
+                                `);
+                              }
+                            } else {
+                              window.open(attachment.file_url, '_blank');
+                            }
+                          }}
                           className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground"
                           title="View"
                         >
                           <Eye size={16} />
-                        </a>
-                        <a
-                          href={attachment.file_url}
-                          download={attachment.file_name}
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Handle download for both data URLs and regular URLs
+                            const link = document.createElement('a');
+                            link.href = attachment.file_url;
+                            link.download = attachment.file_name;
+                            
+                            if (attachment.file_url.startsWith('data:')) {
+                              // For data URLs, we need to trigger download differently
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            } else {
+                              // For regular URLs, fetch and create blob
+                              fetch(attachment.file_url)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                  const url = window.URL.createObjectURL(blob);
+                                  link.href = url;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  window.URL.revokeObjectURL(url);
+                                })
+                                .catch(() => {
+                                  // Fallback: just open in new tab
+                                  window.open(attachment.file_url, '_blank');
+                                });
+                            }
+                          }}
                           className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground"
                           title="Download"
                         >
                           <Download size={16} />
-                        </a>
+                        </button>
                         <button
                           onClick={() => handleRemoveAttachment(attachment.id)}
                           className="p-2 hover:bg-red-100 rounded-lg text-muted-foreground hover:text-red-600"

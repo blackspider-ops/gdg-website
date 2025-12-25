@@ -8,11 +8,14 @@ export class AdminService {
    */
   static async authenticate(email: string, password: string): Promise<AdminUser | null> {
     try {
-      // Fetch admin user by email
+      // Normalize email to lowercase for case-insensitive comparison
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // Fetch admin user by email (case-insensitive using ilike)
       const { data: adminUser, error } = await supabase
         .from('admin_users')
         .select('*')
-        .eq('email', email)
+        .ilike('email', normalizedEmail)
         .eq('is_active', true)
         .single();
 
@@ -123,6 +126,9 @@ export class AdminService {
     displayName?: string
   ): Promise<AdminUser | null> {
     try {
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase().trim();
+      
       // Hash the password
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(password, saltRounds);
@@ -131,7 +137,7 @@ export class AdminService {
       const { data: newAdmin, error } = await supabase
         .from('admin_users')
         .insert({
-          email,
+          email: normalizedEmail,
           password_hash: passwordHash,
           role,
           display_name: displayName,

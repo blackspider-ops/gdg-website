@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { NotificationService } from './notificationService';
 import { TeamActivityService } from './teamActivityService';
+import { ResendService } from './resendService';
 
 // Types
 export interface Finance {
@@ -406,6 +407,29 @@ export class FinancesService {
           `Your ${finance.transaction_type} request for $${finance.amount?.toLocaleString()} has been approved.`,
           '/admin/finances'
         );
+
+        // Send email notification
+        try {
+          const { data: approver } = await supabase
+            .from('admin_users')
+            .select('email, display_name')
+            .eq('id', approverId)
+            .single();
+
+          if (finance.creator?.email && approver) {
+            await ResendService.sendFinanceStatusEmail(
+              finance.creator.email,
+              finance.creator.display_name || finance.creator.email,
+              finance.transaction_type,
+              finance.amount,
+              finance.description,
+              'approved',
+              approver.display_name || approver.email
+            );
+          }
+        } catch (emailError) {
+          console.error('Failed to send finance approval email:', emailError);
+        }
       }
 
       return true;
@@ -420,7 +444,7 @@ export class FinancesService {
       // Get the finance record first
       const { data: finance } = await supabase
         .from('finances')
-        .select('*, creator:admin_users!finances_created_by_fkey(id, email)')
+        .select('*, creator:admin_users!finances_created_by_fkey(id, email, display_name)')
         .eq('id', id)
         .single();
 
@@ -447,6 +471,30 @@ export class FinancesService {
           `Your ${finance.transaction_type} request for $${finance.amount?.toLocaleString()} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
           '/admin/finances'
         );
+
+        // Send email notification
+        try {
+          const { data: approver } = await supabase
+            .from('admin_users')
+            .select('email, display_name')
+            .eq('id', approverId)
+            .single();
+
+          if (finance.creator?.email && approver) {
+            await ResendService.sendFinanceStatusEmail(
+              finance.creator.email,
+              finance.creator.display_name || finance.creator.email,
+              finance.transaction_type,
+              finance.amount,
+              finance.description,
+              'rejected',
+              approver.display_name || approver.email,
+              reason
+            );
+          }
+        } catch (emailError) {
+          console.error('Failed to send finance rejection email:', emailError);
+        }
       }
 
       return true;

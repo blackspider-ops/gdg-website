@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { NotificationService } from './notificationService';
 import { TeamActivityService } from './teamActivityService';
+import { ResendService } from './resendService';
 
 // Types
 export interface AdminTeam {
@@ -389,6 +390,34 @@ export class TeamManagementService {
             userId,
             { role }
           );
+
+          // Send email notification to the new member
+          try {
+            const { data: newMember } = await supabase
+              .from('admin_users')
+              .select('email, display_name')
+              .eq('id', userId)
+              .single();
+            
+            const { data: addedByUser } = await supabase
+              .from('admin_users')
+              .select('email, display_name')
+              .eq('id', addedBy)
+              .single();
+
+            if (newMember && addedByUser) {
+              await ResendService.sendTeamMemberAddedEmail(
+                newMember.email,
+                newMember.display_name || newMember.email,
+                team.name,
+                role,
+                addedByUser.display_name || addedByUser.email
+              );
+            }
+          } catch (emailError) {
+            console.error('Failed to send member added email:', emailError);
+            // Don't fail the operation if email fails
+          }
         }
       }
 
@@ -413,11 +442,15 @@ export class TeamManagementService {
         .eq('id', membershipId)
         .single();
 
-      if (updatedBy && updatedByRole && updatedByRole !== 'super_admin' && updatedByRole !== 'admin') {
-        if (membership) {
-          const canManage = await this.canManageTeam(updatedBy, updatedByRole, membership.team_id);
-          if (!canManage) {
-            console.error('User does not have permission to update roles in this team');
+      // Only super_admin or team lead can change roles (not co_lead)
+      if (updatedBy && updatedByRole) {
+        if (updatedByRole === 'super_admin') {
+          // Super admin can always change roles
+        } else if (membership) {
+          // Check if the user is specifically a lead (not co_lead) of this team
+          const userRoleInTeam = await this.getUserRoleInTeam(updatedBy, membership.team_id);
+          if (userRoleInTeam !== 'lead') {
+            console.error('Only team leads and super admins can change member roles');
             return false;
           }
         }
@@ -752,6 +785,37 @@ export class TeamManagementService {
             undefined,
             { title: announcement.title, priority: announcement.priority }
           );
+
+          // Send email notifications to team members (for high/urgent priority)
+          if (announcement.priority === 'high' || announcement.priority === 'urgent') {
+            try {
+              const members = await this.getTeamMembers(announcement.team_id);
+              const { data: author } = await supabase
+                .from('admin_users')
+                .select('email, display_name')
+                .eq('id', authorId)
+                .single();
+
+              if (author) {
+                for (const member of members) {
+                  if (member.admin_user_id !== authorId && member.admin_user?.email) {
+                    await ResendService.sendTeamAnnouncementEmail(
+                      member.admin_user.email,
+                      member.admin_user.display_name || member.admin_user.email,
+                      team.name,
+                      announcement.title || 'New Announcement',
+                      announcement.message || '',
+                      announcement.priority || 'normal',
+                      author.display_name || author.email
+                    );
+                  }
+                }
+              }
+            } catch (emailError) {
+              console.error('Failed to send announcement emails:', emailError);
+              // Don't fail the operation if email fails
+            }
+          }
         }
       }
 

@@ -52,6 +52,7 @@ const AdminTeams = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [canManageSelectedTeam, setCanManageSelectedTeam] = useState(false);
+  const [isTeamLeadOfSelected, setIsTeamLeadOfSelected] = useState(false);
   const [activeTab, setActiveTab] = useState<'members' | 'announcements' | 'chat' | 'activity' | 'stats' | 'access'>('members');
   const [copiedInviteLink, setCopiedInviteLink] = useState<string | null>(null);
   const [showBulkAddModal, setShowBulkAddModal] = useState(false);
@@ -98,9 +99,11 @@ const AdminTeams = () => {
     return <Navigate to="/" replace />;
   }
 
-  // Super admins, admins, and team leads can access this page
+  // Super admins, admins, and any team member can access this page
+  // Team leads/co-leads can manage, regular members can view
   const isTeamLead = userTeams.some(t => t.role === 'lead' || t.role === 'co_lead');
-  if (!isAdmin && !isTeamLead) {
+  const isTeamMember = userTeams.length > 0;
+  if (!isAdmin && !isTeamMember) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -261,6 +264,7 @@ const AdminTeams = () => {
           if (selectedTeam) {
             loadTeamMembers(selectedTeam.id);
           }
+          loadTeams(); // Update member counts in sidebar
         } else {
           setError('Failed to add member to new team');
         }
@@ -322,13 +326,28 @@ const AdminTeams = () => {
       teamId
     );
     setCanManageSelectedTeam(canManage);
+    
+    // Check if user is specifically a lead (not co-lead) of this team
+    const userRoleInTeam = await TeamManagementService.getUserRoleInTeam(currentAdmin.id, teamId);
+    setIsTeamLeadOfSelected(userRoleInTeam === 'lead' || isSuperAdmin);
   };
 
   const loadTeams = async () => {
     setIsLoading(true);
     try {
-      // Load all teams for viewing
-      const allTeams = await TeamManagementService.getTeams(isSuperAdmin);
+      // Super admins and admins can see all teams
+      // Regular team members can only see their own teams
+      let allTeams: AdminTeam[];
+      
+      if (isSuperAdmin || isAdmin) {
+        allTeams = await TeamManagementService.getTeams(isSuperAdmin);
+      } else {
+        // For team members, only show teams they belong to
+        const userTeamIds = userTeams.map(t => t.team_id);
+        const allAvailableTeams = await TeamManagementService.getTeams(false);
+        allTeams = allAvailableTeams.filter(t => userTeamIds.includes(t.id));
+      }
+      
       setTeams(allTeams);
       
       // Load teams the user can manage
@@ -467,6 +486,7 @@ const AdminTeams = () => {
         setShowMemberModal(false);
         resetMemberForm();
         loadTeamMembers(selectedTeam.id);
+        loadTeams(); // Update member count in sidebar
       } else {
         setError('Failed to add member. You may not have permission or the user is already in the team.');
       }
@@ -488,6 +508,7 @@ const AdminTeams = () => {
         setSuccess('Member removed');
         if (selectedTeam) {
           loadTeamMembers(selectedTeam.id);
+          loadTeams(); // Update member count in sidebar
         }
       } else {
         setError('Failed to remove member. You may not have permission.');
@@ -567,6 +588,7 @@ const AdminTeams = () => {
         setShowInviteModal(false);
         resetInviteForm();
         loadTeamMembers(selectedTeam.id);
+        loadTeams(); // Update member count in sidebar
       }
     } catch (err) {
       setError('Failed to send invite');
@@ -629,6 +651,7 @@ const AdminTeams = () => {
         setBulkSelectedUsers([]);
         setBulkRole('member');
         loadTeamMembers(selectedTeam.id);
+        loadTeams(); // Update member count in sidebar
       } else {
         setError('Failed to add members. They may already be in the team or you lack permission.');
       }
@@ -881,12 +904,16 @@ const AdminTeams = () => {
                 </div>
               </div>
 
-              {/* Permission Notice for Team Leads */}
+              {/* Permission Notice for Team Leads/Co-Leads */}
               {!isSuperAdmin && !isAdmin && canManageSelectedTeam && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
                   <div className="flex items-center space-x-2">
                     <Shield className="w-4 h-4" />
-                    <span>You are a lead of this team. You can add and manage members.</span>
+                    <span>
+                      {isTeamLeadOfSelected 
+                        ? 'You are the lead of this team. You can add members and change roles.'
+                        : 'You are a co-lead of this team. You can add and remove members, but only leads can change roles.'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1045,15 +1072,26 @@ const AdminTeams = () => {
                           </div>
                           {canManageSelectedTeam ? (
                             <div className="flex items-center space-x-2">
-                              <select
-                                value={member.role}
-                                onChange={(e) => handleUpdateMemberRole(member.id, e.target.value as any)}
-                                className="text-xs px-2 py-1 bg-muted border border-border rounded"
-                              >
-                                <option value="member">Member</option>
-                                <option value="co_lead">Co-Lead</option>
-                                <option value="lead">Lead</option>
-                              </select>
+                              {/* Only team leads and super admins can change roles */}
+                              {isTeamLeadOfSelected ? (
+                                <select
+                                  value={member.role}
+                                  onChange={(e) => handleUpdateMemberRole(member.id, e.target.value as any)}
+                                  className="text-xs px-2 py-1 bg-muted border border-border rounded"
+                                >
+                                  <option value="member">Member</option>
+                                  <option value="co_lead">Co-Lead</option>
+                                  <option value="lead">Lead</option>
+                                </select>
+                              ) : (
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  member.role === 'lead' ? 'bg-yellow-100 text-yellow-800' :
+                                  member.role === 'co_lead' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {member.role.replace('_', ' ')}
+                                </span>
+                              )}
                               {(isSuperAdmin || isAdmin) && teams.length > 1 && (
                                 <button
                                   onClick={() => {
@@ -1600,8 +1638,8 @@ const AdminTeams = () => {
       {/* Bulk Add Members Modal */}
       {showBulkAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-border">
+          <div className="bg-card rounded-xl border border-border w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-border flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground">Bulk Add Members</h2>
                 <button
@@ -1620,7 +1658,7 @@ const AdminTeams = () => {
               </p>
             </div>
 
-            <div className="p-4 border-b border-border bg-muted/30">
+            <div className="p-4 border-b border-border bg-muted/30 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-muted-foreground">
@@ -1654,7 +1692,7 @@ const AdminTeams = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="overflow-y-auto p-4 max-h-[50vh]">
               {availableForTeam.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
@@ -1723,7 +1761,7 @@ const AdminTeams = () => {
               )}
             </div>
 
-            <div className="p-4 border-t border-border bg-muted/30">
+            <div className="p-4 border-t border-border bg-muted/30 flex-shrink-0">
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => {

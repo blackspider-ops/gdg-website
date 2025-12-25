@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { AdminService } from './adminService';
 import { TeamManagementService } from './teamManagementService';
 import { TeamActivityService } from './teamActivityService';
+import { ResendService } from './resendService';
 
 export interface TeamInvite {
   id: string;
@@ -115,6 +116,25 @@ export class TeamInviteService {
         undefined,
         { email, role }
       );
+
+      // Send invite email
+      try {
+        const team = await TeamManagementService.getTeamById(teamId);
+        const inviter = await AdminService.getAdminById(invitedBy);
+        if (team && inviter) {
+          const inviteUrl = this.getInviteUrl(data.token);
+          await ResendService.sendTeamInviteEmail(
+            email,
+            team.name,
+            inviter.display_name || inviter.email,
+            role,
+            inviteUrl
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send invite email:', emailError);
+        // Don't fail the invite if email fails
+      }
 
       return data;
     } catch (error) {

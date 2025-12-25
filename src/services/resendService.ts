@@ -407,5 +407,296 @@ The GDG@PSU Team`,
     return result.success;
   }
 
+  // Team invite email
+  static async sendTeamInviteEmail(
+    to: string,
+    teamName: string,
+    inviterName: string,
+    role: string,
+    inviteUrl: string
+  ): Promise<boolean> {
+    const roleDisplay = role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    const inviteEmail: ResendEmailData = {
+      to,
+      subject: `📨 You've been invited to join ${teamName} at GDG@PSU`,
+      content: `Hello!
+
+${inviterName} has invited you to join the ${teamName} team at GDG@PSU as a ${roleDisplay}!
+
+Click the link below to accept your invitation and create your account:
+
+${inviteUrl}
+
+This invitation will expire in 7 days.
+
+If you didn't expect this invitation, you can safely ignore this email.
+
+Best regards,
+The GDG@PSU Team`,
+      html_content: `
+        <h2>📨 Team Invitation</h2>
+        <p>Hello!</p>
+        <p><strong>${inviterName}</strong> has invited you to join the <strong>${teamName}</strong> team at GDG@PSU as a <strong>${roleDisplay}</strong>!</p>
+        
+        <div style="background-color: #e8f0fe; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4285f4;">
+          <p style="margin: 0;"><strong>Team:</strong> ${teamName}</p>
+          <p style="margin: 10px 0 0 0;"><strong>Role:</strong> ${roleDisplay}</p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${inviteUrl}" 
+             style="background-color: #4285f4; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            ✅ Accept Invitation
+          </a>
+        </div>
+        
+        <p><small>This invitation will expire in 7 days.</small></p>
+        <p><small>If you didn't expect this invitation, you can safely ignore this email.</small></p>
+      `
+    };
+
+    const result = await this.sendEmail(inviteEmail);
+    return result.success;
+  }
+
+  // Team announcement email
+  static async sendTeamAnnouncementEmail(
+    to: string,
+    memberName: string,
+    teamName: string,
+    announcementTitle: string,
+    announcementMessage: string,
+    priority: string,
+    authorName: string
+  ): Promise<boolean> {
+    const priorityEmoji = {
+      urgent: '🚨',
+      high: '⚠️',
+      normal: '📢',
+      low: 'ℹ️'
+    }[priority] || '📢';
+
+    const priorityColor = {
+      urgent: '#dc3545',
+      high: '#fd7e14',
+      normal: '#4285f4',
+      low: '#6c757d'
+    }[priority] || '#4285f4';
+
+    const announcementEmail: ResendEmailData = {
+      to,
+      subject: `${priorityEmoji} ${teamName}: ${announcementTitle}`,
+      subscriber_name: memberName,
+      content: `Hello ${memberName}!
+
+New announcement from ${teamName}:
+
+${announcementTitle}
+
+${announcementMessage}
+
+Posted by: ${authorName}
+Priority: ${priority.charAt(0).toUpperCase() + priority.slice(1)}
+
+View in dashboard: https://${this.DOMAIN}/admin/teams
+
+Best regards,
+The GDG@PSU Team`,
+      html_content: `
+        <h2>${priorityEmoji} Team Announcement</h2>
+        <p>Hello ${memberName}!</p>
+        <p>New announcement from <strong>${teamName}</strong>:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${priorityColor};">
+          <h3 style="margin-top: 0; color: ${priorityColor};">${announcementTitle}</h3>
+          <p style="white-space: pre-wrap;">${announcementMessage}</p>
+          <p style="margin-bottom: 0; font-size: 12px; color: #6c757d;">
+            Posted by: ${authorName} | Priority: ${priority.charAt(0).toUpperCase() + priority.slice(1)}
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://${this.DOMAIN}/admin/teams" 
+             style="background-color: #4285f4; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            📋 View in Dashboard
+          </a>
+        </div>
+      `
+    };
+
+    const result = await this.sendEmail(announcementEmail);
+    return result.success;
+  }
+
+  // Finance approval needed email
+  static async sendFinanceApprovalEmail(
+    to: string,
+    approverName: string,
+    transactionType: string,
+    amount: number,
+    description: string,
+    submitterName: string,
+    teamName?: string
+  ): Promise<boolean> {
+    const typeEmoji = transactionType === 'expense' ? '💸' : transactionType === 'income' ? '💰' : '💵';
+    
+    const approvalEmail: ResendEmailData = {
+      to,
+      subject: `${typeEmoji} Finance Approval Needed: $${amount.toLocaleString()} ${transactionType}`,
+      subscriber_name: approverName,
+      content: `Hello ${approverName}!
+
+A new ${transactionType} requires your approval:
+
+Amount: $${amount.toLocaleString()}
+Description: ${description}
+Submitted by: ${submitterName}
+${teamName ? `Team: ${teamName}` : ''}
+
+Please review and approve/reject this transaction in the admin dashboard.
+
+View in dashboard: https://${this.DOMAIN}/admin/finances
+
+Best regards,
+The GDG@PSU Team`,
+      html_content: `
+        <h2>${typeEmoji} Finance Approval Needed</h2>
+        <p>Hello ${approverName}!</p>
+        <p>A new ${transactionType} requires your approval:</p>
+        
+        <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p><strong>Amount:</strong> $${amount.toLocaleString()}</p>
+          <p><strong>Type:</strong> ${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)}</p>
+          <p><strong>Description:</strong> ${description}</p>
+          <p><strong>Submitted by:</strong> ${submitterName}</p>
+          ${teamName ? `<p><strong>Team:</strong> ${teamName}</p>` : ''}
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://${this.DOMAIN}/admin/finances" 
+             style="background-color: #ffc107; color: #212529; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            📋 Review Transaction
+          </a>
+        </div>
+      `
+    };
+
+    const result = await this.sendEmail(approvalEmail);
+    return result.success;
+  }
+
+  // Finance status update email
+  static async sendFinanceStatusEmail(
+    to: string,
+    userName: string,
+    transactionType: string,
+    amount: number,
+    description: string,
+    status: 'approved' | 'rejected',
+    approverName: string,
+    rejectionReason?: string
+  ): Promise<boolean> {
+    const statusEmoji = status === 'approved' ? '✅' : '❌';
+    const statusColor = status === 'approved' ? '#28a745' : '#dc3545';
+    
+    const statusEmail: ResendEmailData = {
+      to,
+      subject: `${statusEmoji} Your ${transactionType} has been ${status}`,
+      subscriber_name: userName,
+      content: `Hello ${userName}!
+
+Your ${transactionType} request has been ${status}:
+
+Amount: $${amount.toLocaleString()}
+Description: ${description}
+Status: ${status.charAt(0).toUpperCase() + status.slice(1)}
+${status === 'approved' ? `Approved by: ${approverName}` : `Rejected by: ${approverName}`}
+${rejectionReason ? `Reason: ${rejectionReason}` : ''}
+
+View details in dashboard: https://${this.DOMAIN}/admin/finances
+
+Best regards,
+The GDG@PSU Team`,
+      html_content: `
+        <h2>${statusEmoji} Transaction ${status.charAt(0).toUpperCase() + status.slice(1)}</h2>
+        <p>Hello ${userName}!</p>
+        <p>Your ${transactionType} request has been <strong style="color: ${statusColor};">${status}</strong>:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${statusColor};">
+          <p><strong>Amount:</strong> $${amount.toLocaleString()}</p>
+          <p><strong>Description:</strong> ${description}</p>
+          <p><strong>Status:</strong> <span style="color: ${statusColor};">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+          <p><strong>${status === 'approved' ? 'Approved' : 'Rejected'} by:</strong> ${approverName}</p>
+          ${rejectionReason ? `<p><strong>Reason:</strong> ${rejectionReason}</p>` : ''}
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://${this.DOMAIN}/admin/finances" 
+             style="background-color: #4285f4; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            📋 View Details
+          </a>
+        </div>
+      `
+    };
+
+    const result = await this.sendEmail(statusEmail);
+    return result.success;
+  }
+
+  // Member added to team email
+  static async sendTeamMemberAddedEmail(
+    to: string,
+    memberName: string,
+    teamName: string,
+    role: string,
+    addedByName: string
+  ): Promise<boolean> {
+    const roleDisplay = role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    const addedEmail: ResendEmailData = {
+      to,
+      subject: `👋 You've been added to ${teamName}`,
+      subscriber_name: memberName,
+      content: `Hello ${memberName}!
+
+You've been added to the ${teamName} team as a ${roleDisplay} by ${addedByName}.
+
+You can now:
+• Access team chat and announcements
+• View team finances and activities
+• Collaborate with other team members
+
+Visit your team dashboard: https://${this.DOMAIN}/admin/teams
+
+Best regards,
+The GDG@PSU Team`,
+      html_content: `
+        <h2>👋 Welcome to ${teamName}!</h2>
+        <p>Hello ${memberName}!</p>
+        <p>You've been added to the <strong>${teamName}</strong> team as a <strong>${roleDisplay}</strong> by ${addedByName}.</p>
+        
+        <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+          <h3 style="margin-top: 0;">You can now:</h3>
+          <ul>
+            <li>💬 Access team chat and announcements</li>
+            <li>💰 View team finances and activities</li>
+            <li>🤝 Collaborate with other team members</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://${this.DOMAIN}/admin/teams" 
+             style="background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+            🚀 Go to Team Dashboard
+          </a>
+        </div>
+      `
+    };
+
+    const result = await this.sendEmail(addedEmail);
+    return result.success;
+  }
+
 
 }

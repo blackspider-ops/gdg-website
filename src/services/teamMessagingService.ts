@@ -275,6 +275,28 @@ export class TeamMessagingService {
   }
 
   /**
+   * Get a single message by ID (with sender info)
+   */
+  static async getMessageById(messageId: string): Promise<TeamMessage | null> {
+    try {
+      const { data, error } = await supabase
+        .from('team_messages')
+        .select(`
+          *,
+          sender:admin_users!team_messages_sender_id_fkey(id, email, display_name)
+        `)
+        .eq('id', messageId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching message:', error);
+      return null;
+    }
+  }
+
+  /**
    * Search messages in a team
    */
   static async searchMessages(
