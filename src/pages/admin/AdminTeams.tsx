@@ -1448,18 +1448,29 @@ const AdminTeams = () => {
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Select User *
                   </label>
-                  <select
-                    value={memberForm.admin_user_id}
-                    onChange={(e) => setMemberForm({ ...memberForm, admin_user_id: e.target.value })}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg"
-                  >
-                    <option value="">Choose a user</option>
-                    {availableForTeam.map(admin => (
-                      <option key={admin.id} value={admin.id}>
-                        {admin.display_name || admin.email} ({admin.role})
-                      </option>
-                    ))}
-                  </select>
+                  {availableForTeam.length === 0 ? (
+                    <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                      All users are already members of this team
+                    </div>
+                  ) : (
+                    <select
+                      value={memberForm.admin_user_id}
+                      onChange={(e) => setMemberForm({ ...memberForm, admin_user_id: e.target.value })}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg"
+                    >
+                      <option value="">Choose a user</option>
+                      {availableForTeam.map(admin => (
+                        <option key={admin.id} value={admin.id}>
+                          {admin.display_name || admin.email} ({admin.role})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {teamMembers.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {teamMembers.length} user{teamMembers.length !== 1 ? 's' : ''} already in team
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1646,10 +1657,43 @@ const AdminTeams = () => {
             <div className="flex-1 overflow-y-auto p-4">
               {availableForTeam.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No available users to add
+                  <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium mb-1">All users are already in this team</p>
+                  <p className="text-sm">{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''} currently in team</p>
                 </div>
               ) : (
                 <div className="space-y-2">
+                  {/* Show existing members as disabled */}
+                  {teamMembers.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium">Already in team ({teamMembers.length})</p>
+                      {teamMembers.map(member => (
+                        <div
+                          key={member.id}
+                          className="flex items-center p-3 rounded-lg border border-border bg-muted/30 opacity-50 mb-1"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={true}
+                            disabled={true}
+                            className="w-4 h-4 rounded border-border"
+                          />
+                          <div className="ml-3 flex-1">
+                            <p className="font-medium text-muted-foreground">
+                              {member.admin_user?.display_name || member.admin_user?.email || 'Unknown'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {member.admin_user?.email} • {member.role.replace('_', ' ')}
+                            </p>
+                          </div>
+                          <span className="text-xs bg-muted px-2 py-1 rounded">In team</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Show available users */}
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">Available to add ({availableForTeam.length})</p>
                   {availableForTeam.map(admin => (
                     <label
                       key={admin.id}

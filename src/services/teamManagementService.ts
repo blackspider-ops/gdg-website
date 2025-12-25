@@ -240,18 +240,33 @@ export class TeamManagementService {
 
   static async getTeamMembers(teamId: string): Promise<TeamMembership[]> {
     try {
-      const { data, error } = await supabase
+      // First get the memberships
+      const { data: memberships, error: membershipError } = await supabase
         .from('team_memberships')
-        .select(`
-          *,
-          admin_user:admin_users(id, email, display_name, role)
-        `)
+        .select('*')
         .eq('team_id', teamId)
         .eq('is_active', true)
         .order('role', { ascending: true });
 
-      if (error) throw error;
-      return data || [];
+      if (membershipError) throw membershipError;
+      if (!memberships || memberships.length === 0) return [];
+
+      // Then get the admin users for these memberships
+      const userIds = memberships.map(m => m.admin_user_id);
+      const { data: users, error: usersError } = await supabase
+        .from('admin_users')
+        .select('id, email, display_name, role')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+
+      // Combine the data
+      const result = memberships.map(membership => ({
+        ...membership,
+        admin_user: users?.find(u => u.id === membership.admin_user_id) || null
+      }));
+
+      return result;
     } catch (error) {
       console.error('Error fetching team members:', error);
       return [];
