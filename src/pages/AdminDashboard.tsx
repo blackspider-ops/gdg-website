@@ -38,11 +38,11 @@ import { BlogCommentsService } from '@/services/blogCommentsService';
 import { AuditService } from '@/services/auditService';
 import { TeamManagementService } from '@/services/teamManagementService';
 import { FinancesService } from '@/services/financesService';
-import { PermissionsService } from '@/services/permissionsService';
+import { PermissionsService, TEAM_PAGE_ACCESS, PAGE_PERMISSIONS } from '@/services/permissionsService';
 import MyTeamsWidget from '@/components/admin/MyTeamsWidget';
 
 const AdminDashboard = () => {
-  const { isAuthenticated, currentAdmin, logout } = useAdmin();
+  const { isAuthenticated, currentAdmin, logout, userTeams, isSuperAdmin, isAdmin } = useAdmin();
   const [dashboardStats, setDashboardStats] = useState({
     totalMembers: 0,
     upcomingEvents: 0,
@@ -70,7 +70,37 @@ const AdminDashboard = () => {
     pendingFinanceApprovals: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [accessiblePages, setAccessiblePages] = useState<string[]>([]);
+
+  // Compute accessible pages synchronously based on role and team memberships
+  const getAccessiblePagesSync = (): string[] => {
+    if (!currentAdmin) return [];
+    
+    // Super admins can access everything
+    if (isSuperAdmin) {
+      return Object.keys(PAGE_PERMISSIONS);
+    }
+    
+    // Regular admins can access most pages except /admin/users
+    if (isAdmin) {
+      return Object.keys(PAGE_PERMISSIONS).filter(p => p !== '/admin/users');
+    }
+    
+    // Team members - base pages they always have access to
+    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/projects'];
+    
+    // Add pages based on team membership
+    const teamPages = new Set<string>();
+    userTeams.forEach(membership => {
+      const teamSlug = membership.team?.slug;
+      if (teamSlug && TEAM_PAGE_ACCESS[teamSlug]) {
+        TEAM_PAGE_ACCESS[teamSlug].forEach(page => teamPages.add(page));
+      }
+    });
+    
+    return [...basePages, ...teamPages];
+  };
+
+  const accessiblePages = getAccessiblePagesSync();
 
   // Enable automatic task overdue checking globally
   useTaskScheduler(true);
@@ -225,15 +255,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadDashboardStats();
     
-    // Load accessible pages for current user
-    const loadAccessiblePages = async () => {
-      if (currentAdmin) {
-        const pages = await PermissionsService.getAccessiblePages(currentAdmin);
-        setAccessiblePages(pages);
-      }
-    };
-    loadAccessiblePages();
-    
     // Log dashboard access
     if (currentAdmin?.id) {
       AuditService.logAction(
@@ -259,18 +280,21 @@ const AdminDashboard = () => {
     return <Navigate to="/admin/blog-editor" replace />;
   }
 
-  const stats = [
-    { label: 'Total Members', value: dashboardStats.totalMembers.toString(), icon: Users, color: 'text-blue-500' },
-    { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toString(), icon: Calendar, color: 'text-green-500' },
-    { label: 'Newsletter Subscribers', value: dashboardStats.newsletterSubscribers.toString(), icon: Mail, color: 'text-purple-500' },
-    { label: 'Active Projects', value: dashboardStats.activeProjects.toString(), icon: FileText, color: 'text-orange-500' },
-    { label: 'Blog Posts', value: dashboardStats.blogPosts.toString(), icon: PenTool, color: 'text-pink-500' },
-    { label: 'My Pending Tasks', value: dashboardStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications?tab=tasks' },
-    { label: 'Unread Messages', value: dashboardStats.unreadMessages.toString(), icon: MessageCircle, color: 'text-indigo-500', href: '/admin/communications?tab=messages' },
-    { label: 'Unread Announcements', value: dashboardStats.unreadAnnouncements.toString(), icon: Bell, color: 'text-amber-500', href: '/admin/communications?tab=announcements' },
-    { label: 'Pending Comments', value: dashboardStats.pendingComments.toString(), icon: MessageCircle, color: 'text-red-500', href: '/admin/blog?tab=comments' },
-    { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500' },
+  const allStats = [
+    { label: 'Total Members', value: dashboardStats.totalMembers.toString(), icon: Users, color: 'text-blue-500', requiredPage: '/admin/members' },
+    { label: 'Upcoming Events', value: dashboardStats.upcomingEvents.toString(), icon: Calendar, color: 'text-green-500', requiredPage: '/admin/events' },
+    { label: 'Newsletter Subscribers', value: dashboardStats.newsletterSubscribers.toString(), icon: Mail, color: 'text-purple-500', requiredPage: '/admin/newsletter' },
+    { label: 'Active Projects', value: dashboardStats.activeProjects.toString(), icon: FileText, color: 'text-orange-500', requiredPage: '/admin/projects' },
+    { label: 'Blog Posts', value: dashboardStats.blogPosts.toString(), icon: PenTool, color: 'text-pink-500', requiredPage: '/admin/blog' },
+    { label: 'My Pending Tasks', value: dashboardStats.pendingTasks.toString(), icon: MessageSquare, color: 'text-cyan-500', href: '/admin/communications?tab=tasks', requiredPage: '/admin/communications' },
+    { label: 'Unread Messages', value: dashboardStats.unreadMessages.toString(), icon: MessageCircle, color: 'text-indigo-500', href: '/admin/communications?tab=messages', requiredPage: '/admin/communications' },
+    { label: 'Unread Announcements', value: dashboardStats.unreadAnnouncements.toString(), icon: Bell, color: 'text-amber-500', href: '/admin/communications?tab=announcements', requiredPage: '/admin/communications' },
+    { label: 'Pending Comments', value: dashboardStats.pendingComments.toString(), icon: MessageCircle, color: 'text-red-500', href: '/admin/blog?tab=comments', requiredPage: '/admin/blog' },
+    { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500', requiredPage: '/admin/blog' },
   ];
+
+  // Filter stats based on user access
+  const stats = allStats.filter(stat => canAccess(stat.requiredPage));
 
   // Helper function to check if user can access a page
   const canAccess = (path: string) => {

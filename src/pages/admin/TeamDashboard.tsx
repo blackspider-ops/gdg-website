@@ -10,7 +10,6 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { TeamManagementService, type AdminTeam, type TeamAnnouncement } from '@/services/teamManagementService';
 import { TeamStatisticsService, type TeamStats } from '@/services/teamStatisticsService';
 import { TeamActivityService, type TeamActivity } from '@/services/teamActivityService';
-import TeamChat from '@/components/admin/TeamChat';
 
 const TeamDashboard = () => {
   const { isAuthenticated, currentAdmin, userTeams, isSuperAdmin, isAdmin } = useAdmin();
@@ -22,7 +21,6 @@ const TeamDashboard = () => {
   const [announcements, setAnnouncements] = useState<TeamAnnouncement[]>([]);
   const [recentActivity, setRecentActivity] = useState<TeamActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'chat' | 'announcements'>('overview');
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -170,26 +168,8 @@ const TeamDashboard = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg w-fit">
-        {(['overview', 'chat', 'announcements'] as const).map(section => (
-          <button
-            key={section}
-            onClick={() => setActiveSection(section)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors capitalize ${
-              activeSection === section
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {section}
-          </button>
-        ))}
-      </div>
-
       {/* Overview Section */}
-      {activeSection === 'overview' && (
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Stats Grid */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -233,7 +213,7 @@ const TeamDashboard = () => {
                   Recent Announcements
                 </h3>
                 <button
-                  onClick={() => setActiveSection('announcements')}
+                  onClick={() => navigate('/admin/communications?tab=team-chat')}
                   className="text-sm text-primary hover:underline"
                 >
                   View all
@@ -315,14 +295,14 @@ const TeamDashboard = () => {
             <h3 className="font-semibold text-foreground mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <button
-                onClick={() => setActiveSection('chat')}
+                onClick={() => navigate('/admin/communications?tab=team-chat')}
                 className="flex items-center space-x-2 p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
               >
                 <MessageCircle className="w-5 h-5 text-primary" />
                 <span className="text-sm font-medium">Team Chat</span>
               </button>
               <button
-                onClick={() => setActiveSection('announcements')}
+                onClick={() => navigate('/admin/communications?tab=announcements')}
                 className="flex items-center space-x-2 p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
               >
                 <Bell className="w-5 h-5 text-primary" />
@@ -345,86 +325,6 @@ const TeamDashboard = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Chat Section */}
-      {activeSection === 'chat' && teamId && (
-        <div className="bg-card rounded-xl border border-border">
-          <TeamChat
-            teamId={teamId}
-            teamName={team.name}
-            teamColor={team.color}
-          />
-        </div>
-      )}
-
-      {/* Announcements Section */}
-      {activeSection === 'announcements' && (
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="font-semibold text-foreground mb-4">All Announcements</h3>
-          {announcements.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No announcements yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {announcements.map(announcement => {
-                const isUnread = currentAdmin && !announcement.read_by?.includes(currentAdmin.id);
-                return (
-                  <div
-                    key={announcement.id}
-                    className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                      isUnread 
-                        ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' 
-                        : 'bg-muted/50 border-border hover:bg-muted'
-                    }`}
-                    onClick={() => isUnread && handleMarkAnnouncementRead(announcement.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          {announcement.is_pinned && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
-                              📌 Pinned
-                            </span>
-                          )}
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(announcement.priority)}`}>
-                            {announcement.priority}
-                          </span>
-                          {announcement.team ? (
-                            <span 
-                              className="text-xs px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: announcement.team.color + '20', color: announcement.team.color }}
-                            >
-                              {announcement.team.name}
-                            </span>
-                          ) : (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                              Global
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-medium text-foreground">{announcement.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{announcement.message}</p>
-                        <div className="flex items-center space-x-4 mt-3 text-xs text-muted-foreground">
-                          <span>By {announcement.author?.display_name || announcement.author?.email}</span>
-                          <span>{formatTimeAgo(announcement.created_at)}</span>
-                        </div>
-                      </div>
-                      {isUnread ? (
-                        <div className="w-3 h-3 bg-primary rounded-full flex-shrink-0" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
     </AdminLayout>
   );
 };
