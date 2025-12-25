@@ -60,7 +60,7 @@ import TeamChat from '@/components/admin/TeamChat';
 import { TeamManagementService, type AdminTeam, type TeamAnnouncement } from '@/services/teamManagementService';
 
 const AdminCommunications: React.FC = () => {
-    const { isAuthenticated, currentAdmin } = useAdmin();
+    const { isAuthenticated, currentAdmin, userTeams: contextUserTeams } = useAdmin();
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Get initial tab from URL params or default to announcements
@@ -94,10 +94,17 @@ const AdminCommunications: React.FC = () => {
     ]);
     const [adminUsers, setAdminUsers] = useState<Array<{ id: string; email: string; role: string }>>([]);
 
-    // Team chat state
-    const [userTeams, setUserTeams] = useState<AdminTeam[]>([]);
+    // Team chat state - use teams from context (already loaded)
+    const userTeams = (contextUserTeams || []).filter(t => t.team).map(t => t.team!);
     const [selectedTeamForChat, setSelectedTeamForChat] = useState<AdminTeam | null>(null);
     const [teamAnnouncements, setTeamAnnouncements] = useState<TeamAnnouncement[]>([]);
+
+    // Set initial selected team when userTeams are available
+    useEffect(() => {
+        if (userTeams.length > 0 && !selectedTeamForChat) {
+            setSelectedTeamForChat(userTeams[0]);
+        }
+    }, [userTeams, selectedTeamForChat]);
 
     // Form state
     const [createForm, setCreateForm] = useState({
@@ -183,28 +190,27 @@ const AdminCommunications: React.FC = () => {
     const loadAllData = async () => {
         setIsLoading(true);
         try {
+            // Load all data in parallel - teams come from context, no need to fetch
             const [
                 announcementsData,
                 tasksData,
                 messagesData,
                 statsData,
-                adminUsersData,
-                userTeamsData
+                adminUsersData
             ] = await Promise.all([
                 CommunicationsService.getAnnouncements({
                     priority: filterStatus === 'all' ? undefined : filterStatus,
                     search: searchTerm || undefined
-                }),
+                }).catch(() => []),
                 CommunicationsService.getTasks({
                     status: filterStatus === 'all' ? undefined : filterStatus,
                     search: searchTerm || undefined,
                     // Show tasks where user is either assignee OR assigner
                     user_id: currentAdmin?.id
-                }),
-                currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role) : Promise.resolve([]),
-                currentAdmin?.id ? CommunicationsService.getCommunicationStats(currentAdmin.id) : Promise.resolve(null),
-                CommunicationsService.getAllAdminUsers(),
-                currentAdmin?.id ? TeamManagementService.getUserTeams(currentAdmin.id) : Promise.resolve([])
+                }).catch(() => []),
+                currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role).catch(() => []) : Promise.resolve([]),
+                currentAdmin?.id ? CommunicationsService.getCommunicationStats(currentAdmin.id).catch(() => null) : Promise.resolve(null),
+                CommunicationsService.getAllAdminUsers().catch(() => [])
             ]);
 
             setAnnouncements(announcementsData);
@@ -212,20 +218,14 @@ const AdminCommunications: React.FC = () => {
             setMessages(messagesData);
             setAdminUsers(adminUsersData);
 
-            // Set user teams and select first team for chat
-            const teams = (userTeamsData || []).filter(t => t.team).map(t => t.team!);
-            setUserTeams(teams);
-            if (teams.length > 0 && !selectedTeamForChat) {
-                setSelectedTeamForChat(teams[0]);
-            }
-
-            // Load team announcements for all user's teams
-            if (teams.length > 0) {
-                const allTeamAnnouncements: TeamAnnouncement[] = [];
-                for (const team of teams) {
-                    const teamAnns = await TeamManagementService.getTeamAnnouncements(team.id, false);
-                    allTeamAnnouncements.push(...teamAnns);
-                }
+            // Load team announcements for all user's teams (userTeams comes from context)
+            if (userTeams.length > 0) {
+                // Load all team announcements in parallel
+                const teamAnnouncementPromises = userTeams.map(team => 
+                    TeamManagementService.getTeamAnnouncements(team.id, false).catch(() => [])
+                );
+                const allTeamAnnouncementsArrays = await Promise.all(teamAnnouncementPromises);
+                const allTeamAnnouncements = allTeamAnnouncementsArrays.flat();
                 setTeamAnnouncements(allTeamAnnouncements.sort((a, b) => 
                     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                 ));
