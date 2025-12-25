@@ -43,7 +43,8 @@ import {
     AlertCircle,
     XCircle,
     ExternalLink,
-    AlertTriangle
+    AlertTriangle,
+    Hash
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import {
@@ -55,6 +56,8 @@ import {
 } from '@/services/communicationsService';
 import { AuditService } from '@/services/auditService';
 import { useTaskScheduler } from '@/hooks/useTaskScheduler';
+import TeamChat from '@/components/admin/TeamChat';
+import { TeamManagementService, type AdminTeam, type TeamAnnouncement } from '@/services/teamManagementService';
 
 const AdminCommunications: React.FC = () => {
     const { isAuthenticated, currentAdmin } = useAdmin();
@@ -90,6 +93,11 @@ const AdminCommunications: React.FC = () => {
         { label: 'Team Members', value: '0', icon: Users, color: 'text-purple-400' }
     ]);
     const [adminUsers, setAdminUsers] = useState<Array<{ id: string; email: string; role: string }>>([]);
+
+    // Team chat state
+    const [userTeams, setUserTeams] = useState<AdminTeam[]>([]);
+    const [selectedTeamForChat, setSelectedTeamForChat] = useState<AdminTeam | null>(null);
+    const [teamAnnouncements, setTeamAnnouncements] = useState<TeamAnnouncement[]>([]);
 
     // Form state
     const [createForm, setCreateForm] = useState({
@@ -180,7 +188,8 @@ const AdminCommunications: React.FC = () => {
                 tasksData,
                 messagesData,
                 statsData,
-                adminUsersData
+                adminUsersData,
+                userTeamsData
             ] = await Promise.all([
                 CommunicationsService.getAnnouncements({
                     priority: filterStatus === 'all' ? undefined : filterStatus,
@@ -194,13 +203,33 @@ const AdminCommunications: React.FC = () => {
                 }),
                 currentAdmin?.id ? CommunicationsService.getMessages(currentAdmin.id, currentAdmin.role) : Promise.resolve([]),
                 currentAdmin?.id ? CommunicationsService.getCommunicationStats(currentAdmin.id) : Promise.resolve(null),
-                CommunicationsService.getAllAdminUsers()
+                CommunicationsService.getAllAdminUsers(),
+                currentAdmin?.id ? TeamManagementService.getUserTeams(currentAdmin.id) : Promise.resolve([])
             ]);
 
             setAnnouncements(announcementsData);
             setTasks(tasksData);
             setMessages(messagesData);
             setAdminUsers(adminUsersData);
+
+            // Set user teams and select first team for chat
+            const teams = (userTeamsData || []).filter(t => t.team).map(t => t.team!);
+            setUserTeams(teams);
+            if (teams.length > 0 && !selectedTeamForChat) {
+                setSelectedTeamForChat(teams[0]);
+            }
+
+            // Load team announcements for all user's teams
+            if (teams.length > 0) {
+                const allTeamAnnouncements: TeamAnnouncement[] = [];
+                for (const team of teams) {
+                    const teamAnns = await TeamManagementService.getTeamAnnouncements(team.id, false);
+                    allTeamAnnouncements.push(...teamAnns);
+                }
+                setTeamAnnouncements(allTeamAnnouncements.sort((a, b) => 
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                ));
+            }
 
             // Always calculate from user-specific filtered data for personalized experience
             const activeTasksCount = (tasksData || []).filter(task => task.status !== 'completed').length;
@@ -775,7 +804,8 @@ const AdminCommunications: React.FC = () => {
     const tabs = [
         { id: 'announcements', label: 'Announcements', icon: Bell },
         { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-        { id: 'messages', label: 'Messages', icon: MessageSquare }
+        { id: 'messages', label: 'Messages', icon: MessageSquare },
+        ...(userTeams.length > 0 ? [{ id: 'team-chat', label: 'Team Chat', icon: Hash }] : [])
     ];
 
     const getPriorityColor = (priority: string) => {
@@ -1359,6 +1389,100 @@ const AdminCommunications: React.FC = () => {
                                 <span>New Message</span>
                             </button>
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'team-chat' && userTeams.length > 0 && (
+                    <div className="flex flex-col h-[700px]">
+                        {/* Team Selector Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-border bg-card">
+                            <div className="flex items-center space-x-3">
+                                <Hash size={20} className="text-primary" />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">Team Chat</h2>
+                                    <p className="text-sm text-muted-foreground">Chat with your team members</p>
+                                </div>
+                            </div>
+                            {userTeams.length > 1 && (
+                                <select
+                                    value={selectedTeamForChat?.id || ''}
+                                    onChange={(e) => {
+                                        const team = userTeams.find(t => t.id === e.target.value);
+                                        setSelectedTeamForChat(team || null);
+                                    }}
+                                    className="px-3 py-2 bg-muted border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                >
+                                    {userTeams.map(team => (
+                                        <option key={team.id} value={team.id}>{team.name}</option>
+                                    ))}
+                                </select>
+                            )}
+                            {userTeams.length === 1 && (
+                                <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                                    {userTeams[0].name}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Team Chat Content */}
+                        <div className="flex-1 overflow-hidden">
+                            {selectedTeamForChat ? (
+                                <TeamChat 
+                                    teamId={selectedTeamForChat.id} 
+                                    teamName={selectedTeamForChat.name}
+                                    teamColor={selectedTeamForChat.color || '#6366f1'}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                    <div className="text-center">
+                                        <Hash size={48} className="mx-auto text-muted-foreground mb-4" />
+                                        <h3 className="text-lg font-medium text-foreground mb-2">Select a Team</h3>
+                                        <p className="text-muted-foreground">Choose a team to start chatting</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Team Announcements Section */}
+                        {teamAnnouncements.length > 0 && (
+                            <div className="border-t border-border bg-muted/30">
+                                <div className="p-3 border-b border-border/50">
+                                    <div className="flex items-center space-x-2">
+                                        <Bell size={16} className="text-yellow-400" />
+                                        <span className="text-sm font-medium text-foreground">Recent Team Announcements</span>
+                                        <span className="text-xs text-muted-foreground">({teamAnnouncements.length})</span>
+                                    </div>
+                                </div>
+                                <div className="max-h-[150px] overflow-y-auto">
+                                    {teamAnnouncements.slice(0, 5).map(announcement => (
+                                        <div key={announcement.id} className="p-3 border-b border-border/30 last:border-b-0 hover:bg-muted/50 transition-colors">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center space-x-2 mb-1">
+                                                        <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                                                            announcement.priority === 'urgent' ? 'bg-red-900/30 text-red-400' :
+                                                            announcement.priority === 'high' ? 'bg-orange-900/30 text-orange-400' :
+                                                            announcement.priority === 'normal' ? 'bg-blue-900/30 text-blue-400' :
+                                                            'bg-gray-900/30 text-gray-400'
+                                                        }`}>
+                                                            {announcement.priority}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {userTeams.find(t => t.id === announcement.team_id)?.name || 'Team'}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="text-sm font-medium text-foreground truncate">{announcement.title}</h4>
+                                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{announcement.content}</p>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                                                    {formatDate(announcement.created_at)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -22,7 +22,8 @@ import {
   Link as LinkIcon,
   Clock,
   Bell,
-  MessageCircle
+  MessageCircle,
+  DollarSign
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -37,6 +38,7 @@ import { BlogCommentsService } from '@/services/blogCommentsService';
 import { AuditService } from '@/services/auditService';
 import { TeamManagementService } from '@/services/teamManagementService';
 import { FinancesService } from '@/services/financesService';
+import { PermissionsService } from '@/services/permissionsService';
 import MyTeamsWidget from '@/components/admin/MyTeamsWidget';
 
 const AdminDashboard = () => {
@@ -68,6 +70,7 @@ const AdminDashboard = () => {
     pendingFinanceApprovals: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessiblePages, setAccessiblePages] = useState<string[]>([]);
 
   // Enable automatic task overdue checking globally
   useTaskScheduler(true);
@@ -222,6 +225,15 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadDashboardStats();
     
+    // Load accessible pages for current user
+    const loadAccessiblePages = async () => {
+      if (currentAdmin) {
+        const pages = await PermissionsService.getAccessiblePages(currentAdmin);
+        setAccessiblePages(pages);
+      }
+    };
+    loadAccessiblePages();
+    
     // Log dashboard access
     if (currentAdmin?.id) {
       AuditService.logAction(
@@ -260,44 +272,56 @@ const AdminDashboard = () => {
     { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500' },
   ];
 
-  // Filter quick actions based on role
-  const quickActions = [
-    // Only show Site & Content and Team Management to super admins
-    ...(currentAdmin?.role === 'super_admin' ? [
-      { label: 'Site & Content', icon: FileText, href: '/admin/content' },
-      { label: 'Team Management', icon: Users, href: '/admin/team' }
-    ] : []),
-    // Show Manage Events to both super admins and regular admins
-    { label: 'Manage Events', icon: Calendar, href: '/admin/events' },
-    { label: 'Manage Projects', icon: FolderOpen, href: '/admin/projects' },
-    { label: 'View Members', icon: Users, href: '/admin/members' },
-    { label: 'Resources', icon: FileText, href: '/admin/resources' },
-    { label: 'Newsletter', icon: Mail, href: '/admin/newsletter' },
-    { label: 'Blog', icon: FileText, href: '/admin/blog' },
-    { label: 'Linktree', icon: LinkIcon, href: '/admin/linktree' },
+  // Helper function to check if user can access a page
+  const canAccess = (path: string) => {
+    // Super admins can access everything
+    if (currentAdmin?.role === 'super_admin') return true;
+    // Regular admins can access most pages except /admin/users
+    if (currentAdmin?.role === 'admin') return path !== '/admin/users';
+    // For team members, check the accessible pages list
+    return accessiblePages.includes(path);
+  };
+
+  // Filter quick actions based on role and permissions
+  const allQuickActions = [
+    { label: 'Site & Content', icon: FileText, href: '/admin/content', roles: ['super_admin'] },
+    { label: 'Team Management', icon: Users, href: '/admin/team', roles: ['super_admin'] },
+    { label: 'Manage Events', icon: Calendar, href: '/admin/events', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Manage Projects', icon: FolderOpen, href: '/admin/projects', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'View Members', icon: Users, href: '/admin/members', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Resources', icon: FileText, href: '/admin/resources', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Newsletter', icon: Mail, href: '/admin/newsletter', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Blog', icon: PenTool, href: '/admin/blog', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Linktree', icon: LinkIcon, href: '/admin/linktree', roles: ['super_admin', 'admin', 'team_member'] },
   ];
 
-  // Filter business actions based on role
-  const businessActions = [
-    // Only show Manage Sponsors to super admins
-    ...(currentAdmin?.role === 'super_admin' ? [{ label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors' }] : []),
-    // Show Communications Hub for super admins in Business section, for regular admins it's prominent at top
-    ...(currentAdmin?.role === 'super_admin' ? [{ label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications' }] : []),
-    { label: 'Media Library', icon: FolderOpen, href: '/admin/media' },
-    // Finances - accessible to super admins and admins
-    { label: 'Finances', icon: BarChart3, href: '/admin/finances' },
+  const quickActions = allQuickActions.filter(action => 
+    action.roles.includes(currentAdmin?.role || '') && canAccess(action.href)
+  );
+
+  // Filter business actions based on role and permissions
+  const allBusinessActions = [
+    { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors', roles: ['super_admin'] },
+    { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', roles: ['super_admin'] },
+    { label: 'Media Library', icon: FolderOpen, href: '/admin/media', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Finances', icon: DollarSign, href: '/admin/finances', roles: ['super_admin', 'admin', 'team_member'] },
   ];
 
-  // Add admin user management for super admins, and teams for admins too
-  const adminActions = currentAdmin && currentAdmin.role === 'super_admin' ? [
-    { label: 'Admin Users', icon: Shield, href: '/admin/users' },
-    { label: 'Admin Teams', icon: Users, href: '/admin/teams' },
-    { label: 'Audit Log', icon: FileText, href: '/admin/audit-log' },
-    { label: 'Site Status', icon: Globe, href: '/admin/site-status' },
-  ] : currentAdmin?.role === 'admin' ? [
-    { label: 'Admin Teams', icon: Users, href: '/admin/teams' },
-    { label: 'Audit Log', icon: FileText, href: '/admin/audit-log' },
-  ] : [];
+  const businessActions = allBusinessActions.filter(action => 
+    action.roles.includes(currentAdmin?.role || '') && canAccess(action.href)
+  );
+
+  // Admin actions - only for super admins and admins
+  const allAdminActions = [
+    { label: 'Admin Users', icon: Shield, href: '/admin/users', roles: ['super_admin'] },
+    { label: 'Admin Teams', icon: Users, href: '/admin/teams', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Audit Log', icon: FileText, href: '/admin/audit-log', roles: ['super_admin', 'admin'] },
+    { label: 'Site Status', icon: Globe, href: '/admin/site-status', roles: ['super_admin'] },
+  ];
+
+  const adminActions = allAdminActions.filter(action => 
+    action.roles.includes(currentAdmin?.role || '') && canAccess(action.href)
+  );
 
   const helpActions = [
     { label: 'Project Guide', icon: BookOpen, href: '/admin/guide' },
@@ -413,8 +437,8 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        {/* Communications Hub - Prominent Section (Only for regular admins, not super admins) */}
-        {currentAdmin?.role === 'admin' && (
+        {/* Communications Hub - Prominent Section (Only for regular admins who have access) */}
+        {currentAdmin?.role === 'admin' && canAccess('/admin/communications') && (
           <div className="col-span-12 mb-8">
             <Link
               to="/admin/communications"
@@ -506,24 +530,26 @@ const AdminDashboard = () => {
             )}
 
             {/* Business Management Section */}
-            <div className="border-t border-border mt-6 pt-6">
-              <h3 className="font-display text-md font-semibold mb-4 text-gdg-green">Business Management</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {businessActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <Link
-                      key={index}
-                      to={action.href}
-                      className="flex items-center space-x-3 p-4 border border-green-200 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
-                    >
-                      <Icon size={20} className="text-green-600 group-hover:text-green-700" />
-                      <span className="font-medium text-green-700">{action.label}</span>
-                    </Link>
-                  );
-                })}
+            {businessActions.length > 0 && (
+              <div className="border-t border-border mt-6 pt-6">
+                <h3 className="font-display text-md font-semibold mb-4 text-gdg-green">Business Management</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {businessActions.map((action, index) => {
+                    const Icon = action.icon;
+                    return (
+                      <Link
+                        key={index}
+                        to={action.href}
+                        className="flex items-center space-x-3 p-4 border border-green-200 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
+                      >
+                        <Icon size={20} className="text-green-600 group-hover:text-green-700" />
+                        <span className="font-medium text-green-700">{action.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Profile Section */}
             <div className="border-t border-border mt-6 pt-6">

@@ -115,8 +115,8 @@ export class PermissionsService {
 
     // Team members - check team-based access
     if (user.role === 'team_member') {
-      // Always allow dashboard, profile, guide, teams, finances (filtered by team)
-      if (['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances'].includes(path)) {
+      // Always allow dashboard, profile, guide, teams, finances, communications
+      if (['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications'].includes(path)) {
         return true;
       }
 
