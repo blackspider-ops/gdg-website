@@ -293,9 +293,6 @@ const AdminDashboard = () => {
     { label: 'Pending Approvals', value: dashboardStats.pendingApprovals?.toString() || '0', icon: Clock, color: 'text-yellow-500', requiredPage: '/admin/blog' },
   ];
 
-  // Filter stats based on user access
-  const stats = allStats.filter(stat => canAccess(stat.requiredPage));
-
   // Helper function to check if user can access a page
   const canAccess = (path: string) => {
     // Super admins can access everything
@@ -305,6 +302,9 @@ const AdminDashboard = () => {
     // For team members, check the accessible pages list
     return accessiblePages.includes(path);
   };
+
+  // Filter stats based on user access
+  const stats = allStats.filter(stat => canAccess(stat.requiredPage));
 
   // Filter quick actions based on role and permissions
   const allQuickActions = [
