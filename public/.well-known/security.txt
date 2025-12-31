@@ -1,0 +1,10 @@
+# GDG on Campus PSU Security Policy
+# https://gdgpsu.dev
+
+Contact: mailto:gdg@psu.edu
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://gdgpsu.dev/.well-known/security.txt
+
+# We appreciate responsible disclosure of security vulnerabilities.
+# Please report any security issues to the contact above.

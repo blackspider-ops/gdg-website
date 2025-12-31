@@ -1,0 +1,16 @@
+/* TEAM */
+Organization: GDG on Campus PSU
+Site: https://gdgpsu.dev
+Location: Pennsylvania State University, USA
+Contact: gdg@psu.edu
+
+/* THANKS */
+Google Developer Groups Program
+Pennsylvania State University
+All our amazing community members and contributors
+
+/* SITE */
+Last update: 2026
+Standards: HTML5, CSS3, JavaScript ES2022
+Components: React, TypeScript, Tailwind CSS, Supabase
+Software: Vite, Vercel
