@@ -1544,7 +1544,7 @@ const AdminCommunications: React.FC = () => {
                         </div>
 
                         {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                        <div className="flex-1 overflow-y-auto overflow-auto p-8 space-y-8">
                             {/* Error Display */}
                             {submitError && (
                                 <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-6 py-4 rounded-xl backdrop-blur-sm">
