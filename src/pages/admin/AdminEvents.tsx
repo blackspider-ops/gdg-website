@@ -349,10 +349,15 @@ const AdminEvents = () => {
     const eventDetails = `
 Event: ${event.title}
 Date: ${eventDate.toLocaleDateString()} at ${eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-Location: ${event.location}${event.google_event_url ? `
+Location: ${event.location}`;
 
-📅 RSVP on Google Calendar: ${event.google_event_url}
-Please RSVP on the official event page to confirm your attendance!` : ''}`;
+    // Add RSVP section if official event URL exists
+    const rsvpSection = event.google_event_url ? `
+
+📍 PLEASE RSVP ON THE OFFICIAL EVENT PAGE:
+${event.google_event_url}
+
+⚠️ IMPORTANT: You must RSVP on the official event page to confirm your attendance and receive updates!` : '';
 
     return {
       reminder: {
@@ -360,7 +365,7 @@ Please RSVP on the official event page to confirm your attendance!` : ''}`;
         message: `Dear {name},
 
 We hope you're excited about the upcoming event!
-${eventDetails}
+${eventDetails}${rsvpSection}
 
 Please make sure to arrive on time. We're looking forward to seeing you there!
 
@@ -387,7 +392,7 @@ The GDG@PSU Team`
         message: `Dear {name},
 
 We have an important update regarding the upcoming event.
-${eventDetails}
+${eventDetails}${rsvpSection}
 
 [Please add your update information here]
 
@@ -401,7 +406,7 @@ The GDG@PSU Team`
         message: `Dear {name},
 
 [Add your custom message here]
-${eventDetails}
+${eventDetails}${rsvpSection}
 
 Best regards,
 The GDG@PSU Team`
@@ -903,17 +908,47 @@ The GDG@PSU Team`
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Official Google Event URL (Optional)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Official Event Page URL (Optional)</label>
                 <input
                   type="url"
                   value={formData.google_event_url}
                   onChange={(e) => setFormData(prev => ({ ...prev, google_event_url: e.target.value }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
-                  placeholder="https://calendar.google.com/event?..."
+                  placeholder="https://gdg.community.dev/events/details/..."
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  📅 Google Calendar event link - will be included in all email notifications with RSVP instructions
+                  🌐 Official event page (e.g., GDG Community, Eventbrite) - will be included in emails with RSVP instructions
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">External Registration URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={formData.registration_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, registration_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="https://eventbrite.com/..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    External registration platform link
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Google Form URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={formData.google_form_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, google_form_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="https://forms.gle/..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Google Form for additional info
+                  </p>
+                </div>
               </div>
 
               {error && (
@@ -1138,17 +1173,47 @@ The GDG@PSU Team`
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Official Google Event URL (Optional)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Official Event Page URL (Optional)</label>
                 <input
                   type="url"
                   value={formData.google_event_url}
                   onChange={(e) => setFormData(prev => ({ ...prev, google_event_url: e.target.value }))}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
-                  placeholder="https://calendar.google.com/event?..."
+                  placeholder="https://gdg.community.dev/events/details/..."
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  📅 Google Calendar event link - will be included in all email notifications with RSVP instructions
+                  🌐 Official event page (e.g., GDG Community, Eventbrite) - will be included in emails with RSVP instructions
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">External Registration URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={formData.registration_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, registration_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="https://eventbrite.com/..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    External registration platform link
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Google Form URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={formData.google_form_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, google_form_url: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                    placeholder="https://forms.gle/..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Google Form for additional info
+                  </p>
+                </div>
               </div>
 
               {error && (
