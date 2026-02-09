@@ -175,15 +175,8 @@ const Team = () => {
                 const isLeadershipSection = sectionName === 'Leadership Team' || sectionName === 'Advisors';
                 const sectionBgClass = sectionIndex % 2 === 1 ? 'bg-card/30' : '';
                 
-                // Get section title from page content or use section name
-                let sectionTitle = sectionName;
-                if (sectionName === 'Leadership Team' && pageHeader.leadership_title) {
-                    sectionTitle = pageHeader.leadership_title;
-                } else if (sectionName === 'Advisors' && pageHeader.organizers_title) {
-                    sectionTitle = pageHeader.organizers_title;
-                } else if (sectionName === 'Active Members' && pageHeader.members_title) {
-                    sectionTitle = pageHeader.members_title;
-                }
+                // Use the actual section name from database, no overrides
+                const sectionTitle = sectionName;
 
                 return (
                     <section key={sectionName} className={`py-12 sm:py-16 lg:py-20 ${sectionBgClass}`}>
