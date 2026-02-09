@@ -63,6 +63,18 @@ const AdminEvents = () => {
   // Lock body scroll when any modal is open
   useBodyScrollLock(showCreateForm || !!editingEvent || !!viewingAttendees || showEmailModal);
 
+  // Helper function to convert datetime-local string to ISO string
+  // The datetime-local input gives us a string like "2026-10-02T19:00"
+  // We need to treat this as being in the user's local timezone and convert to ISO
+  const convertLocalDateTimeToISO = (dateTimeString: string): string => {
+    // Create a date object from the datetime-local string
+    // This will be interpreted in the browser's local timezone
+    const localDate = new Date(dateTimeString);
+    
+    // Convert to ISO string (UTC)
+    return localDate.toISOString();
+  };
+
   // Load events and stats
   useEffect(() => {
     loadEvents();
@@ -142,7 +154,7 @@ const AdminEvents = () => {
       const eventData = {
         title: formData.title,
         description: formData.description,
-        date: formData.date,
+        date: convertLocalDateTimeToISO(formData.date),
         location: formData.location,
         image_url: formData.image_url,
         registration_url: formData.registration_url,
@@ -176,7 +188,18 @@ const AdminEvents = () => {
   };
 
   const handleEditEvent = (event: Event) => {
-    const formattedDate = new Date(event.date).toISOString().slice(0, 16);
+    // Convert UTC date from database to local datetime string for the input
+    // The datetime-local input expects format: YYYY-MM-DDTHH:mm
+    const eventDate = new Date(event.date);
+    
+    // Format for datetime-local input (this will be in the user's browser timezone)
+    const year = eventDate.getFullYear();
+    const month = String(eventDate.getMonth() + 1).padStart(2, '0');
+    const day = String(eventDate.getDate()).padStart(2, '0');
+    const hours = String(eventDate.getHours()).padStart(2, '0');
+    const minutes = String(eventDate.getMinutes()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+    
     setFormData({
       title: event.title,
       description: event.description,
@@ -209,7 +232,7 @@ const AdminEvents = () => {
       const eventData = {
         title: formData.title,
         description: formData.description,
-        date: formData.date,
+        date: convertLocalDateTimeToISO(formData.date),
         location: formData.location,
         image_url: formData.image_url,
         registration_url: formData.registration_url,
