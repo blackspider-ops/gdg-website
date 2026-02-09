@@ -56,7 +56,8 @@ const AdminEvents = () => {
     external_attendees: '',
     registration_enabled: true,
     is_featured: false,
-    level: 'open_for_all' as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all'
+    level: 'open_for_all' as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all',
+    timezone: 'America/New_York' // Default to EST
   });
 
   // Lock body scroll when any modal is open
@@ -125,7 +126,8 @@ const AdminEvents = () => {
       external_attendees: '',
       registration_enabled: true,
       is_featured: false,
-      level: 'open_for_all'
+      level: 'open_for_all',
+      timezone: 'America/New_York' // Reset to EST default
     });
     setError(null);
     setSuccess(null);
@@ -150,7 +152,8 @@ const AdminEvents = () => {
         external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
         registration_enabled: formData.registration_enabled,
         is_featured: formData.is_featured,
-        level: formData.level
+        level: formData.level,
+        timezone: formData.timezone
       };
       
       const created = await EventsService.createEvent(eventData);
@@ -187,7 +190,8 @@ const AdminEvents = () => {
       external_attendees: event.external_attendees?.toString() || '0',
       registration_enabled: event.registration_enabled !== false,
       is_featured: event.is_featured,
-      level: event.level || 'open_for_all'
+      level: event.level || 'open_for_all',
+      timezone: (event as any).timezone || 'America/New_York' // Load timezone or default to EST
     });
     setEditingEvent(event);
     setError(null);
@@ -215,7 +219,8 @@ const AdminEvents = () => {
         external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
         registration_enabled: formData.registration_enabled,
         is_featured: formData.is_featured,
-        level: formData.level
+        level: formData.level,
+        timezone: formData.timezone
       };
       
       const updatedEvent = await EventsService.updateEvent(editingEvent.id, eventData);
@@ -748,6 +753,20 @@ The GDG@PSU Team`
                   placeholder="Enter event description"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Image URL</label>
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="https://example.com/event-image.jpg"
+                />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  💡 Tip: Upload images in <a href="/admin/media" target="_blank" className="text-blue-400 hover:text-blue-300 underline">Media Library</a>, then copy the URL here
+                </p>
+              </div>
                 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -772,6 +791,26 @@ The GDG@PSU Team`
                     placeholder="Event location"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Timezone</label>
+                <select
+                  value={formData.timezone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                >
+                  <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                  <option value="America/Chicago">Central Time (CST/CDT)</option>
+                  <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                  <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Currently set to: {formData.timezone.replace('America/', '').replace('_', ' ')} • Enter time in this timezone
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -935,6 +974,20 @@ The GDG@PSU Team`
                   placeholder="Enter event description"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Image URL</label>
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="https://example.com/event-image.jpg"
+                />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  💡 Tip: Upload images in <a href="/admin/media" target="_blank" className="text-blue-400 hover:text-blue-300 underline">Media Library</a>, then copy the URL here
+                </p>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -959,6 +1012,26 @@ The GDG@PSU Team`
                     placeholder="Event location"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Timezone</label>
+                <select
+                  value={formData.timezone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                >
+                  <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                  <option value="America/Chicago">Central Time (CST/CDT)</option>
+                  <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                  <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Currently set to: {formData.timezone.replace('America/', '').replace('_', ' ')} • Enter time in this timezone
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
