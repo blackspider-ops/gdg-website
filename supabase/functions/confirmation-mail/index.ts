@@ -28,9 +28,21 @@ serve(async (req) => {
       event_time, 
       event_location, 
       event_room, 
-      event_description, 
+      event_description,
+      google_event_url,
       notes 
     } = body;
+
+    // Format RSVP section if google_event_url exists
+    const rsvpSection = google_event_url ? `
+      <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <h3 style="margin-top: 0; color: #856404;">⚠️ IMPORTANT: RSVP Required</h3>
+        <p style="margin-bottom: 10px;"><strong>You must RSVP on the official event page to confirm your attendance and receive updates!</strong></p>
+        <a href="${google_event_url}" style="display: inline-block; background-color: #4285f4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 10px;">
+          📍 RSVP on Official Event Page
+        </a>
+      </div>
+    ` : '';
 
     // Send email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -44,15 +56,30 @@ serve(async (req) => {
         to: [attendee_email],
         subject: `✅ Registration Confirmed: ${event_title}`,
         html: `
-          <h1>Registration Confirmed! 🎉</h1>
-          <p>Dear ${attendee_name},</p>
-          <p>Thank you for registering for <strong>${event_title}</strong>!</p>
-          <p><strong>Date:</strong> ${new Date(event_date).toLocaleDateString()}</p>
-          <p><strong>Time:</strong> ${event_time}</p>
-          <p><strong>Location:</strong> ${event_location}</p>
-          ${event_room ? `<p><strong>Room:</strong> ${event_room}</p>` : ''}
-          ${notes ? `<p><strong>Your Notes:</strong> ${notes}</p>` : ''}
-          <p>Best regards,<br>The GDG Team</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #4285f4;">Registration Confirmed! 🎉</h1>
+            <p>Dear ${attendee_name},</p>
+            <p>Thank you for registering for <strong>${event_title}</strong>!</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #4285f4;">📅 Event Details</h3>
+              <p><strong>Date:</strong> ${new Date(event_date).toLocaleDateString()}</p>
+              <p><strong>Time:</strong> ${event_time}</p>
+              <p><strong>Location:</strong> ${event_location}</p>
+              ${event_room ? `<p><strong>Room:</strong> ${event_room}</p>` : ''}
+            </div>
+
+            ${rsvpSection}
+
+            ${notes ? `
+              <div style="background-color: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p><strong>Your Notes:</strong> ${notes}</p>
+              </div>
+            ` : ''}
+
+            <p style="margin-top: 30px;">We're excited to see you there!</p>
+            <p>Best regards,<br><strong>The GDG@PSU Team</strong></p>
+          </div>
         `
       })
     });
