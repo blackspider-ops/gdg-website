@@ -51,6 +51,7 @@ const AdminEvents = () => {
     image_url: '',
     registration_url: '',
     google_form_url: '',
+    google_event_url: '',
     registration_type: 'both' as 'external' | 'internal' | 'both',
     max_participants: '',
     external_attendees: '',
@@ -133,6 +134,7 @@ const AdminEvents = () => {
       image_url: '',
       registration_url: '',
       google_form_url: '',
+      google_event_url: '',
       registration_type: 'both',
       max_participants: '',
       external_attendees: '',
@@ -159,6 +161,7 @@ const AdminEvents = () => {
         image_url: formData.image_url,
         registration_url: formData.registration_url,
         google_form_url: formData.google_form_url,
+        google_event_url: formData.google_event_url,
         registration_type: formData.registration_type,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
         external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
@@ -208,6 +211,7 @@ const AdminEvents = () => {
       image_url: event.image_url || '',
       registration_url: event.registration_url || '',
       google_form_url: event.google_form_url || '',
+      google_event_url: event.google_event_url || '',
       registration_type: event.registration_type || 'both',
       max_participants: event.max_participants?.toString() || '',
       external_attendees: event.external_attendees?.toString() || '0',
@@ -237,6 +241,7 @@ const AdminEvents = () => {
         image_url: formData.image_url,
         registration_url: formData.registration_url,
         google_form_url: formData.google_form_url,
+        google_event_url: formData.google_event_url,
         registration_type: formData.registration_type,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
         external_attendees: formData.external_attendees ? parseInt(formData.external_attendees) : 0,
@@ -339,6 +344,15 @@ const AdminEvents = () => {
 
     const eventDate = new Date(event.date);
     const isUpcoming = eventDate > new Date();
+    
+    // Format event details for email
+    const eventDetails = `
+Event: ${event.title}
+Date: ${eventDate.toLocaleDateString()} at ${eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+Location: ${event.location}${event.google_event_url ? `
+
+📅 RSVP on Google Calendar: ${event.google_event_url}
+Please RSVP on the official event page to confirm your attendance!` : ''}`;
 
     return {
       reminder: {
@@ -346,6 +360,7 @@ const AdminEvents = () => {
         message: `Dear {name},
 
 We hope you're excited about the upcoming event!
+${eventDetails}
 
 Please make sure to arrive on time. We're looking forward to seeing you there!
 
@@ -372,6 +387,7 @@ The GDG@PSU Team`
         message: `Dear {name},
 
 We have an important update regarding the upcoming event.
+${eventDetails}
 
 [Please add your update information here]
 
@@ -385,6 +401,7 @@ The GDG@PSU Team`
         message: `Dear {name},
 
 [Add your custom message here]
+${eventDetails}
 
 Best regards,
 The GDG@PSU Team`
@@ -885,6 +902,20 @@ The GDG@PSU Team`
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Official Google Event URL (Optional)</label>
+                <input
+                  type="url"
+                  value={formData.google_event_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, google_event_url: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="https://calendar.google.com/event?..."
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  📅 Google Calendar event link - will be included in all email notifications with RSVP instructions
+                </p>
+              </div>
+
               {error && (
                 <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
                   {error}
@@ -1103,6 +1134,20 @@ The GDG@PSU Team`
                 </select>
                 <p className="text-xs text-gray-400 mt-1">
                   Select the appropriate skill level for this event
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Official Google Event URL (Optional)</label>
+                <input
+                  type="url"
+                  value={formData.google_event_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, google_event_url: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="https://calendar.google.com/event?..."
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  📅 Google Calendar event link - will be included in all email notifications with RSVP instructions
                 </p>
               </div>
 

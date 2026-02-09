@@ -9,6 +9,7 @@ export interface Event {
   image_url?: string;
   registration_url?: string;
   google_form_url?: string;
+  google_event_url?: string;
   registration_type?: 'external' | 'internal' | 'both';
   max_participants?: number;
   registration_enabled?: boolean;
