@@ -667,4 +667,80 @@ export class NewsletterService {
       return false;
     }
   }
+
+  // Admin-only method to directly add subscribers without verification
+  static async addSubscriberDirectly(email: string, name?: string): Promise<SubscriptionResult> {
+    try {
+      // Check if email already exists
+      const { data: existingSubscriber } = await supabase
+        .from('newsletter_subscribers')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (existingSubscriber) {
+        // If exists but inactive, reactivate
+        if (!existingSubscriber.is_active) {
+          const { data: updated, error: updateError } = await supabase
+            .from('newsletter_subscribers')
+            .update({
+              is_active: true,
+              confirmed_at: new Date().toISOString(),
+              name: name || existingSubscriber.name,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingSubscriber.id)
+            .select()
+            .single();
+
+          if (updateError) throw updateError;
+
+          return {
+            success: true,
+            message: 'Subscriber reactivated successfully!',
+            data: updated
+          };
+        }
+
+        return {
+          success: false,
+          message: 'This email is already subscribed to the newsletter.'
+        };
+      }
+
+      // Generate unsubscribe token
+      const unsubscribeToken = crypto.randomUUID();
+
+      // Create new subscriber directly as confirmed and active
+      const { data: newSubscriber, error: insertError } = await supabase
+        .from('newsletter_subscribers')
+        .insert({
+          email,
+          name,
+          is_active: true,
+          confirmed_at: new Date().toISOString(), // Mark as confirmed immediately
+          confirmation_token: null, // No confirmation needed
+          unsubscribe_token: unsubscribeToken,
+          subscribed_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      return {
+        success: true,
+        message: 'Subscriber added successfully!',
+        data: newSubscriber
+      };
+    } catch (error) {
+      console.error('Error adding subscriber directly:', error);
+      return {
+        success: false,
+        message: 'Failed to add subscriber. Please try again.'
+      };
+    }
+  }
 }

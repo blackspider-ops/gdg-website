@@ -36,6 +36,7 @@ const AdminNewsletter = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showAddSubscriberModal, setShowAddSubscriberModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<NewsletterCampaign | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<NewsletterTemplate | null>(null);
   const [sendingCampaign, setSendingCampaign] = useState<NewsletterCampaign | null>(null);
@@ -59,6 +60,11 @@ const AdminNewsletter = () => {
 
   const [sendForm, setSendForm] = useState({
     custom_emails: ''
+  });
+
+  const [addSubscriberForm, setAddSubscriberForm] = useState({
+    email: '',
+    name: ''
   });
 
   
@@ -305,6 +311,30 @@ const AdminNewsletter = () => {
       setError('An error occurred while sending the newsletter.');
     } finally {
       setIsSendingNewsletter(false);
+    }
+  };
+
+  const handleAddSubscriber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      const result = await NewsletterService.addSubscriberDirectly(
+        addSubscriberForm.email,
+        addSubscriberForm.name || undefined
+      );
+
+      if (result.success) {
+        setSuccess(result.message);
+        setShowAddSubscriberModal(false);
+        setAddSubscriberForm({ email: '', name: '' });
+        await loadNewsletterData();
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(result.message);
+      }
+    } catch (error) {
+      setError('An error occurred while adding the subscriber.');
     }
   };
 
@@ -771,6 +801,13 @@ const AdminNewsletter = () => {
                   <div className="flex items-center space-x-3">
                     {currentAdmin?.role === 'super_admin' ? (
                       <>
+                        <button 
+                          onClick={() => setShowAddSubscriberModal(true)}
+                          className="flex items-center space-x-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                        >
+                          <Plus size={16} />
+                          <span>Add Subscriber</span>
+                        </button>
                         <button 
                           onClick={handleRemoveAllPending}
                           className="flex items-center space-x-2 px-4 py-2 border border-yellow-600 text-yellow-400 rounded-lg hover:bg-yellow-600/10 transition-colors font-medium"
@@ -1486,6 +1523,100 @@ const AdminNewsletter = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Subscriber Modal */}
+      {showAddSubscriberModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-card/50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddSubscriberModal(false);
+              setAddSubscriberForm({ email: '', name: '' });
+            }
+          }}
+        >
+          <div 
+            className="bg-card rounded-xl shadow-xl border border-border w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">Add Subscriber</h2>
+                <button
+                  onClick={() => {
+                    setShowAddSubscriberModal(false);
+                    setAddSubscriberForm({ email: '', name: '' });
+                  }}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Add a subscriber directly without email verification. They can unsubscribe normally.
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleAddSubscriber} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={addSubscriberForm.email}
+                  onChange={(e) => setAddSubscriberForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="subscriber@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={addSubscriberForm.name}
+                  onChange={(e) => setAddSubscriberForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddSubscriberModal(false);
+                    setAddSubscriberForm({ email: '', name: '' });
+                  }}
+                  className="flex-1 px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors font-medium text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-primary text-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium flex items-center justify-center space-x-2"
+                >
+                  <Plus size={16} />
+                  <span>Add Subscriber</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
