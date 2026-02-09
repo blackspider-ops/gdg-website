@@ -191,7 +191,7 @@ const AdminEvents = () => {
       registration_enabled: event.registration_enabled !== false,
       is_featured: event.is_featured,
       level: event.level || 'open_for_all',
-      timezone: (event as any).timezone || 'America/New_York' // Load timezone or default to EST
+      timezone: event.timezone || 'America/New_York' // Load timezone or default to EST
     });
     setEditingEvent(event);
     setError(null);

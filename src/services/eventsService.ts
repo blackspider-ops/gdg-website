@@ -15,6 +15,7 @@ export interface Event {
   is_featured: boolean;
   level?: 'beginner' | 'intermediate' | 'advanced' | 'open_for_all';
   external_attendees?: number;
+  timezone?: string;
   created_at: string;
   updated_at: string;
 }
