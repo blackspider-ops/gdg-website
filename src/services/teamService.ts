@@ -9,6 +9,7 @@ export interface TeamMember {
   image_url?: string;
   linkedin_url?: string;
   github_url?: string;
+  team_section?: string; // Custom section like "Leadership Team", "Advisors", "Active Members"
   order_index: number;
   is_active: boolean;
   member_id?: string;

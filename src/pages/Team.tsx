@@ -18,6 +18,7 @@ const Team = () => {
         role: member.role,
         bio: member.bio,
         image: member.image_url,
+        teamSection: member.team_section || 'Active Members', // Use team_section from database
         social: {
             github: member.github_url,
             linkedin: member.linkedin_url,
@@ -25,21 +26,29 @@ const Team = () => {
         }
     }));
 
-    // Separate leadership and regular members based on role
-    const leadership = transformedMembers.filter(member => 
-        member.role.toLowerCase().includes('lead') || 
-        member.role.toLowerCase().includes('president') ||
-        member.role.toLowerCase().includes('organizer')
-    );
+    // Group members by their team_section
+    const membersBySection = transformedMembers.reduce((acc, member) => {
+        const section = member.teamSection;
+        if (!acc[section]) {
+            acc[section] = [];
+        }
+        acc[section].push(member);
+        return acc;
+    }, {} as Record<string, typeof transformedMembers>);
 
-    const advisors = transformedMembers.filter(member => 
-        member.role.toLowerCase().includes('advisor') ||
-        member.role.toLowerCase().includes('mentor')
-    );
-
-    const regularMembers = transformedMembers.filter(member => 
-        !leadership.includes(member) && !advisors.includes(member)
-    );
+    // Define section order (sections not in this list will appear after in alphabetical order)
+    const sectionOrder = ['Leadership Team', 'Advisors', 'Active Members', 'Alumni'];
+    
+    // Sort sections by defined order, then alphabetically
+    const sortedSections = Object.keys(membersBySection).sort((a, b) => {
+        const aIndex = sectionOrder.indexOf(a);
+        const bIndex = sectionOrder.indexOf(b);
+        
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.localeCompare(b);
+    });
 
     // Get page content from database
     const pageHeader = getPageSection('team', 'header') || {};
@@ -160,73 +169,52 @@ const Team = () => {
                 </div>
             </section>
 
-            {/* Leadership Team */}
-            <section className="py-12 sm:py-16 lg:py-20">
-                <div className="editorial-grid">
-                    <div className="col-span-12">
-                        {pageHeader.leadership_title && (
-                          <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.leadership_title}</h2>
-                        )}
-                        {isLoadingTeam ? (
-                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                                <LoadingSkeleton variant="team" count={3} />
-                            </div>
-                        ) : leadership.length > 0 ? (
-                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                                {leadership.map((member, index) => (
-                                    <div key={index} className="w-full sm:w-80 max-w-sm min-h-[400px]">
-                                        <TeamMember member={member} isLeadership={true} />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center text-muted-foreground">
-                                <p>No leadership team members found.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </section>
+            {/* Dynamic Team Sections */}
+            {sortedSections.map((sectionName, sectionIndex) => {
+                const members = membersBySection[sectionName];
+                const isLeadershipSection = sectionName === 'Leadership Team' || sectionName === 'Advisors';
+                const sectionBgClass = sectionIndex % 2 === 1 ? 'bg-card/30' : '';
+                
+                // Get section title from page content or use section name
+                let sectionTitle = sectionName;
+                if (sectionName === 'Leadership Team' && pageHeader.leadership_title) {
+                    sectionTitle = pageHeader.leadership_title;
+                } else if (sectionName === 'Advisors' && pageHeader.organizers_title) {
+                    sectionTitle = pageHeader.organizers_title;
+                } else if (sectionName === 'Active Members' && pageHeader.members_title) {
+                    sectionTitle = pageHeader.members_title;
+                }
 
-            {/* Advisors */}
-            {advisors.length > 0 && (
-                <section className="py-12 sm:py-16 lg:py-20 bg-card/30">
-                    <div className="editorial-grid">
-                        <div className="col-span-12">
-                            {pageHeader.organizers_title && (
-                              <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.organizers_title}</h2>
-                            )}
-                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                                {advisors.map((member, index) => (
-                                    <div key={index} className="w-full sm:w-80 max-w-sm min-h-[400px]">
-                                        <TeamMember member={member} isLeadership={true} />
+                return (
+                    <section key={sectionName} className={`py-12 sm:py-16 lg:py-20 ${sectionBgClass}`}>
+                        <div className="editorial-grid">
+                            <div className="col-span-12">
+                                <h2 className="text-3xl font-display font-bold text-center mb-12">{sectionTitle}</h2>
+                                {isLoadingTeam ? (
+                                    <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                                        <LoadingSkeleton variant="team" count={3} />
                                     </div>
-                                ))}
+                                ) : members.length > 0 ? (
+                                    <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
+                                        {members.map((member, index) => (
+                                            <div 
+                                                key={index} 
+                                                className={`w-full ${isLeadershipSection ? 'sm:w-80 max-w-sm min-h-[400px]' : 'sm:w-72 max-w-sm min-h-[300px]'}`}
+                                            >
+                                                <TeamMember member={member} isLeadership={isLeadershipSection} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-muted-foreground">
+                                        <p>No members in this section yet.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
-                </section>
-            )}
-
-            {/* Regular Team Members */}
-            {regularMembers.length > 0 && (
-                <section className="py-12 sm:py-16 lg:py-20">
-                    <div className="editorial-grid">
-                        <div className="col-span-12">
-                            {pageHeader.members_title && (
-                              <h2 className="text-3xl font-display font-bold text-center mb-12">{pageHeader.members_title}</h2>
-                            )}
-                            <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
-                                {regularMembers.map((member, index) => (
-                                    <div key={index} className="w-full sm:w-72 max-w-sm min-h-[300px]">
-                                        <TeamMember member={member} isLeadership={false} />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            )}
+                    </section>
+                );
+            })}
 
             {/* Join Team CTA */}
             <section className="py-12 sm:py-16 lg:py-20">

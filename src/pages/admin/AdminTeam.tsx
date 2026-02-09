@@ -68,6 +68,7 @@ const AdminTeam = () => {
     image_url: '',
     linkedin_url: '',
     github_url: '',
+    team_section: 'Active Members', // Default section
     order_index: 0,
     is_active: true
   });
@@ -212,6 +213,7 @@ const AdminTeam = () => {
       image_url: member.image_url || '',
       linkedin_url: member.linkedin_url || '',
       github_url: member.github_url || '',
+      team_section: member.team_section || 'Active Members',
       order_index: member.order_index,
       is_active: member.is_active
     });
@@ -226,6 +228,7 @@ const AdminTeam = () => {
       image_url: '',
       linkedin_url: '',
       github_url: '',
+      team_section: 'Active Members',
       order_index: teamMembers.length,
       is_active: true
     });
@@ -498,6 +501,34 @@ const AdminTeam = () => {
                   </datalist>
                   <p className="text-xs text-muted-foreground mt-1">
                     Team role automatically maps to member category in Member Management
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Team Section *
+                    <span className="text-xs text-muted-foreground ml-2">(Where to display on Team page)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    list="sections"
+                    value={memberForm.team_section}
+                    onChange={(e) => setMemberForm(prev => ({ ...prev, team_section: e.target.value }))}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
+                    placeholder="Enter section (e.g., Leadership Team, Advisors...)"
+                  />
+                  <datalist id="sections">
+                    <option value="Leadership Team" />
+                    <option value="Advisors" />
+                    <option value="Active Members" />
+                    <option value="Alumni" />
+                    {Array.from(new Set(teamMembers.map(m => m.team_section).filter(Boolean))).map(section => (
+                      <option key={section} value={section} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Type a new section name to create it, or select from existing sections
                   </p>
                 </div>
               </div>

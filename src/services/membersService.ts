@@ -8,6 +8,7 @@ export interface Member {
   year?: string;
   major?: string;
   category: 'founder' | 'organizer' | 'lead' | 'active' | 'member' | 'alumni';
+  team_section?: string; // Custom section like "Leadership Team", "Advisors", "Active Members"
   interests: string[];
   join_date: string;
   last_active: string;
