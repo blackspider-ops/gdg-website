@@ -152,7 +152,7 @@ export class AttendanceService {
       // Get event details for the email
       const { data: event, error } = await supabase
         .from('events')
-        .select('title, date, location, time, room, description')
+        .select('title, date, location, time, room, description, google_event_url')
         .eq('id', eventId)
         .single();
 
@@ -177,6 +177,7 @@ export class AttendanceService {
         event_location: event.location,
         event_room: event.room || '',
         event_description: event.description || '',
+        google_event_url: event.google_event_url || '',
         notes: attendeeData.notes || ''
       };
 
