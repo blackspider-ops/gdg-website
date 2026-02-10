@@ -280,7 +280,6 @@ const Home = () => {
                   <div className="text-muted-foreground mb-6">
                     {eventsContent.no_events_message || "We're planning exciting new events. Check back soon for updates!"}
                   </div>
-                  </div>
                   {eventsContent.cta_text && eventsContent.cta_link && (
                     <Link 
                       to={eventsContent.cta_link}
