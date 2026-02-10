@@ -196,7 +196,7 @@ const Home = () => {
       )}
 
       {/* Upcoming Events Section */}
-      {(eventsContent.title || upcomingEvents.length > 0) && (
+      {eventsContent.title && (
         <section className="py-16 sm:py-20 lg:py-24 bg-card/20">
           <div className="editorial-grid">
             <div className="col-span-12">
@@ -272,12 +272,14 @@ const Home = () => {
               </>
             ) : null}
 
-            {upcomingEvents.length === 0 && eventsContent.no_events_message && (
+            {upcomingEvents.length === 0 && !isLoadingEvents && (
               <div className="col-span-12 text-center py-8 sm:py-12">
                 <div className="max-w-md mx-auto px-4">
                   <Calendar size={48} className="text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Coming Soon!</h3>
                   <div className="text-muted-foreground mb-6">
-                    {eventsContent.no_events_message}
+                    {eventsContent.no_events_message || "We're planning exciting new events. Check back soon for updates!"}
+                  </div>
                   </div>
                   {eventsContent.cta_text && eventsContent.cta_link && (
                     <Link 
