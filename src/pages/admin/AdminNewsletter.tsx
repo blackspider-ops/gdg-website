@@ -1517,8 +1517,6 @@ const AdminNewsletter = () => {
                       ? '⚠️ Required: Enter at least one email address for testing. Separate multiple emails with commas or new lines.'
                       : 'Additional emails will be added to the recipient list. Separate multiple emails with commas or new lines.'}
                   </p>
-                    Use <code className="bg-gray-700 px-1 rounded">{'{name}'}</code> in your newsletter content for personalization.
-                  </p>
                 </div>
 
                 {error && (
