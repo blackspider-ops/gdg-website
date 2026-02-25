@@ -448,6 +448,7 @@ export class NewsletterService {
     content: string;
     html_content?: string;
     custom_emails?: string;
+    test_mode?: boolean;
   }): Promise<{
     success: boolean;
     total_sent?: number;

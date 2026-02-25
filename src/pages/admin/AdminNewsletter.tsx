@@ -37,6 +37,7 @@ const AdminNewsletter = () => {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showAddSubscriberModal, setShowAddSubscriberModal] = useState(false);
+  const [isTestSend, setIsTestSend] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<NewsletterCampaign | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<NewsletterTemplate | null>(null);
   const [sendingCampaign, setSendingCampaign] = useState<NewsletterCampaign | null>(null);
@@ -279,14 +280,21 @@ const AdminNewsletter = () => {
     }
   };
 
-  const handleSendCampaign = (campaign: NewsletterCampaign) => {
+  const handleSendCampaign = (campaign: NewsletterCampaign, isTest: boolean = false) => {
     setSendingCampaign(campaign);
+    setIsTestSend(isTest);
     setSendForm({ custom_emails: '' });
     setShowSendModal(true);
   };
 
   const handleConfirmSend = async () => {
     if (!sendingCampaign) return;
+
+    // Validate test send has custom emails
+    if (isTestSend && !sendForm.custom_emails.trim()) {
+      setError('Please enter at least one email address for testing.');
+      return;
+    }
 
     setIsSendingNewsletter(true);
     setError(null);
@@ -297,11 +305,14 @@ const AdminNewsletter = () => {
         subject: sendingCampaign.subject,
         content: sendingCampaign.content,
         html_content: sendingCampaign.html_content,
-        custom_emails: sendForm.custom_emails
+        custom_emails: sendForm.custom_emails,
+        test_mode: isTestSend // Add test mode flag
       });
 
       if (result.success) {
-        setSuccess(`Newsletter sent successfully to ${result.total_sent} recipients!`);
+        setSuccess(isTestSend 
+          ? `Test email sent successfully to ${result.total_sent} recipient(s)!`
+          : `Newsletter sent successfully to ${result.total_sent} recipients!`);
         setShowSendModal(false);
         await loadNewsletterData();
       } else {
@@ -744,9 +755,19 @@ const AdminNewsletter = () => {
                             </button>
                           )}
                           
+                          {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
+                            <button 
+                              onClick={() => handleSendCampaign(campaign, true)}
+                              className="p-2 hover:bg-blue-800 rounded-md transition-colors text-muted-foreground hover:text-blue-400"
+                              title="Send test to custom emails"
+                            >
+                              <Mail size={16} />
+                            </button>
+                          )}
+                          
                           {campaign.status === 'draft' && (
                             <button 
-                              onClick={() => handleSendCampaign(campaign)}
+                              onClick={() => handleSendCampaign(campaign, false)}
                               className="p-2 hover:bg-green-800 rounded-md transition-colors text-muted-foreground hover:text-green-400"
                               title="Send now"
                             >
@@ -756,7 +777,7 @@ const AdminNewsletter = () => {
                           
                           {campaign.status === 'scheduled' && (
                             <button 
-                              onClick={() => handleSendCampaign(campaign)}
+                              onClick={() => handleSendCampaign(campaign, false)}
                               className="p-2 hover:bg-yellow-800 rounded-md transition-colors text-muted-foreground hover:text-yellow-400"
                               title="Send immediately (override schedule)"
                             >
@@ -1428,11 +1449,16 @@ const AdminNewsletter = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
-                    Send Newsletter Campaign
+                    {isTestSend ? 'Send Test Campaign' : 'Send Newsletter Campaign'}
                   </h2>
                   <p className="text-muted-foreground mt-1">
                     {sendingCampaign.subject}
                   </p>
+                  {isTestSend && (
+                    <p className="text-sm text-blue-400 mt-1">
+                      ⚠️ Test mode: Will only send to custom email addresses below
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => setShowSendModal(false)}
@@ -1463,24 +1489,34 @@ const AdminNewsletter = () => {
                   <h3 className="text-lg font-semibold text-foreground mb-3">Recipients</h3>
                   <div className="bg-muted/50 rounded-lg p-4 border">
                     <p className="text-sm text-muted-foreground">
-                      This newsletter will be sent to all active subscribers plus any additional emails you specify below.
+                      {isTestSend 
+                        ? '🧪 Test mode: Newsletter will ONLY be sent to the email addresses you specify below. No subscribers will receive this.'
+                        : 'This newsletter will be sent to all active subscribers plus any additional emails you specify below.'}
                     </p>
                   </div>
                 </div>
 
                 {/* Custom Email Addresses */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Additional Recipients (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    {isTestSend ? 'Test Recipients (Required)' : 'Additional Recipients (Optional)'}
+                  </label>
                   <textarea
                     value={sendForm.custom_emails}
                     onChange={(e) => setSendForm(prev => ({ ...prev, custom_emails: e.target.value }))}
                     rows={4}
                     className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
-                    placeholder="Enter additional email addresses separated by commas or new lines&#10;example@psu.edu, another@example.com"
+                    placeholder={isTestSend 
+                      ? "Enter test email addresses separated by commas or new lines&#10;your-email@psu.edu, team-member@example.com"
+                      : "Enter additional email addresses separated by commas or new lines&#10;example@psu.edu, another@example.com"}
                     disabled={isSendingNewsletter}
+                    required={isTestSend}
                   />
                   <p className="text-xs text-gray-400 mt-2">
-                    Additional emails will be added to the recipient list. Separate multiple emails with commas or new lines.
+                    {isTestSend
+                      ? '⚠️ Required: Enter at least one email address for testing. Separate multiple emails with commas or new lines.'
+                      : 'Additional emails will be added to the recipient list. Separate multiple emails with commas or new lines.'}
+                  </p>
                     Use <code className="bg-gray-700 px-1 rounded">{'{name}'}</code> in your newsletter content for personalization.
                   </p>
                 </div>
