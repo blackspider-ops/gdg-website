@@ -17,6 +17,7 @@ interface NewsletterCampaignRequest {
     content: string
     html_content?: string
     custom_emails?: string
+    test_mode?: boolean
 }
 
 serve(async (req) => {
@@ -37,9 +38,20 @@ serve(async (req) => {
         const emailData: NewsletterCampaignRequest = await req.json()
 
         // Validate required fields
-        if (!emailData.campaign_id || !emailData.subject || !emailData.content) {
+        if (!emailData.campaign_id || !emailData.subject) {
             return new Response(
-                JSON.stringify({ error: 'Missing required fields: campaign_id, subject, content' }),
+                JSON.stringify({ error: 'Missing required fields: campaign_id, subject' }),
+                {
+                    status: 400,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                }
+            )
+        }
+
+        // Validate that at least one content field is provided
+        if (!emailData.content && !emailData.html_content) {
+            return new Response(
+                JSON.stringify({ error: 'Either content or html_content must be provided' }),
                 {
                     status: 400,
                     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -67,25 +79,29 @@ serve(async (req) => {
             )
         }
 
-        // Get all active subscribers
-        const { data: subscribers, error: subscribersError } = await supabase
-            .from('newsletter_subscribers')
-            .select('email, name, unsubscribe_token')
-            .eq('is_active', true)
-            .not('confirmed_at', 'is', null)
+        // Get all active subscribers (skip if test mode)
+        let subscribersList: any[] = [];
+        
+        if (!emailData.test_mode) {
+            const { data: subscribers, error: subscribersError } = await supabase
+                .from('newsletter_subscribers')
+                .select('email, name, unsubscribe_token')
+                .eq('is_active', true)
+                .not('confirmed_at', 'is', null)
 
-        if (subscribersError) {
-            return new Response(
-                JSON.stringify({ error: 'Failed to fetch subscribers' }),
-                {
-                    status: 500,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-                }
-            )
+            if (subscribersError) {
+                return new Response(
+                    JSON.stringify({ error: 'Failed to fetch subscribers' }),
+                    {
+                        status: 500,
+                        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                    }
+                )
+            }
+
+            subscribersList = subscribers || [];
         }
 
-        // Initialize subscribers array (can be empty if no subscribers)
-        const subscribersList = subscribers || [];
 
         // Parse custom emails if provided
         let customEmailList: string[] = [];
@@ -140,23 +156,27 @@ serve(async (req) => {
             )
         }
 
-        // Update campaign status to sending
-        await supabase
-            .from('newsletter_campaigns')
-            .update({
-                status: 'sending',
-                recipient_count: uniqueRecipients.length
-            })
-            .eq('id', emailData.campaign_id)
+        // Update campaign status to sending (skip if test mode)
+        if (!emailData.test_mode) {
+            await supabase
+                .from('newsletter_campaigns')
+                .update({
+                    status: 'sending',
+                    recipient_count: uniqueRecipients.length
+                })
+                .eq('id', emailData.campaign_id)
+        }
 
         // Send emails to all recipients
         const emailPromises = uniqueRecipients.map(async (recipient) => {
             try {
                 // Personalize content for this recipient
                 const recipientName = recipient.name || null;
-                const personalizedContent = recipientName
-                    ? emailData.content.replace(/{name}/g, recipientName)
-                    : emailData.content.replace(/Dear {name}/g, 'Dear subscriber').replace(/{name}/g, 'subscriber');
+                const personalizedContent = emailData.content 
+                    ? (recipientName
+                        ? emailData.content.replace(/{name}/g, recipientName)
+                        : emailData.content.replace(/Dear {name}/g, 'Dear subscriber').replace(/{name}/g, 'subscriber'))
+                    : '';
 
                 const personalizedSubject = recipientName
                     ? emailData.subject.replace(/{name}/g, recipientName)
@@ -165,7 +185,7 @@ serve(async (req) => {
                 // Create unsubscribe URL
                 const unsubscribeUrl = recipient.unsubscribe_token
                     ? `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe?token=${recipient.unsubscribe_token}`
-                    : null;
+                    : `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe`; // Generic unsubscribe page for non-subscribers
 
                 const personalizedHtmlContent = createNewsletterEmailTemplate({
                     subject: personalizedSubject,
@@ -219,16 +239,18 @@ serve(async (req) => {
         const successful = results.filter(r => r.success)
         const failed = results.filter(r => !r.success)
 
-        // Update campaign status
-        const finalStatus = failed.length === 0 ? 'sent' : (successful.length > 0 ? 'sent' : 'failed');
-        await supabase
-            .from('newsletter_campaigns')
-            .update({
-                status: finalStatus,
-                sent_at: new Date().toISOString(),
-                recipient_count: successful.length
-            })
-            .eq('id', emailData.campaign_id)
+        // Update campaign status (skip if test mode)
+        if (!emailData.test_mode) {
+            const finalStatus = failed.length === 0 ? 'sent' : (successful.length > 0 ? 'sent' : 'failed');
+            await supabase
+                .from('newsletter_campaigns')
+                .update({
+                    status: finalStatus,
+                    sent_at: new Date().toISOString(),
+                    recipient_count: successful.length
+                })
+                .eq('id', emailData.campaign_id)
+        }
 
         return new Response(
             JSON.stringify({
@@ -268,7 +290,7 @@ function createNewsletterEmailTemplate(params: {
     const { subject, content, htmlContent, recipientName, unsubscribeUrl } = params
 
     const greeting = recipientName ? `Hello ${recipientName}!` : 'Hello!'
-    const finalContent = htmlContent || content.split('\n').map(paragraph => `<p>${paragraph}</p>`).join('')
+    const finalContent = htmlContent || (content ? content.split('\n').map(paragraph => `<p>${paragraph}</p>`).join('') : '')
 
     return `
     <!DOCTYPE html>
@@ -293,6 +315,7 @@ function createNewsletterEmailTemplate(params: {
           border-radius: 8px;
           overflow: hidden;
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          max-width: 560px;
         }
         .header { 
           background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
@@ -308,6 +331,26 @@ function createNewsletterEmailTemplate(params: {
         .content { 
           padding: 30px 20px;
           background-color: #ffffff;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          overflow: hidden;
+        }
+        .content * {
+          max-width: 100% !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          box-sizing: border-box !important;
+        }
+        .content img {
+          max-width: 100% !important;
+          height: auto !important;
+          display: block;
+        }
+        .content div,
+        .content table,
+        .content td {
+          max-width: 100% !important;
+          width: auto !important;
         }
         .content p {
           margin-bottom: 16px;
@@ -358,7 +401,7 @@ function createNewsletterEmailTemplate(params: {
         <div class="footer">
           <p>You're receiving this email because you subscribed to GDG@PSU newsletter.</p>
           <p>GDG@PSU - Google Developer Group at Penn State University</p>
-          ${unsubscribeUrl ? `<div class="unsubscribe"><a href="${unsubscribeUrl}">Unsubscribe</a></div>` : ''}
+          <div class="unsubscribe"><a href="${unsubscribeUrl}">Unsubscribe</a></div>
         </div>
       </div>
     </body>
@@ -380,7 +423,7 @@ function createNewsletterTextContent(params: {
 
 ${greeting}
 
-${content}
+${content || 'Please view this email in HTML format for the full content.'}
 
 Best regards,
 The GDG@PSU Team
@@ -389,5 +432,5 @@ The GDG@PSU Team
 You're receiving this email because you subscribed to GDG@PSU newsletter.
 GDG@PSU - Google Developer Group at Penn State University
 
-${unsubscribeUrl ? `To unsubscribe, visit: ${unsubscribeUrl}` : ''}`
+To unsubscribe, visit: ${unsubscribeUrl}`
 }
