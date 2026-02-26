@@ -1288,15 +1288,28 @@ const AdminNewsletter = () => {
                       <h4 className="text-foreground font-medium">Email Preview</h4>
                       <p className="text-xs text-muted-foreground mt-1">This is how your email will appear to recipients</p>
                     </div>
-                    <div className="bg-white p-6 max-h-96 overflow-y-auto">
+                    <div className="bg-white p-6 max-h-96 overflow-y-auto overflow-x-hidden">
                       {/* Email Template Preview */}
-                      <div style={{ 
+                      <style>{`
+                        .newsletter-preview * {
+                          max-width: 100% !important;
+                          word-wrap: break-word !important;
+                          overflow-wrap: break-word !important;
+                          box-sizing: border-box !important;
+                        }
+                        .newsletter-preview img {
+                          max-width: 100% !important;
+                          height: auto !important;
+                        }
+                      `}</style>
+                      <div className="newsletter-preview" style={{ 
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                         lineHeight: '1.6',
                         color: '#333',
                         maxWidth: '600px',
                         margin: '0 auto',
-                        backgroundColor: '#f8f9fa'
+                        backgroundColor: '#f8f9fa',
+                        overflow: 'hidden'
                       }}>
                         <div style={{
                           backgroundColor: '#ffffff',
@@ -1310,7 +1323,9 @@ const AdminNewsletter = () => {
                             background: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
                             color: 'white',
                             padding: '30px 20px',
-                            textAlign: 'center'
+                            textAlign: 'center',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word'
                           }}>
                             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>
                               🚀 GDG@PSU Newsletter
@@ -1318,10 +1333,25 @@ const AdminNewsletter = () => {
                           </div>
                           
                           {/* Content */}
-                          <div style={{ padding: '30px 20px', backgroundColor: '#ffffff' }}>
+                          <div style={{ 
+                            padding: '30px 20px', 
+                            backgroundColor: '#ffffff',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word',
+                            maxWidth: '100%',
+                            overflow: 'hidden'
+                          }}>
                             <p style={{ marginBottom: '16px' }}>Hello!</p>
                             {campaignForm.html_content ? (
-                              <div dangerouslySetInnerHTML={{ __html: campaignForm.html_content }} />
+                              <div 
+                                style={{
+                                  wordWrap: 'break-word',
+                                  overflowWrap: 'break-word',
+                                  maxWidth: '100%',
+                                  overflow: 'hidden'
+                                }}
+                                dangerouslySetInnerHTML={{ __html: campaignForm.html_content }} 
+                              />
                             ) : (
                               campaignForm.content.split('\n').map((paragraph, idx) => (
                                 <p key={idx} style={{ marginBottom: '16px' }}>{paragraph}</p>
