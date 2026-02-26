@@ -1146,26 +1146,33 @@ const AdminNewsletter = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Content *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Content {!campaignForm.html_content && '*'}
+                  </label>
                   <textarea
                     rows={10}
-                    required
+                    required={!campaignForm.html_content}
                     value={campaignForm.content}
                     onChange={(e) => setCampaignForm(prev => ({ ...prev, content: e.target.value }))}
                     className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
                     placeholder="Newsletter content (plain text)"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Plain text version. Required if HTML Content is not provided.</p>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">HTML Content (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    HTML Content {!campaignForm.content && '*'}
+                  </label>
                   <textarea
                     rows={8}
+                    required={!campaignForm.content}
                     value={campaignForm.html_content}
                     onChange={(e) => setCampaignForm(prev => ({ ...prev, html_content: e.target.value }))}
-                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
-                    placeholder="HTML version of the newsletter (optional)"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card font-mono text-sm"
+                    placeholder="<div>HTML version of the newsletter</div>"
                   />
+                  <p className="text-xs text-gray-400 mt-1">HTML version with custom styling. Required if Content is not provided.</p>
                 </div>
                 
                 <div className="space-y-6">
@@ -1273,6 +1280,83 @@ const AdminNewsletter = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Email Preview */}
+                {(campaignForm.content || campaignForm.html_content) && (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <div className="bg-muted px-4 py-3 border-b border-border">
+                      <h4 className="text-foreground font-medium">Email Preview</h4>
+                      <p className="text-xs text-muted-foreground mt-1">This is how your email will appear to recipients</p>
+                    </div>
+                    <div className="bg-white p-6 max-h-96 overflow-y-auto">
+                      {/* Email Template Preview */}
+                      <div style={{ 
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                        lineHeight: '1.6',
+                        color: '#333',
+                        maxWidth: '600px',
+                        margin: '0 auto',
+                        backgroundColor: '#f8f9fa'
+                      }}>
+                        <div style={{
+                          backgroundColor: '#ffffff',
+                          margin: '20px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                        }}>
+                          {/* Header */}
+                          <div style={{
+                            background: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
+                            color: 'white',
+                            padding: '30px 20px',
+                            textAlign: 'center'
+                          }}>
+                            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>
+                              🚀 GDG@PSU Newsletter
+                            </h1>
+                          </div>
+                          
+                          {/* Content */}
+                          <div style={{ padding: '30px 20px', backgroundColor: '#ffffff' }}>
+                            <p style={{ marginBottom: '16px' }}>Hello!</p>
+                            {campaignForm.html_content ? (
+                              <div dangerouslySetInnerHTML={{ __html: campaignForm.html_content }} />
+                            ) : (
+                              campaignForm.content.split('\n').map((paragraph, idx) => (
+                                <p key={idx} style={{ marginBottom: '16px' }}>{paragraph}</p>
+                              ))
+                            )}
+                            <p style={{ marginBottom: '16px' }}>
+                              Best regards,<br />
+                              <strong>The GDG@PSU Team</strong>
+                            </p>
+                          </div>
+                          
+                          {/* Footer */}
+                          <div style={{
+                            backgroundColor: '#f8f9fa',
+                            padding: '20px',
+                            textAlign: 'center',
+                            borderTop: '1px solid #e9ecef',
+                            fontSize: '12px',
+                            color: '#666'
+                          }}>
+                            <p style={{ margin: '0 0 10px 0' }}>
+                              You're receiving this email because you subscribed to GDG@PSU newsletter.
+                            </p>
+                            <p style={{ margin: 0 }}>
+                              GDG@PSU - Google Developer Group at Penn State University
+                            </p>
+                            <div style={{ marginTop: '10px' }}>
+                              <a href="#" style={{ color: '#666', textDecoration: 'none' }}>Unsubscribe</a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </form>
             </div>
 
