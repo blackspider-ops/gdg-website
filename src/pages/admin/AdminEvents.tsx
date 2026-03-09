@@ -58,7 +58,8 @@ const AdminEvents = () => {
     registration_enabled: true,
     is_featured: false,
     level: 'open_for_all' as 'beginner' | 'intermediate' | 'advanced' | 'open_for_all',
-    timezone: 'America/New_York' // Default to EST
+    timezone: 'America/New_York', // Default to EST
+    type: 'Workshop'
   });
 
   // Lock body scroll when any modal is open
@@ -168,7 +169,8 @@ const AdminEvents = () => {
         registration_enabled: formData.registration_enabled,
         is_featured: formData.is_featured,
         level: formData.level,
-        timezone: formData.timezone
+        timezone: formData.timezone,
+        type: formData.type
       };
       
       const created = await EventsService.createEvent(eventData);
@@ -218,7 +220,8 @@ const AdminEvents = () => {
       registration_enabled: event.registration_enabled !== false,
       is_featured: event.is_featured,
       level: event.level || 'open_for_all',
-      timezone: event.timezone || 'America/New_York' // Load timezone or default to EST
+      timezone: event.timezone || 'America/New_York', // Load timezone or default to EST
+      type: (event as any).type || 'Workshop' // Load type or default to Workshop
     });
     setEditingEvent(event);
     setError(null);
@@ -248,7 +251,8 @@ const AdminEvents = () => {
         registration_enabled: formData.registration_enabled,
         is_featured: formData.is_featured,
         level: formData.level,
-        timezone: formData.timezone
+        timezone: formData.timezone,
+        type: formData.type
       };
       
       const updatedEvent = await EventsService.updateEvent(editingEvent.id, eventData);
@@ -858,6 +862,30 @@ The GDG@PSU Team`
                 </p>
               </div>
 
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Type *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                  list="event-types"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="Enter or select event type"
+                />
+                <datalist id="event-types">
+                  <option value="Workshop" />
+                  <option value="Talk" />
+                  <option value="Networking" />
+                  <option value="Study Jam" />
+                  <option value="Featured" />
+                </datalist>
+                <p className="text-xs text-gray-400 mt-1">
+                  Select from suggestions or type a custom event type
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Event Capacity</label>
@@ -1138,6 +1166,30 @@ The GDG@PSU Team`
                     Leave empty for unlimited capacity
                   </p>
                 </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Type *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                  list="event-types-edit"
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="Enter or select event type"
+                />
+                <datalist id="event-types-edit">
+                  <option value="Workshop" />
+                  <option value="Talk" />
+                  <option value="Networking" />
+                  <option value="Study Jam" />
+                  <option value="Featured" />
+                </datalist>
+                <p className="text-xs text-gray-400 mt-1">
+                  Select from suggestions or type a custom event type
+                </p>
+              </div>
+
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">External Attendees</label>
