@@ -87,6 +87,9 @@ const AdminEvents = () => {
     return <Navigate to="/" replace />;
   }
 
+  // Get unique event types for filter dropdown
+  const uniqueEventTypes = Array.from(new Set(events.map(event => (event as any).type).filter(Boolean)));
+
   // Filter events
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,9 +101,6 @@ const AdminEvents = () => {
     const now = new Date();
     const eventDate = new Date(event.date);
     const matchesStatus = filterStatus === 'all' || 
-
-  // Get unique event types for filter dropdown
-  const uniqueEventTypes = Array.from(new Set(events.map(event => (event as any).type).filter(Boolean)));
                          (filterStatus === 'upcoming' && eventDate > now) ||
                          (filterStatus === 'past' && eventDate <= now) ||
                          (filterStatus === 'featured' && event.is_featured);
