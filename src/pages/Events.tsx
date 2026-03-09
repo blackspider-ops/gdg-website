@@ -63,7 +63,9 @@ const Events = () => {
     };
   });
 
-  const filters = ['All', 'Workshop', 'Featured', 'Talk', 'Networking', 'Study Jam'];
+  // Get unique event types from all events
+  const uniqueTypes = ['All', ...Array.from(new Set(allEvents.map(event => event.type).filter(Boolean)))];
+  const filters = uniqueTypes;
   const levelFilters = ['All', 'Beginner', 'Intermediate', 'Advanced', 'Open for All'];
 
   const filteredEvents = allEvents.filter(event => {

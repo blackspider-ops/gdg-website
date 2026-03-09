@@ -98,6 +98,9 @@ const AdminEvents = () => {
     const now = new Date();
     const eventDate = new Date(event.date);
     const matchesStatus = filterStatus === 'all' || 
+
+  // Get unique event types for filter dropdown
+  const uniqueEventTypes = Array.from(new Set(events.map(event => (event as any).type).filter(Boolean)));
                          (filterStatus === 'upcoming' && eventDate > now) ||
                          (filterStatus === 'past' && eventDate <= now) ||
                          (filterStatus === 'featured' && event.is_featured);
@@ -598,11 +601,9 @@ The GDG@PSU Team`
               className="px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-card"
             >
               <option value="all">All Types</option>
-              <option value="Workshop">Workshops</option>
-              <option value="Talk">Talks</option>
-              <option value="Networking">Networking</option>
-              <option value="Study Jam">Study Jams</option>
-              <option value="Featured">Featured</option>
+              {uniqueEventTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
             </select>
             
             <select
