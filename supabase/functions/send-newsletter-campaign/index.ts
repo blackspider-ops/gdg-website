@@ -187,13 +187,16 @@ serve(async (req) => {
                     ? `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe?token=${recipient.unsubscribe_token}`
                     : `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe`; // Generic unsubscribe page for non-subscribers
 
-                const personalizedHtmlContent = createNewsletterEmailTemplate({
-                    subject: personalizedSubject,
-                    content: personalizedContent,
-                    htmlContent: emailData.html_content,
-                    recipientName,
-                    unsubscribeUrl
-                });
+                // If HTML content is provided, use it as-is (complete email), otherwise use template
+                const personalizedHtmlContent = emailData.html_content 
+                    ? emailData.html_content // Use raw HTML completely
+                    : createNewsletterEmailTemplate({
+                        subject: personalizedSubject,
+                        content: personalizedContent,
+                        htmlContent: null,
+                        recipientName,
+                        unsubscribeUrl
+                      });
 
                 const personalizedTextContent = createNewsletterTextContent({
                     subject: personalizedSubject,

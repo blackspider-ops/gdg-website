@@ -1302,62 +1302,64 @@ const AdminNewsletter = () => {
                           height: auto !important;
                         }
                       `}</style>
-                      <div className="newsletter-preview" style={{ 
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                        lineHeight: '1.6',
-                        color: '#333',
-                        maxWidth: '600px',
-                        margin: '0 auto',
-                        backgroundColor: '#f8f9fa',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          backgroundColor: '#ffffff',
-                          margin: '20px',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-                        }}>
-                          {/* Header */}
-                          <div style={{
-                            background: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
-                            color: 'white',
-                            padding: '30px 20px',
-                            textAlign: 'center',
-                            wordWrap: 'break-word',
-                            overflowWrap: 'break-word'
-                          }}>
-                            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>
-                              🚀 GDG@PSU Newsletter
-                            </h1>
-                          </div>
-                          
-                          {/* Content */}
-                          <div style={{ 
-                            padding: '30px 20px', 
-                            backgroundColor: '#ffffff',
-                            wordWrap: 'break-word',
-                            overflowWrap: 'break-word',
-                            maxWidth: '100%',
+                      
+                      {/* If HTML content is provided, show it raw without template wrapper */}
+                      {campaignForm.html_content ? (
+                        <div 
+                          className="newsletter-preview"
+                          style={{
+                            maxWidth: '600px',
+                            margin: '0 auto',
                             overflow: 'hidden'
+                          }}
+                          dangerouslySetInnerHTML={{ __html: campaignForm.html_content }} 
+                        />
+                      ) : (
+                        /* Otherwise show with template wrapper */
+                        <div className="newsletter-preview" style={{ 
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                          lineHeight: '1.6',
+                          color: '#333',
+                          maxWidth: '600px',
+                          margin: '0 auto',
+                          backgroundColor: '#f8f9fa',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            backgroundColor: '#ffffff',
+                            margin: '20px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
                           }}>
-                            <p style={{ marginBottom: '16px' }}>Hello!</p>
-                            {campaignForm.html_content ? (
-                              <div 
-                                style={{
-                                  wordWrap: 'break-word',
-                                  overflowWrap: 'break-word',
-                                  maxWidth: '100%',
-                                  overflow: 'hidden'
-                                }}
-                                dangerouslySetInnerHTML={{ __html: campaignForm.html_content }} 
-                              />
-                            ) : (
-                              campaignForm.content.split('\n').map((paragraph, idx) => (
+                            {/* Header */}
+                            <div style={{
+                              background: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
+                              color: 'white',
+                              padding: '30px 20px',
+                              textAlign: 'center',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word'
+                            }}>
+                              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>
+                                🚀 GDG@PSU Newsletter
+                              </h1>
+                            </div>
+                            
+                            {/* Content */}
+                            <div style={{ 
+                              padding: '30px 20px', 
+                              backgroundColor: '#ffffff',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              maxWidth: '100%',
+                              overflow: 'hidden'
+                            }}>
+                              <p style={{ marginBottom: '16px' }}>Hello!</p>
+                              {campaignForm.content.split('\n').map((paragraph, idx) => (
                                 <p key={idx} style={{ marginBottom: '16px' }}>{paragraph}</p>
-                              ))
-                            )}
-                            <p style={{ marginBottom: '16px' }}>
+                              ))}
+                              <p style={{ marginBottom: '16px' }}>
                               Best regards,<br />
                               <strong>The GDG@PSU Team</strong>
                             </p>
@@ -1384,6 +1386,7 @@ const AdminNewsletter = () => {
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   </div>
                 )}
