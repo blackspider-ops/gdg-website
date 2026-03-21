@@ -170,7 +170,7 @@ const EventCard: React.FC<EventCardProps> = ({
             __html: description
               .replace(/\n/g, '<br />')
               .replace(
-                /(https?:\/\/[^\s]+)/g,
+                /(https?:\/\/[^\s<]+)/g,
                 '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-gdg-blue hover:underline">$1</a>'
               )
           }}
@@ -204,7 +204,7 @@ const EventCard: React.FC<EventCardProps> = ({
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-border">
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             {isUpcoming && (
               <button 
                 onClick={handleRegister}
