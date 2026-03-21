@@ -298,7 +298,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                     <div className="flex items-center gap-3 flex-wrap">
                                         {event.attendees && (
                                             <div className="bg-card rounded-lg p-3">
-                                                <p className="text-gray-800 font-semibold">
+                                                <p className="text-white font-semibold">
                                                     <span className="text-2xl text-gdg-blue">{event.attendees}</span> attendees
                                                 </p>
                                             </div>

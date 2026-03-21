@@ -85,6 +85,7 @@ class SessionService {
         credentials: 'include' // Important: send cookies
       });
 
+      // 401 is expected when not logged in - don't log as error
       if (!response.ok) {
         return null;
       }
@@ -106,7 +107,7 @@ class SessionService {
 
       return null;
     } catch (error) {
-      console.error('Session validation error:', error);
+      // Silent fail - session validation errors are expected
       return null;
     }
   }
