@@ -225,7 +225,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 href={event_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-editorial px-4 py-2 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90 transition-colors flex items-center space-x-2"
+                className="btn-editorial px-4 py-2 bg-gdg-blue text-black border-gdg-blue hover:bg-gdg-blue/90 transition-colors flex items-center space-x-2"
               >
                 <ExternalLink size={16} />
                 <span>Event Website</span>
@@ -306,6 +306,7 @@ const EventCard: React.FC<EventCardProps> = ({
             registrationUrl,
             googleFormUrl,
             isUpcoming,
+            event_link,
             // Event detail fields
             room,
             prerequisites,

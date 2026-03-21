@@ -22,6 +22,7 @@ interface EventDetailsModalProps {
         registrationUrl?: string;
         googleFormUrl?: string;
         isUpcoming?: boolean;
+        event_link?: string;
         // Event detail fields
         room?: string;
         prerequisites?: string;
@@ -287,20 +288,33 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-border">
                                     <div className="flex items-center space-x-3 mb-3">
                                         <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                        <p className="text-muted-foreground font-medium">
+                                        <p className="text-foreground font-medium">
                                             This event has concluded
                                         </p>
                                     </div>
-                                    <p className="text-muted-foreground mb-3">
+                                    <p className="text-foreground mb-4">
                                         Thank you to everyone who attended! We hope you found it valuable and engaging.
                                     </p>
-                                    {event.attendees && (
-                                        <div className="bg-card rounded-lg p-3 inline-block">
-                                            <p className="text-foreground font-semibold">
-                                                <span className="text-2xl text-primary">{event.attendees}</span> attendees
-                                            </p>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        {event.attendees && (
+                                            <div className="bg-card rounded-lg p-3">
+                                                <p className="text-foreground font-semibold">
+                                                    <span className="text-2xl text-primary">{event.attendees}</span> attendees
+                                                </p>
+                                            </div>
+                                        )}
+                                        {event.event_link && (
+                                            <a
+                                                href={event.event_link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center space-x-2 px-4 py-3 bg-gdg-blue text-black rounded-lg hover:bg-gdg-blue/90 transition-colors font-medium"
+                                            >
+                                                <ExternalLink size={18} />
+                                                <span>Event Website</span>
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
