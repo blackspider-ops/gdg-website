@@ -198,25 +198,48 @@ CREATE POLICY "system_insert_security_events" ON security_events
 -- ============================================================================
 -- SITE_CONTENT, PAGE_CONTENT, NAVIGATION, ETC.
 -- ============================================================================
-ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
-ALTER TABLE page_content ENABLE ROW LEVEL SECURITY;
-ALTER TABLE navigation_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE social_links ENABLE ROW LEVEL SECURITY;
-ALTER TABLE footer_content ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'site_content') THEN
+        ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "public_view_site_content" ON site_content;
+        CREATE POLICY "public_view_site_content" ON site_content FOR SELECT USING (true);
+        DROP POLICY IF EXISTS "admin_manage_site_content" ON site_content;
+        CREATE POLICY "admin_manage_site_content" ON site_content FOR ALL USING (is_admin());
+    END IF;
 
--- Public can view all content
-CREATE POLICY "public_view_site_content" ON site_content FOR SELECT USING (true);
-CREATE POLICY "public_view_page_content" ON page_content FOR SELECT USING (true);
-CREATE POLICY "public_view_navigation" ON navigation_items FOR SELECT USING (true);
-CREATE POLICY "public_view_social_links" ON social_links FOR SELECT USING (true);
-CREATE POLICY "public_view_footer" ON footer_content FOR SELECT USING (true);
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'page_content') THEN
+        ALTER TABLE page_content ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "public_view_page_content" ON page_content;
+        CREATE POLICY "public_view_page_content" ON page_content FOR SELECT USING (true);
+        DROP POLICY IF EXISTS "admin_manage_page_content" ON page_content;
+        CREATE POLICY "admin_manage_page_content" ON page_content FOR ALL USING (is_admin());
+    END IF;
 
--- Only admins can manage content
-CREATE POLICY "admin_manage_site_content" ON site_content FOR ALL USING (is_admin());
-CREATE POLICY "admin_manage_page_content" ON page_content FOR ALL USING (is_admin());
-CREATE POLICY "admin_manage_navigation" ON navigation_items FOR ALL USING (is_admin());
-CREATE POLICY "admin_manage_social_links" ON social_links FOR ALL USING (is_admin());
-CREATE POLICY "admin_manage_footer" ON footer_content FOR ALL USING (is_admin());
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'navigation_items') THEN
+        ALTER TABLE navigation_items ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "public_view_navigation" ON navigation_items;
+        CREATE POLICY "public_view_navigation" ON navigation_items FOR SELECT USING (true);
+        DROP POLICY IF EXISTS "admin_manage_navigation" ON navigation_items;
+        CREATE POLICY "admin_manage_navigation" ON navigation_items FOR ALL USING (is_admin());
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'social_links') THEN
+        ALTER TABLE social_links ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "public_view_social_links" ON social_links;
+        CREATE POLICY "public_view_social_links" ON social_links FOR SELECT USING (true);
+        DROP POLICY IF EXISTS "admin_manage_social_links" ON social_links;
+        CREATE POLICY "admin_manage_social_links" ON social_links FOR ALL USING (is_admin());
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'footer_content') THEN
+        ALTER TABLE footer_content ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "public_view_footer" ON footer_content;
+        CREATE POLICY "public_view_footer" ON footer_content FOR SELECT USING (true);
+        DROP POLICY IF EXISTS "admin_manage_footer" ON footer_content;
+        CREATE POLICY "admin_manage_footer" ON footer_content FOR ALL USING (is_admin());
+    END IF;
+END $$;
 
 -- ============================================================================
 -- MEMBERS TABLE
@@ -249,108 +272,186 @@ CREATE POLICY "admin_manage_resources" ON resources
   USING (is_admin());
 
 -- ============================================================================
--- NEWSLETTER_CAMPAIGNS TABLE
+-- NEWSLETTER_CAMPAIGNS TABLE (Only if exists)
 -- ============================================================================
-ALTER TABLE newsletter_campaigns ENABLE ROW LEVEL SECURITY;
-
--- Only admins can manage campaigns
-CREATE POLICY "admin_manage_campaigns" ON newsletter_campaigns
-  FOR ALL
-  USING (is_admin());
-
--- ============================================================================
--- BLOG TABLES
--- ============================================================================
-ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE blog_comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE blog_likes ENABLE ROW LEVEL SECURITY;
-
--- Public can view published blog posts
-CREATE POLICY "public_view_blog_posts" ON blog_posts
-  FOR SELECT
-  USING (status = 'published' OR is_admin());
-
--- Only admins can manage blog posts
-CREATE POLICY "admin_manage_blog_posts" ON blog_posts
-  FOR ALL
-  USING (is_admin());
-
--- Public can view approved comments
-CREATE POLICY "public_view_comments" ON blog_comments
-  FOR SELECT
-  USING (is_approved = true OR is_admin());
-
--- Authenticated users can create comments
-CREATE POLICY "authenticated_create_comments" ON blog_comments
-  FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
-
--- Only admins can manage comments
-CREATE POLICY "admin_manage_comments" ON blog_comments
-  FOR ALL
-  USING (is_admin());
-
--- Anyone can view likes
-CREATE POLICY "public_view_likes" ON blog_likes
-  FOR SELECT
-  USING (true);
-
--- Authenticated users can like
-CREATE POLICY "authenticated_like_posts" ON blog_likes
-  FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
-
--- Users can unlike their own likes
-CREATE POLICY "users_unlike_own" ON blog_likes
-  FOR DELETE
-  USING (user_id = auth.uid());
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'newsletter_campaigns') THEN
+        ALTER TABLE newsletter_campaigns ENABLE ROW LEVEL SECURITY;
+        
+        -- Only admins can manage campaigns
+        DROP POLICY IF EXISTS "admin_manage_campaigns" ON newsletter_campaigns;
+        CREATE POLICY "admin_manage_campaigns" ON newsletter_campaigns
+          FOR ALL
+          USING (is_admin());
+    END IF;
+END $$;
 
 -- ============================================================================
--- LINKTREE TABLES
+-- BLOG TABLES (Only if they exist)
 -- ============================================================================
-ALTER TABLE linktree_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE linktree_links ENABLE ROW LEVEL SECURITY;
-ALTER TABLE linktree_clicks ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+    -- Check if blog_posts table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blog_posts') THEN
+        ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+        
+        -- Public can view published blog posts
+        DROP POLICY IF EXISTS "public_view_blog_posts" ON blog_posts;
+        CREATE POLICY "public_view_blog_posts" ON blog_posts
+          FOR SELECT
+          USING (status = 'published' OR is_admin());
 
--- Public can view active linktree profiles
-CREATE POLICY "public_view_linktree_profiles" ON linktree_profiles
-  FOR SELECT
-  USING (is_active = true);
+        -- Only admins can manage blog posts
+        DROP POLICY IF EXISTS "admin_manage_blog_posts" ON blog_posts;
+        CREATE POLICY "admin_manage_blog_posts" ON blog_posts
+          FOR ALL
+          USING (is_admin());
+    END IF;
 
--- Public can view active links
-CREATE POLICY "public_view_linktree_links" ON linktree_links
-  FOR SELECT
-  USING (is_active = true);
+    -- Check if blog_comments table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blog_comments') THEN
+        ALTER TABLE blog_comments ENABLE ROW LEVEL SECURITY;
+        
+        -- Public can view approved comments
+        DROP POLICY IF EXISTS "public_view_comments" ON blog_comments;
+        CREATE POLICY "public_view_comments" ON blog_comments
+          FOR SELECT
+          USING (is_approved = true OR is_admin());
 
--- Anyone can record clicks
-CREATE POLICY "public_record_clicks" ON linktree_clicks
-  FOR INSERT
-  WITH CHECK (true);
+        -- Authenticated users can create comments
+        DROP POLICY IF EXISTS "authenticated_create_comments" ON blog_comments;
+        CREATE POLICY "authenticated_create_comments" ON blog_comments
+          FOR INSERT
+          WITH CHECK (auth.role() = 'authenticated');
 
--- Only admins can manage linktree
-CREATE POLICY "admin_manage_linktree_profiles" ON linktree_profiles FOR ALL USING (is_admin());
-CREATE POLICY "admin_manage_linktree_links" ON linktree_links FOR ALL USING (is_admin());
-CREATE POLICY "admin_view_clicks" ON linktree_clicks FOR SELECT USING (is_admin());
+        -- Only admins can manage comments
+        DROP POLICY IF EXISTS "admin_manage_comments" ON blog_comments;
+        CREATE POLICY "admin_manage_comments" ON blog_comments
+          FOR ALL
+          USING (is_admin());
+    END IF;
+
+    -- Check if blog_likes table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'blog_likes') THEN
+        ALTER TABLE blog_likes ENABLE ROW LEVEL SECURITY;
+        
+        -- Anyone can view likes
+        DROP POLICY IF EXISTS "public_view_likes" ON blog_likes;
+        CREATE POLICY "public_view_likes" ON blog_likes
+          FOR SELECT
+          USING (true);
+
+        -- Check if user_id column exists in blog_likes
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'blog_likes' AND column_name = 'user_id'
+        ) THEN
+            -- Authenticated users can like
+            DROP POLICY IF EXISTS "authenticated_like_posts" ON blog_likes;
+            CREATE POLICY "authenticated_like_posts" ON blog_likes
+              FOR INSERT
+              WITH CHECK (auth.role() = 'authenticated');
+
+            -- Users can unlike their own likes
+            DROP POLICY IF EXISTS "users_unlike_own" ON blog_likes;
+            CREATE POLICY "users_unlike_own" ON blog_likes
+              FOR DELETE
+              USING (user_id = auth.uid());
+        ELSE
+            -- If no user_id column, allow anyone to like/unlike
+            DROP POLICY IF EXISTS "public_like_posts" ON blog_likes;
+            CREATE POLICY "public_like_posts" ON blog_likes
+              FOR INSERT
+              WITH CHECK (true);
+              
+            DROP POLICY IF EXISTS "public_unlike_posts" ON blog_likes;
+            CREATE POLICY "public_unlike_posts" ON blog_likes
+              FOR DELETE
+              USING (true);
+        END IF;
+    END IF;
+END $$;
 
 -- ============================================================================
--- SITE_SETTINGS TABLE (CRITICAL - Contains secret code)
+-- LINKTREE TABLES (Only if they exist)
 -- ============================================================================
-ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'linktree_profiles') THEN
+        ALTER TABLE linktree_profiles ENABLE ROW LEVEL SECURITY;
+        
+        -- Public can view active linktree profiles
+        DROP POLICY IF EXISTS "public_view_linktree_profiles" ON linktree_profiles;
+        CREATE POLICY "public_view_linktree_profiles" ON linktree_profiles
+          FOR SELECT
+          USING (is_active = true);
 
--- Public can view non-sensitive settings only
-CREATE POLICY "public_view_safe_settings" ON site_settings
-  FOR SELECT
-  USING (key NOT IN ('admin_secret_code', 'api_keys', 'private_config'));
+        -- Only admins can manage linktree
+        DROP POLICY IF EXISTS "admin_manage_linktree_profiles" ON linktree_profiles;
+        CREATE POLICY "admin_manage_linktree_profiles" ON linktree_profiles 
+          FOR ALL 
+          USING (is_admin());
+    END IF;
 
--- Only super admins can view all settings
-CREATE POLICY "super_admin_view_all_settings" ON site_settings
-  FOR SELECT
-  USING (is_super_admin());
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'linktree_links') THEN
+        ALTER TABLE linktree_links ENABLE ROW LEVEL SECURITY;
+        
+        -- Public can view active links
+        DROP POLICY IF EXISTS "public_view_linktree_links" ON linktree_links;
+        CREATE POLICY "public_view_linktree_links" ON linktree_links
+          FOR SELECT
+          USING (is_active = true);
 
--- Only super admins can manage settings
-CREATE POLICY "super_admin_manage_settings" ON site_settings
-  FOR ALL
-  USING (is_super_admin());
+        DROP POLICY IF EXISTS "admin_manage_linktree_links" ON linktree_links;
+        CREATE POLICY "admin_manage_linktree_links" ON linktree_links 
+          FOR ALL 
+          USING (is_admin());
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'linktree_clicks') THEN
+        ALTER TABLE linktree_clicks ENABLE ROW LEVEL SECURITY;
+        
+        -- Anyone can record clicks
+        DROP POLICY IF EXISTS "public_record_clicks" ON linktree_clicks;
+        CREATE POLICY "public_record_clicks" ON linktree_clicks
+          FOR INSERT
+          WITH CHECK (true);
+
+        DROP POLICY IF EXISTS "admin_view_clicks" ON linktree_clicks;
+        CREATE POLICY "admin_view_clicks" ON linktree_clicks 
+          FOR SELECT 
+          USING (is_admin());
+    END IF;
+END $$;
+
+-- ============================================================================
+-- SITE_SETTINGS TABLE (CRITICAL - Contains secret code) (Only if exists)
+-- ============================================================================
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'site_settings') THEN
+        ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+
+        -- Public can view non-sensitive settings only
+        DROP POLICY IF EXISTS "public_view_safe_settings" ON site_settings;
+        CREATE POLICY "public_view_safe_settings" ON site_settings
+          FOR SELECT
+          USING (key NOT IN ('admin_secret_code', 'api_keys', 'private_config'));
+
+        -- Only super admins can view all settings
+        DROP POLICY IF EXISTS "super_admin_view_all_settings" ON site_settings;
+        CREATE POLICY "super_admin_view_all_settings" ON site_settings
+          FOR SELECT
+          USING (is_super_admin());
+
+        -- Only super admins can manage settings
+        DROP POLICY IF EXISTS "super_admin_manage_settings" ON site_settings;
+        CREATE POLICY "super_admin_manage_settings" ON site_settings
+          FOR ALL
+          USING (is_super_admin());
+    END IF;
+END $$;
 
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION is_admin() TO anon, authenticated;
