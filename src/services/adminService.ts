@@ -154,14 +154,27 @@ export class AdminService {
    * Update admin password
    * SECURE VERSION - Password hashing happens on backend
    */
-  static async updatePassword(adminId: string, newPassword: string): Promise<boolean> {
+  static async updatePassword(adminId: string, newPassword: string, currentPassword?: string): Promise<boolean> {
     try {
-      // Use the create_admin_user function's password validation logic
-      // For password updates, we'll need a separate RPC function
-      // For now, this is a placeholder - implement update_admin_password RPC
-      console.warn('Password update should use backend RPC function');
-      return false;
+      const { data, error } = await supabase.rpc('update_admin_password', {
+        p_admin_id: adminId,
+        p_new_password: newPassword,
+        p_current_password: currentPassword || null
+      });
+
+      if (error) {
+        console.error('Password update error:', error);
+        return false;
+      }
+
+      if (!data || data.length === 0 || !data[0].success) {
+        console.error('Password update failed:', data?.[0]?.message || 'Unknown error');
+        return false;
+      }
+
+      return true;
     } catch (error) {
+      console.error('Password update exception:', error);
       return false;
     }
   }
