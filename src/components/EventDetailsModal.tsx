@@ -287,19 +287,19 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                                 <h3 className="text-xl font-semibold text-foreground mb-4">Event Summary</h3>
                                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-border">
                                     <div className="flex items-center space-x-3 mb-3">
-                                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                        <p className="text-foreground font-medium">
+                                        <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                                        <p className="text-gray-800 font-medium">
                                             This event has concluded
                                         </p>
                                     </div>
-                                    <p className="text-foreground mb-4">
+                                    <p className="text-gray-700 mb-4">
                                         Thank you to everyone who attended! We hope you found it valuable and engaging.
                                     </p>
                                     <div className="flex items-center gap-3 flex-wrap">
                                         {event.attendees && (
                                             <div className="bg-card rounded-lg p-3">
-                                                <p className="text-foreground font-semibold">
-                                                    <span className="text-2xl text-primary">{event.attendees}</span> attendees
+                                                <p className="text-gray-800 font-semibold">
+                                                    <span className="text-2xl text-gdg-blue">{event.attendees}</span> attendees
                                                 </p>
                                             </div>
                                         )}
