@@ -696,8 +696,9 @@ export class MediaService {
     }
     
     // Use proxy endpoint to hide Supabase infrastructure
-    // This prevents exposing the Supabase project URL in public URLs
-    return `/api/media?path=${encodeURIComponent(filePath)}`;
+    // Return full URL with domain for copy-to-clipboard functionality
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.gdgpsu.dev';
+    return `${baseUrl}/api/media?path=${encodeURIComponent(filePath)}`;
   }
 
   static async getSignedFileUrl(filePath: string, expiresIn: number = 3600): Promise<string | null> {
