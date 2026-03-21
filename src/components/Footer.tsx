@@ -155,12 +155,21 @@ const Footer = () => {
     // Trim the email input
     const trimmedEmail = email.trim();
     
+    console.log('Newsletter submit:', {
+      email: trimmedEmail,
+      secretCode: adminSecretCode,
+      matches: trimmedEmail === adminSecretCode?.trim()
+    });
+    
     // Check for admin secret code (only if code is loaded and matches)
     if (adminSecretCode && trimmedEmail === adminSecretCode.trim()) {
+      console.log('Admin code matched! Opening modal...');
       setShowAdminModal(true);
       setEmail('');
       return;
     }
+    
+    console.log('Not admin code, proceeding with newsletter subscription...');
     
     setIsSubscribing(true);
     setSubscriptionMessage('');
