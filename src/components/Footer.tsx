@@ -11,7 +11,6 @@ import { NewsletterService } from '@/services/newsletterService';
 const Footer = () => {
   const [email, setEmail] = React.useState('');
   const [showAdminModal, setShowAdminModal] = React.useState(false);
-  const [adminSecretCode, setAdminSecretCode] = React.useState('');
   const [isSubscribing, setIsSubscribing] = React.useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = React.useState('');
   const { login, isLoading, error } = useAdmin();
@@ -134,12 +133,6 @@ const Footer = () => {
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check for admin secret code
-    if (email === adminSecretCode) {
-      setShowAdminModal(true);
-      return;
-    }
     
     setIsSubscribing(true);
     setSubscriptionMessage('');
