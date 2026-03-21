@@ -393,11 +393,28 @@ export class ContentService {
 
     // Admin Secret Code Management
     static async getAdminSecretCode(): Promise<string> {
+        // SECURITY: Never expose the actual secret code to frontend
+        // This method should not be used - use validateAdminSecretCode instead
+        console.warn('getAdminSecretCode should not be called from frontend');
+        return '';
+    }
+
+    static async validateAdminSecretCode(code: string): Promise<boolean> {
         try {
-            const code = await this.getSiteSetting('admin_secret_code');
-            return code || 'gdg-secret@psu.edu'; // Default fallback
+            // Use secure backend validation
+            const { data, error } = await supabase.rpc('validate_admin_secret', {
+                p_secret_code: code
+            });
+
+            if (error) {
+                console.error('Secret validation error:', error);
+                return false;
+            }
+
+            return data === true;
         } catch (error) {
-            return 'gdg-secret@psu.edu'; // Default fallback
+            console.error('Secret validation exception:', error);
+            return false;
         }
     }
 

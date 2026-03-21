@@ -5,6 +5,7 @@ import { Mail, Send, Users, Eye, Calendar, Plus, Edit, Trash2, Download, Refresh
 import AdminLayout from '@/components/admin/AdminLayout';
 import { NewsletterService, type NewsletterSubscriber, type NewsletterCampaign, type NewsletterTemplate } from '@/services/newsletterService';
 import { useNewsletterScheduler } from '@/hooks/useNewsletterScheduler';
+import { createSafeHtml } from '@/lib/sanitize';
 
 // Helper function to get time ago string
 const getTimeAgo = (date: Date): string => {
@@ -1312,7 +1313,7 @@ const AdminNewsletter = () => {
                             margin: '0 auto',
                             overflow: 'hidden'
                           }}
-                          dangerouslySetInnerHTML={{ __html: campaignForm.html_content }} 
+                          dangerouslySetInnerHTML={createSafeHtml(campaignForm.html_content)} 
                         />
                       ) : (
                         /* Otherwise show with template wrapper */

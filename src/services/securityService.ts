@@ -204,10 +204,14 @@ export class SecurityService {
   static getSecurityPolicy() {
     return {
       passwordPolicy: {
-        minLength: 8,
+        minLength: 14, // Increased from 8 to 14
         requireSpecialChars: true,
         requireNumbers: true,
         requireUppercase: true,
+        requireLowercase: true,
+        preventCommonPasswords: true,
+        maxAge: 90 // days
+      },
         expirationDays: 90
       },
       sessionSettings: {
@@ -248,6 +252,35 @@ export class SecurityService {
     if (policy.requireUppercase && !/[A-Z]/.test(password)) {
       errors.push('Password must contain at least one uppercase letter');
     }
+
+    if (policy.requireLowercase && !/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+
+    // Check for common passwords
+    if (policy.preventCommonPasswords) {
+      const commonPasswords = [
+        'password', '123456', '12345678', 'qwerty', 'abc123', 'monkey',
+        'letmein', 'trustno1', 'dragon', 'baseball', 'iloveyou', 'master',
+        'sunshine', 'ashley', 'bailey', 'passw0rd', 'shadow', '123123',
+        'password123', 'admin', 'administrator', 'welcome', 'login',
+        'password1', 'password!', 'admin123', 'root', 'toor', 'pass',
+        'test', 'guest', 'info', 'adm', 'mysql', 'user', 'administrator',
+        'oracle', 'ftp', 'pi', 'puppet', 'ansible', 'ec2-user', 'vagrant',
+        'azureuser', 'admin@123', 'Admin@123', 'Password@123'
+      ];
+      
+      const lowerPassword = password.toLowerCase();
+      if (commonPasswords.some(common => lowerPassword.includes(common))) {
+        errors.push('Password is too common. Please choose a more unique password');
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
 
     return {
       isValid: errors.length === 0,
