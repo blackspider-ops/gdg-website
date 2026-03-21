@@ -57,29 +57,38 @@ export default async function handler(req, res) {
   // CREATE SESSION (login)
   if (req.method === 'POST' && req.url === '/api/session') {
     try {
-      const { email, password, csrfToken } = req.body;
-      // Skip CSRF validation for now - httpOnly cookies provide CSRF protection
+      const { email, password } = req.body;
       
-      // Authenticate using simple function
-      const { data: authResult, error: authError } = await supabase.rpc('simple_admin_login', {
+      // Authenticate admin
+      const { data: authResult, error: authError } = await supabase.rpc('authenticate_admin', {
         p_email: email,
         p_password: password
       });
 
-      if (authError || !authResult || authResult.length === 0 || !authResult[0].success) {
+      if (authError) {
+        console.error('Auth error:', authError);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (!authResult || authResult.length === 0 || !authResult[0].success) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
       const admin = authResult[0];
 
-      // Generate simple session tokens
-      const sessionToken = crypto.randomUUID();
-      const refreshToken = crypto.randomUUID();
+      // Generate simple session token (no database storage for now)
+      const sessionToken = crypto.randomBytes(32).toString('hex');
+      const adminData = JSON.stringify({
+        id: admin.admin_id,
+        email: admin.email,
+        role: admin.role,
+        display_name: admin.display_name,
+        exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      });
 
       // Set httpOnly cookies
       setCookie(res, 'gdg_session', sessionToken);
-      setCookie(res, 'gdg_refresh', refreshToken);
-      setCookie(res, 'gdg_admin_id', admin.admin_id);
+      setCookie(res, 'gdg_admin', adminData);
 
       return res.status(200).json({
         success: true,
@@ -100,25 +109,24 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && req.url === '/api/session') {
     try {
       const sessionToken = getCookie(req, 'gdg_session');
+      const adminData = getCookie(req, 'gdg_admin');
 
-      if (!sessionToken) {
+      if (!sessionToken || !adminData) {
         return res.status(401).json({ error: 'No session' });
       }
 
-      const { data: validationResult, error: validationError } = await supabase.rpc('validate_admin_session', {
-        p_session_token: sessionToken
-      });
+      // Parse admin data
+      const admin = JSON.parse(adminData);
 
-      if (validationError || !validationResult || validationResult.length === 0 || !validationResult[0].valid) {
-        return res.status(401).json({ error: 'Invalid session' });
+      // Check expiration
+      if (admin.exp < Date.now()) {
+        return res.status(401).json({ error: 'Session expired' });
       }
-
-      const admin = validationResult[0];
 
       return res.status(200).json({
         valid: true,
         admin: {
-          id: admin.admin_id,
+          id: admin.id,
           email: admin.email,
           role: admin.role,
           display_name: admin.display_name
@@ -126,24 +134,16 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       console.error('Session validation error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(401).json({ error: 'Invalid session' });
     }
   }
 
   // DELETE SESSION (logout)
   if (req.method === 'DELETE' && req.url === '/api/session') {
     try {
-      const sessionToken = getCookie(req, 'gdg_session');
-
-      if (sessionToken) {
-        await supabase.rpc('invalidate_admin_session', {
-          p_session_token: sessionToken
-        });
-      }
-
       // Clear cookies
       setCookie(res, 'gdg_session', '', { maxAge: 0 });
-      setCookie(res, 'gdg_refresh', '', { maxAge: 0 });
+      setCookie(res, 'gdg_admin', '', { maxAge: 0 });
 
       return res.status(200).json({ success: true });
     } catch (error) {
