@@ -5,6 +5,7 @@ import { Users, Search, Filter, Mail, Calendar, UserPlus, Plus, Edit3, Trash2, E
 import AdminLayout from '@/components/admin/AdminLayout';
 import { TeamService, type TeamMember } from '@/services/teamService';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { proxyStorageUrl } from '@/lib/urlProxy';
 
 const AdminTeam = () => {
   const { isAuthenticated } = useAdmin();
@@ -359,7 +360,7 @@ const AdminTeam = () => {
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
                       {member.image_url ? (
-                        <img src={member.image_url} alt={member.name} className="w-full h-full object-cover" />
+                        <img src={proxyStorageUrl(member.image_url)} alt={member.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-blue-100">
                           <span className="text-primary font-semibold text-lg">

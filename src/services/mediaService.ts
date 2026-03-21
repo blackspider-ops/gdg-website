@@ -687,6 +687,14 @@ export class MediaService {
   }
 
   static getFileUrl(filePath: string): string {
+    // If it's already a full Supabase URL, extract the path and proxy it
+    if (filePath.includes('supabase.co/storage/v1/object/public/media/')) {
+      const match = filePath.match(/\/storage\/v1\/object\/public\/media\/(.+)$/);
+      if (match) {
+        filePath = match[1];
+      }
+    }
+    
     // Use proxy endpoint to hide Supabase infrastructure
     // This prevents exposing the Supabase project URL in public URLs
     return `/api/media?path=${encodeURIComponent(filePath)}`;

@@ -3,6 +3,7 @@ import { Github, Linkedin, Twitter, Mail, ChevronDown, ChevronUp } from 'lucide-
 import { useContent } from '@/contexts/ContentContext';
 import { useEffect, useState } from 'react';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
+import { proxyStorageUrl } from '@/lib/urlProxy';
 
 const Team = () => {
     const { teamMembers, isLoadingTeam, loadTeamMembers, getPageSection, lastUpdated } = useContent();
@@ -17,7 +18,7 @@ const Team = () => {
         name: member.name,
         role: member.role,
         bio: member.bio,
-        image: member.image_url,
+        image: proxyStorageUrl(member.image_url),
         teamSection: member.team_section || 'Active Members', // Use team_section from database
         social: {
             github: member.github_url,

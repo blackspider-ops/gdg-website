@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { linktreeService, LinktreeProfile, LinktreeLink } from '@/services/linktreeService';
 import { getIconComponent } from '@/lib/icons';
 import EmbedModal from '@/components/EmbedModal';
+import { proxyStorageUrl } from '@/lib/urlProxy';
 import NotFound from './NotFound';
 
 const Linktree = () => {
@@ -287,7 +288,7 @@ const Linktree = () => {
           <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-4 sm:mb-6 ring-4 ring-white/20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
             {profile.avatar_url && !imageError ? (
               <img 
-                src={profile.avatar_url} 
+                src={proxyStorageUrl(profile.avatar_url)} 
                 alt={profile.display_name}
                 className="max-w-full max-h-full object-contain"
                 onError={() => setImageError(true)}
