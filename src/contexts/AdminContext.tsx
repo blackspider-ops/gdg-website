@@ -3,7 +3,7 @@ import { AdminService } from '@/services/adminService';
 import { ProfileMergingService, type MergedProfile } from '@/services/profileMergingService';
 import { TeamManagementService, type AdminTeam, type TeamMembership } from '@/services/teamManagementService';
 import { PermissionsService, type ResourceType, type PermissionAction } from '@/services/permissionsService';
-import { supabase } from '@/lib/supabase';
+import SessionService from '@/services/sessionService';
 import type { AdminUser } from '@/lib/supabase';
 
 interface AdminContextType {
@@ -87,41 +87,30 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     return PermissionsService.canAccessPage(currentAdmin, path);
   };
 
-  // Check for existing session on mount
+  // SECURITY FIX: Check for existing session using httpOnly cookies
   useEffect(() => {
     const checkSession = async () => {
-      const adminSession = localStorage.getItem('gdg-admin-session');
-      if (adminSession) {
-        try {
-          const session = JSON.parse(adminSession);
-          // Check if session is still valid (24 hours)
-          const now = new Date().getTime();
-          if (session.expires > now && session.adminId) {
-            // Verify admin still exists and is active
-            const admin = await AdminService.getAdminById(session.adminId);
-            if (admin) {
-              setCurrentAdmin(admin);
-              setIsAuthenticated(true);
-              
-              // Get merged profile with team member data
-              const profile = await ProfileMergingService.autoMergeOnLogin(admin);
-              setMergedProfile(profile);
-              
-              // Load user teams
-              const teams = await TeamManagementService.getUserTeams(admin.id);
-              setUserTeams(teams);
-              if (teams.length > 0 && teams[0].team) {
-                setCurrentTeam(teams[0].team);
-              }
-            } else {
-              localStorage.removeItem('gdg-admin-session');
-            }
-          } else {
-            localStorage.removeItem('gdg-admin-session');
+      try {
+        // Validate session via httpOnly cookie
+        const admin = await SessionService.validateSession();
+        
+        if (admin) {
+          setCurrentAdmin(admin);
+          setIsAuthenticated(true);
+          
+          // Get merged profile with team member data
+          const profile = await ProfileMergingService.autoMergeOnLogin(admin);
+          setMergedProfile(profile);
+          
+          // Load user teams
+          const teams = await TeamManagementService.getUserTeams(admin.id);
+          setUserTeams(teams);
+          if (teams.length > 0 && teams[0].team) {
+            setCurrentTeam(teams[0].team);
           }
-        } catch {
-          localStorage.removeItem('gdg-admin-session');
         }
+      } catch (error) {
+        console.error('Session check error:', error);
       }
     };
 
@@ -133,34 +122,13 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     setError(null);
 
     try {
-      // Authenticate with Supabase using secure backend function
-      const admin = await AdminService.authenticate(credentials.username, credentials.password);
+      // SECURITY FIX: Use httpOnly cookie session
+      const admin = await SessionService.login({
+        email: credentials.username,
+        password: credentials.password
+      });
       
       if (admin) {
-        // SECURITY: Use Supabase Auth for session management (httpOnly cookies)
-        // Sign in with Supabase Auth to get secure session
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: credentials.username,
-          password: credentials.password
-        });
-
-        // If Supabase Auth fails, create a temporary session
-        // In production, you should use proper Supabase Auth
-        if (authError) {
-          console.warn('Supabase Auth not configured, using temporary session');
-          
-          // Create session with 24-hour expiry (still in localStorage for now)
-          // TODO: Implement proper httpOnly cookie session via backend
-          const session = {
-            authenticated: true,
-            adminId: admin.id,
-            email: admin.email,
-            expires: new Date().getTime() + (24 * 60 * 60 * 1000) // 24 hours
-          };
-          
-          localStorage.setItem('gdg-admin-session', JSON.stringify(session));
-        }
-        
         setCurrentAdmin(admin);
         setIsAuthenticated(true);
         
@@ -189,15 +157,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
-    // Sign out from Supabase Auth as well
-    try {
-      await supabase.auth.signOut();
-      // Silently handle logs
-    } catch (authError) {
-      // Silently handle warnings
-    }
+    // SECURITY FIX: Clear httpOnly cookie session
+    await SessionService.logout();
     
-    localStorage.removeItem('gdg-admin-session');
     setIsAuthenticated(false);
     setCurrentAdmin(null);
     setMergedProfile(null);

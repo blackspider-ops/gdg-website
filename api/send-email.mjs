@@ -36,13 +36,19 @@ export default async function handler(req, res) {
     }
 
     // Enable CORS - restrict to your domain in production
-    const allowedOrigins = [
-        'https://gdgpsu.dev',
-        'https://www.gdgpsu.dev',
-        'https://gdg-website-six.vercel.app',
-        'http://localhost:5173', // for development
-        'http://localhost:3000'  // for development
-    ];
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+        ? [
+            'https://gdgpsu.dev',
+            'https://www.gdgpsu.dev',
+            'https://gdg-website-six.vercel.app'
+        ]
+        : [
+            'https://gdgpsu.dev',
+            'https://www.gdgpsu.dev',
+            'https://gdg-website-six.vercel.app',
+            'http://localhost:5173',
+            'http://localhost:3000'
+        ];
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
@@ -67,6 +73,31 @@ export default async function handler(req, res) {
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields: to, subject, content'
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(to)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid email format'
+            });
+        }
+
+        // Validate subject length
+        if (subject.length > 200) {
+            return res.status(400).json({
+                success: false,
+                error: 'Subject too long (max 200 characters)'
+            });
+        }
+
+        // Validate content length
+        if (content.length > 50000) {
+            return res.status(400).json({
+                success: false,
+                error: 'Content too long (max 50000 characters)'
             });
         }
 

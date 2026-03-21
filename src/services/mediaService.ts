@@ -691,6 +691,7 @@ export class MediaService {
     const supabaseUrl = getStorageClientInstance().supabaseUrl;
     
     // Construct the public URL manually to ensure it's correct
+    // SECURITY FIX: Add Content-Disposition header for downloads
     return `${supabaseUrl}/storage/v1/object/public/media/${filePath}`;
   }
 
@@ -718,8 +719,18 @@ export class MediaService {
 
   static async downloadFile(filePath: string, fileName: string): Promise<void> {
     try {
-      const signedUrl = await this.getSignedFileUrl(filePath);
-      const downloadUrl = signedUrl || this.getFileUrl(filePath);
+      // SECURITY FIX: Use signed URL with download parameter to force Content-Disposition: attachment
+      const { data, error } = await getStorageClientInstance().storage
+        .from('media')
+        .createSignedUrl(filePath, 3600, {
+          download: fileName // Forces Content-Disposition: attachment
+        });
+      
+      if (error || !data) {
+        throw new Error('Failed to create download URL');
+      }
+      
+      const downloadUrl = data.signedUrl;
       
       // Try fetch approach first for better browser compatibility
       try {

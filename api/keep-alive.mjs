@@ -15,10 +15,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Initialize Supabase client
+    // Initialize Supabase client with backend-only service role key
     const supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
-      process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY // Backend-only, never exposed to frontend
     )
 
     // Perform a lightweight query - just check if we can connect

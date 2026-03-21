@@ -1,130 +1,112 @@
-/**
- * HTML Sanitization Utility
- * Prevents XSS attacks by sanitizing user-generated HTML content
- */
+// Enhanced HTML sanitization with email-specific rules
+// CRITICAL FIX: Sanitize HTML content before sending emails
 
 import DOMPurify from 'dompurify';
 
 /**
- * Sanitize HTML content to prevent XSS attacks
- * @param dirty - Untrusted HTML string
- * @param options - DOMPurify configuration options
- * @returns Sanitized HTML string safe for rendering
+ * Sanitize HTML content for email sending
+ * More restrictive than general HTML sanitization
  */
-export function sanitizeHtml(
-  dirty: string,
-  options?: {
-    allowedTags?: string[];
-    allowedAttributes?: Record<string, string[]>;
-    allowLinks?: boolean;
-  }
-): string {
-  if (!dirty) return '';
+export function sanitizeEmailHtml(html: string): string {
+  if (!html) return '';
 
-  const config: DOMPurify.Config = {
-    // Default: Allow common safe tags
-    ALLOWED_TAGS: options?.allowedTags || [
-      'p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr', 'table', 'thead',
-      'tbody', 'tr', 'th', 'td', 'img', 'div', 'span'
+  // Configure DOMPurify for email content
+  const config = {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'a', 'img', 'div', 'span', 'table', 'tr', 'td', 'th',
+      'thead', 'tbody', 'hr'
     ],
-    
-    // Default: Allow common safe attributes
-    ALLOWED_ATTR: options?.allowedAttributes ? 
-      Object.keys(options.allowedAttributes).reduce((acc, tag) => {
-        return [...acc, ...options.allowedAttributes![tag]];
-      }, [] as string[]) :
-      ['href', 'src', 'alt', 'title', 'class', 'id', 'style'],
-    
-    // Allow links if specified
-    ALLOW_UNKNOWN_PROTOCOLS: false,
-    
-    // Remove scripts and event handlers
+    ALLOWED_ATTR: [
+      'href', 'src', 'alt', 'title', 'style', 'class', 'width', 'height',
+      'align', 'border', 'cellpadding', 'cellspacing'
+    ],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOW_DATA_ATTR: false,
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-    
-    // Keep safe HTML structure
     KEEP_CONTENT: true,
-    RETURN_DOM: false,
-    RETURN_DOM_FRAGMENT: false,
-    RETURN_DOM_IMPORT: false,
-    
-    // Force body
-    FORCE_BODY: false,
-    
-    // Sanitize DOM
-    SANITIZE_DOM: true,
-    
-    // Use safe parser
-    USE_PROFILES: { html: true }
+    RETURN_TRUSTED_TYPE: false
   };
 
-  // Add link support if requested
-  if (options?.allowLinks) {
-    config.ALLOWED_TAGS = [...(config.ALLOWED_TAGS || []), 'a'];
-    config.ALLOWED_ATTR = [...(config.ALLOWED_ATTR || []), 'href', 'target', 'rel'];
-    
-    // Add hook to make external links safe
-    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-      if (node.tagName === 'A') {
-        const href = node.getAttribute('href');
-        if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
-          node.setAttribute('target', '_blank');
-          node.setAttribute('rel', 'noopener noreferrer');
-        }
-      }
-    });
+  return DOMPurify.sanitize(html, config);
+}
+
+/**
+ * Escape HTML entities to prevent XSS
+ * Use for plain text that will be inserted into HTML
+ */
+export function escapeHtml(text: string): string {
+  if (!text) return '';
+
+  const htmlEscapeMap: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;'
+  };
+
+  return text.replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char]);
+}
+
+/**
+ * Sanitize email subject line
+ * Remove any control characters and limit length
+ */
+export function sanitizeEmailSubject(subject: string): string {
+  if (!subject) return '';
+
+  // Remove control characters and newlines
+  let sanitized = subject.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+  
+  // Limit length
+  if (sanitized.length > 200) {
+    sanitized = sanitized.substring(0, 200);
   }
 
-  return DOMPurify.sanitize(dirty, config);
+  return sanitized.trim();
 }
 
 /**
- * Sanitize HTML for newsletter/email content
- * More permissive than general sanitization
+ * Validate and sanitize email address
  */
-export function sanitizeEmailHtml(dirty: string): string {
-  return sanitizeHtml(dirty, {
-    allowedTags: [
-      'p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr', 'table', 'thead',
-      'tbody', 'tr', 'th', 'td', 'img', 'div', 'span', 'a'
-    ],
-    allowLinks: true
-  });
+export function sanitizeEmail(email: string): string | null {
+  if (!email) return null;
+
+  // Basic email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const trimmed = email.trim().toLowerCase();
+
+  if (!emailRegex.test(trimmed)) {
+    return null;
+  }
+
+  // Additional checks for suspicious patterns
+  if (trimmed.includes('..') || trimmed.startsWith('.') || trimmed.endsWith('.')) {
+    return null;
+  }
+
+  return trimmed;
 }
 
 /**
- * Sanitize plain text (strip all HTML)
+ * Sanitize URL for use in emails
  */
-export function sanitizeText(dirty: string): string {
-  if (!dirty) return '';
-  
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: [],
-    KEEP_CONTENT: true
-  });
-}
+export function sanitizeUrl(url: string): string | null {
+  if (!url) return null;
 
-/**
- * Sanitize markdown-generated HTML
- */
-export function sanitizeMarkdownHtml(dirty: string): string {
-  return sanitizeHtml(dirty, {
-    allowedTags: [
-      'p', 'br', 'strong', 'em', 'u', 's', 'del', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr', 'table', 'thead',
-      'tbody', 'tr', 'th', 'td', 'img', 'div', 'span', 'a'
-    ],
-    allowLinks: true
-  });
-}
+  try {
+    const parsed = new URL(url);
+    
+    // Only allow http and https protocols
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null;
+    }
 
-/**
- * React component helper for safe HTML rendering
- */
-export function createSafeHtml(dirty: string, options?: Parameters<typeof sanitizeHtml>[1]) {
-  return {
-    __html: sanitizeHtml(dirty, options)
-  };
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }

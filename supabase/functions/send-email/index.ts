@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/cors.ts'
+import { escapeHtml, sanitizeSubject } from '../_shared/sanitize.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
@@ -126,13 +127,16 @@ function convertTextToHtml(text: string): string {
 }
 
 function wrapInTemplate(content: string, subject: string): string {
+  // SECURITY FIX: Escape subject to prevent XSS
+  const safeSubject = escapeHtml(sanitizeSubject(subject));
+  
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
+      <title>${safeSubject}</title>
       <style>
         body { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

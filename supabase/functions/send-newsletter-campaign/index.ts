@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import DOMPurify from 'https://esm.sh/isomorphic-dompurify@2.11.0'
+import { escapeHtml, sanitizeSubject } from '../_shared/sanitize.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -187,14 +189,23 @@ serve(async (req) => {
                     ? `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe?token=${recipient.unsubscribe_token}`
                     : `${Deno.env.get('SITE_URL') || 'https://gdgpsu.dev'}/newsletter/unsubscribe`; // Generic unsubscribe page for non-subscribers
 
-                // If HTML content is provided, use it as-is (complete email), otherwise use template
-                const personalizedHtmlContent = emailData.html_content 
-                    ? emailData.html_content // Use raw HTML completely
+                // SECURITY FIX: Sanitize HTML content before sending
+                const sanitizedHtmlContent = emailData.html_content 
+                    ? DOMPurify.sanitize(emailData.html_content, {
+                        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'div', 'span', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'hr'],
+                        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'style', 'class', 'width', 'height', 'align'],
+                        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button']
+                      })
+                    : null;
+
+                // If HTML content is provided, use sanitized version, otherwise use template
+                const personalizedHtmlContent = sanitizedHtmlContent
+                    ? sanitizedHtmlContent
                     : createNewsletterEmailTemplate({
-                        subject: personalizedSubject,
+                        subject: escapeHtml(personalizedSubject),
                         content: personalizedContent,
                         htmlContent: null,
-                        recipientName,
+                        recipientName: escapeHtml(recipientName || ''),
                         unsubscribeUrl
                       });
 
@@ -292,8 +303,11 @@ function createNewsletterEmailTemplate(params: {
 }): string {
     const { subject, content, htmlContent, recipientName, unsubscribeUrl } = params
 
-    const greeting = recipientName ? `Hello ${recipientName}!` : 'Hello!'
-    const finalContent = htmlContent || (content ? content.split('\n').map(paragraph => `<p>${paragraph}</p>`).join('') : '')
+    // SECURITY FIX: Escape all user input
+    const safeSubject = escapeHtml(sanitizeSubject(subject));
+    const safeRecipientName = escapeHtml(recipientName || '');
+    const greeting = safeRecipientName ? `Hello ${safeRecipientName}!` : 'Hello!';
+    const finalContent = htmlContent || (content ? content.split('\n').map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('') : '');
 
     return `
     <!DOCTYPE html>
@@ -301,7 +315,7 @@ function createNewsletterEmailTemplate(params: {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
+      <title>${safeSubject}</title>
       <style>
         body { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -418,9 +432,10 @@ function createNewsletterTextContent(params: {
     recipientName?: string | null
     unsubscribeUrl?: string | null
 }): string {
-    const { subject, content, recipientName, unsubscribeUrl } = params
+    const { content, recipientName, unsubscribeUrl } = params
 
-    const greeting = recipientName ? `Hello ${recipientName}!` : 'Hello!'
+    // Text content doesn't need HTML escaping, but sanitize subject
+    const greeting = recipientName ? `Hello ${recipientName}!` : 'Hello!';
 
     return `GDG@PSU NEWSLETTER
 
