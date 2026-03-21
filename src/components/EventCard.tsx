@@ -63,6 +63,8 @@ const EventCard: React.FC<EventCardProps> = ({
   additional_info,
   contact_info
 }) => {
+  // Debug: log event_link to see if it's being passed
+  console.log('EventCard event_link:', event_link, 'for event:', title);
   const getLevelColor = (level?: string) => {
     switch (level) {
       case 'Beginner': return 'bg-green-600 text-white';

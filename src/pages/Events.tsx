@@ -53,6 +53,7 @@ const Events = () => {
       maxParticipants: event.max_participants,
       registrationEnabled: event.registration_enabled,
       imageUrl: event.image_url,
+      event_link: (event as any).event_link,
       // Event detail fields
       prerequisites: (event as any).prerequisites,
       what_youll_learn: (event as any).what_youll_learn,
