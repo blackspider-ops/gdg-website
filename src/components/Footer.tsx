@@ -11,6 +11,7 @@ import { NewsletterService } from '@/services/newsletterService';
 const Footer = () => {
   const [email, setEmail] = React.useState('');
   const [showAdminModal, setShowAdminModal] = React.useState(false);
+  const [adminSecretCode, setAdminSecretCode] = React.useState<string | null>(null);
   const [isSubscribing, setIsSubscribing] = React.useState(false);
   const [subscriptionMessage, setSubscriptionMessage] = React.useState('');
   const { login, isLoading, error } = useAdmin();
@@ -19,6 +20,22 @@ const Footer = () => {
   useBodyScrollLock(showAdminModal);
   const navigate = useNavigate();
   const { getFooterSection, getSiteSetting, getAllLinks } = useContent();
+
+  // Load admin secret code on mount
+  React.useEffect(() => {
+    const loadSecretCode = async () => {
+      try {
+        // Get the secret code from site settings
+        const code = getSiteSetting('admin_secret_code');
+        if (code) {
+          setAdminSecretCode(code);
+        }
+      } catch (error) {
+        // Silently fail
+      }
+    };
+    loadSecretCode();
+  }, [getSiteSetting]);
 
   // Icon mapping for social links
   const iconMap: Record<string, any> = {
@@ -133,6 +150,13 @@ const Footer = () => {
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for admin secret code (only if code is loaded and matches)
+    if (adminSecretCode && email === adminSecretCode) {
+      setShowAdminModal(true);
+      setEmail('');
+      return;
+    }
     
     setIsSubscribing(true);
     setSubscriptionMessage('');
