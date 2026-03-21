@@ -19,24 +19,23 @@ const Footer = () => {
   // Lock body scroll when modal is open
   useBodyScrollLock(showAdminModal);
   const navigate = useNavigate();
-  const { getFooterSection, getSiteSetting, getAllLinks } = useContent();
+  const { getFooterSection, getSiteSetting, getAllLinks, siteSettings } = useContent();
 
-  // Load admin secret code on mount
+  // Load admin secret code when site settings change
   React.useEffect(() => {
-    const loadSecretCode = async () => {
-      try {
-        // Get the secret code from site settings
-        const code = getSiteSetting('admin_secret_code');
-        if (code) {
-          setAdminSecretCode(code);
-          console.log('Admin secret code loaded:', code ? 'YES' : 'NO');
-        }
-      } catch (error) {
-        console.error('Failed to load admin secret code:', error);
-      }
-    };
-    loadSecretCode();
-  }, [getSiteSetting]);
+    const code = getSiteSetting('admin_secret_code');
+    console.log('Site settings changed, checking admin code...', {
+      code,
+      hasSettings: Object.keys(siteSettings).length > 0,
+      settingsKeys: Object.keys(siteSettings)
+    });
+    if (code) {
+      setAdminSecretCode(code);
+      console.log('Admin secret code set:', code);
+    } else {
+      console.warn('Admin secret code not found');
+    }
+  }, [siteSettings, getSiteSetting]);
 
   // Icon mapping for social links
   const iconMap: Record<string, any> = {
