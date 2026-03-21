@@ -1139,9 +1139,8 @@ export class CommunicationsService {
     error?: string;
   }> {
     try {
-      const { data, error } = await getServiceRoleClient().functions.invoke('check-overdue-tasks', {
-        body: {}
-      });
+      // Call the database RPC function directly instead of Edge Function
+      const { data, error } = await getServiceRoleClient().rpc('check_and_mark_overdue_tasks');
 
       if (error) {
         return {
@@ -1153,6 +1152,8 @@ export class CommunicationsService {
         };
       }
 
+      const result = data?.[0] || { marked_count: 0, message: 'Check completed' };
+
       // Log the action if userId is provided
       if (userId) {
         await AuditService.logAction(
@@ -1161,18 +1162,17 @@ export class CommunicationsService {
           undefined,
           {
             description: 'Manually checked for overdue tasks',
-            marked_count: data?.marked || 0,
-            notified_count: data?.notified || 0,
-            result_message: data?.message || 'Check completed'
+            marked_count: result.marked_count || 0,
+            result_message: result.message || 'Check completed'
           }
         );
       }
 
       return {
         success: true,
-        marked: data?.marked || 0,
-        notified: data?.notified || 0,
-        message: data?.message || 'Check completed'
+        marked: result.marked_count || 0,
+        notified: 0, // RPC function doesn't send emails, just marks as overdue
+        message: result.message || 'Check completed'
       };
     } catch (error) {
       return {

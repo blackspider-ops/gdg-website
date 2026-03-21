@@ -12,7 +12,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_admin admin_users%ROWTYPE;
@@ -31,7 +31,7 @@ BEGIN
   
   -- If current password provided, verify it
   IF p_current_password IS NOT NULL THEN
-    IF v_admin.password_hash != crypt(p_current_password, v_admin.password_hash) THEN
+    IF v_admin.password_hash != extensions.crypt(p_current_password, v_admin.password_hash) THEN
       RETURN QUERY SELECT FALSE, 'Current password is incorrect'::TEXT;
       RETURN;
     END IF;
@@ -44,7 +44,7 @@ BEGIN
   END IF;
   
   -- Hash new password
-  v_password_hash := crypt(p_new_password, gen_salt('bf', 12));
+  v_password_hash := extensions.crypt(p_new_password, extensions.gen_salt('bf', 12));
   
   -- Update password
   UPDATE admin_users
