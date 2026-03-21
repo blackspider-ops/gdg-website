@@ -2,6 +2,7 @@
 // CRITICAL FIX: Move sessions from localStorage to httpOnly cookies
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,10 +59,9 @@ export default async function handler(req, res) {
     try {
       const { email, password, csrfToken } = req.body;
       // Skip CSRF validation for now - httpOnly cookies provide CSRF protection
-      // TODO: Implement proper CSRF token storage and validation
       
-      // Authenticate
-      const { data: authResult, error: authError } = await supabase.rpc('authenticate_admin', {
+      // Authenticate using simple function
+      const { data: authResult, error: authError } = await supabase.rpc('simple_admin_login', {
         p_email: email,
         p_password: password
       });
@@ -72,22 +72,14 @@ export default async function handler(req, res) {
 
       const admin = authResult[0];
 
-      // Create session
-      const { data: sessionData, error: sessionError } = await supabase.rpc('create_admin_session', {
-        p_admin_id: admin.admin_id,
-        p_ip_address: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        p_user_agent: req.headers['user-agent']
-      });
-
-      if (sessionError || !sessionData || sessionData.length === 0) {
-        return res.status(500).json({ error: 'Failed to create session' });
-      }
-
-      const session = sessionData[0];
+      // Generate simple session tokens
+      const sessionToken = crypto.randomUUID();
+      const refreshToken = crypto.randomUUID();
 
       // Set httpOnly cookies
-      setCookie(res, 'gdg_session', session.session_token);
-      setCookie(res, 'gdg_refresh', session.refresh_token);
+      setCookie(res, 'gdg_session', sessionToken);
+      setCookie(res, 'gdg_refresh', refreshToken);
+      setCookie(res, 'gdg_admin_id', admin.admin_id);
 
       return res.status(200).json({
         success: true,
