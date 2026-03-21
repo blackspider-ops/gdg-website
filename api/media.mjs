@@ -10,7 +10,7 @@ export default async function handler(request) {
     return new Response('Missing path parameter', { status: 400 });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   if (!supabaseUrl) {
     return new Response('Server configuration error', { status: 500 });
   }
