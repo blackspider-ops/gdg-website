@@ -21,19 +21,6 @@ const Footer = () => {
   const navigate = useNavigate();
   const { getFooterSection, getSiteSetting, getAllLinks } = useContent();
 
-  // Load admin secret code on component mount
-  React.useEffect(() => {
-    const loadSecretCode = async () => {
-      try {
-        const code = await ContentService.getAdminSecretCode();
-        setAdminSecretCode(code);
-      } catch (error) {
-    // Silently handle errors
-  }
-    };
-    loadSecretCode();
-  }, []);
-
   // Icon mapping for social links
   const iconMap: Record<string, any> = {
     Github,
