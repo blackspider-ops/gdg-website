@@ -24,6 +24,7 @@ interface EventCardProps {
   registrationEnabled?: boolean;
   imageUrl?: string;
   eventId?: string;
+  event_link?: string;
   // Event detail fields
   prerequisites?: string;
   what_youll_learn?: string;
@@ -53,6 +54,7 @@ const EventCard: React.FC<EventCardProps> = ({
   registrationEnabled,
   imageUrl,
   eventId,
+  event_link,
   // Event detail fields
   prerequisites,
   what_youll_learn,
@@ -162,9 +164,17 @@ const EventCard: React.FC<EventCardProps> = ({
           {title}
         </h3>
         
-        <p className="text-muted-foreground text-sm mb-4 content-measure">
-          {description}
-        </p>
+        <div 
+          className="text-muted-foreground text-sm mb-4 content-measure"
+          dangerouslySetInnerHTML={{
+            __html: description
+              .replace(/\n/g, '<br />')
+              .replace(
+                /(https?:\/\/[^\s]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-gdg-blue hover:underline">$1</a>'
+              )
+          }}
+        />
 
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-muted-foreground">
@@ -207,6 +217,17 @@ const EventCard: React.FC<EventCardProps> = ({
               >
                 {registrationEnabled === false ? 'Registration Closed' : 'Register'}
               </button>
+            )}
+            {event_link && (
+              <a
+                href={event_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-editorial px-4 py-2 bg-gdg-blue text-white border-gdg-blue hover:bg-gdg-blue/90 transition-colors flex items-center space-x-2"
+              >
+                <ExternalLink size={16} />
+                <span>Event Website</span>
+              </a>
             )}
             <button 
               onClick={handleViewDetails}
