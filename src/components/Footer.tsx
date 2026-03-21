@@ -29,9 +29,10 @@ const Footer = () => {
         const code = getSiteSetting('admin_secret_code');
         if (code) {
           setAdminSecretCode(code);
+          console.log('Admin secret code loaded:', code ? 'YES' : 'NO');
         }
       } catch (error) {
-        // Silently fail
+        console.error('Failed to load admin secret code:', error);
       }
     };
     loadSecretCode();
@@ -151,8 +152,11 @@ const Footer = () => {
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Trim the email input
+    const trimmedEmail = email.trim();
+    
     // Check for admin secret code (only if code is loaded and matches)
-    if (adminSecretCode && email === adminSecretCode) {
+    if (adminSecretCode && trimmedEmail === adminSecretCode.trim()) {
       setShowAdminModal(true);
       setEmail('');
       return;
@@ -162,7 +166,7 @@ const Footer = () => {
     setSubscriptionMessage('');
     
     try {
-      const result = await NewsletterService.subscribe(email);
+      const result = await NewsletterService.subscribe(trimmedEmail);
       
       if (result.success) {
         setSubscriptionMessage(`✅ ${result.message}`);
