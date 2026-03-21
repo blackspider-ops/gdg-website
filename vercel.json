@@ -144,6 +144,9 @@
     },
     "api/rss.mjs": {
       "maxDuration": 10
+    },
+    "api/media.mjs": {
+      "maxDuration": 30
     }
   },
   "crons": [

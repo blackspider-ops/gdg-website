@@ -687,12 +687,9 @@ export class MediaService {
   }
 
   static getFileUrl(filePath: string): string {
-    // Get the Supabase project URL from the client
-    const supabaseUrl = getStorageClientInstance().supabaseUrl;
-    
-    // Construct the public URL manually to ensure it's correct
-    // SECURITY FIX: Add Content-Disposition header for downloads
-    return `${supabaseUrl}/storage/v1/object/public/media/${filePath}`;
+    // Use proxy endpoint to hide Supabase infrastructure
+    // This prevents exposing the Supabase project URL in public URLs
+    return `/api/media?path=${encodeURIComponent(filePath)}`;
   }
 
   static async getSignedFileUrl(filePath: string, expiresIn: number = 3600): Promise<string | null> {
