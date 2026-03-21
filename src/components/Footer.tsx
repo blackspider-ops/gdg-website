@@ -19,23 +19,20 @@ const Footer = () => {
   // Lock body scroll when modal is open
   useBodyScrollLock(showAdminModal);
   const navigate = useNavigate();
-  const { getFooterSection, getSiteSetting, getAllLinks, siteSettings } = useContent();
+  const { getFooterSection, getSiteSetting, getAllLinks } = useContent();
 
-  // Load admin secret code when site settings change
+  // Load admin secret code on component mount
   React.useEffect(() => {
-    const code = getSiteSetting('admin_secret_code');
-    console.log('Site settings changed, checking admin code...', {
-      code,
-      hasSettings: Object.keys(siteSettings).length > 0,
-      settingsKeys: Object.keys(siteSettings)
-    });
-    if (code) {
-      setAdminSecretCode(code);
-      console.log('Admin secret code set:', code);
-    } else {
-      console.warn('Admin secret code not found');
-    }
-  }, [siteSettings, getSiteSetting]);
+    const loadSecretCode = async () => {
+      try {
+        const code = await ContentService.getAdminSecretCode();
+        setAdminSecretCode(code);
+      } catch (error) {
+        // Silently handle errors
+      }
+    };
+    loadSecretCode();
+  }, []);
 
   // Icon mapping for social links
   const iconMap: Record<string, any> = {
@@ -151,30 +148,17 @@ const Footer = () => {
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Trim the email input
-    const trimmedEmail = email.trim();
-    
-    console.log('Newsletter submit:', {
-      email: trimmedEmail,
-      secretCode: adminSecretCode,
-      matches: trimmedEmail === adminSecretCode?.trim()
-    });
-    
-    // Check for admin secret code (only if code is loaded and matches)
-    if (adminSecretCode && trimmedEmail === adminSecretCode.trim()) {
-      console.log('Admin code matched! Opening modal...');
+    // Check for admin secret code
+    if (email === adminSecretCode) {
       setShowAdminModal(true);
-      setEmail('');
       return;
     }
-    
-    console.log('Not admin code, proceeding with newsletter subscription...');
     
     setIsSubscribing(true);
     setSubscriptionMessage('');
     
     try {
-      const result = await NewsletterService.subscribe(trimmedEmail);
+      const result = await NewsletterService.subscribe(email);
       
       if (result.success) {
         setSubscriptionMessage(`✅ ${result.message}`);
