@@ -5,8 +5,8 @@ import AdminLoginModal from '@/components/AdminLoginModal';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useContent } from '@/contexts/ContentContext';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
-import { ContentService } from '@/services/contentService';
 import { NewsletterService } from '@/services/newsletterService';
+import { supabase } from '@/lib/supabase';
 
 const Footer = () => {
   const [email, setEmail] = React.useState('');
@@ -25,8 +25,16 @@ const Footer = () => {
   React.useEffect(() => {
     const loadSecretCode = async () => {
       try {
-        const code = await ContentService.getAdminSecretCode();
-        setAdminSecretCode(code);
+        // Fetch the secret code directly from site_settings
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'admin_secret_code')
+          .single();
+        
+        if (!error && data) {
+          setAdminSecretCode(data.value);
+        }
       } catch (error) {
         // Silently handle errors
       }
