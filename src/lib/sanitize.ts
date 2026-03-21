@@ -92,6 +92,16 @@ export function sanitizeEmail(email: string): string | null {
 }
 
 /**
+ * Create safe HTML from user input (for preview purposes)
+ * Sanitizes and returns safe HTML string
+ */
+export function createSafeHtml(html: string): { __html: string } {
+  return {
+    __html: sanitizeEmailHtml(html)
+  };
+}
+
+/**
  * Sanitize URL for use in emails
  */
 export function sanitizeUrl(url: string): string | null {

@@ -210,8 +210,7 @@ export class SecurityService {
         requireUppercase: true,
         requireLowercase: true,
         preventCommonPasswords: true,
-        maxAge: 90 // days
-      },
+        maxAge: 90, // days
         expirationDays: 90
       },
       sessionSettings: {
@@ -275,12 +274,6 @@ export class SecurityService {
         errors.push('Password is too common. Please choose a more unique password');
       }
     }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
 
     return {
       isValid: errors.length === 0,
