@@ -984,6 +984,20 @@ The GDG@PSU Team`
                 </div>
               </div>
 
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Website Link (Optional)</label>
+                <input
+                  type="url"
+                  value={formData.event_link}
+                  onChange={(e) => setFormData(prev => ({ ...prev, event_link: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="https://example.com/event-page"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  External website or landing page for this event (shows as "Event Website" button on card)
+                </p>
+              </div>
               {error && (
                 <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
                   {error}
@@ -1273,6 +1287,20 @@ The GDG@PSU Team`
                 </div>
               </div>
 
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Event Website Link (Optional)</label>
+                <input
+                  type="url"
+                  value={formData.event_link}
+                  onChange={(e) => setFormData(prev => ({ ...prev, event_link: e.target.value }))}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-foreground bg-muted"
+                  placeholder="https://example.com/event-page"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  External website or landing page for this event (shows as "Event Website" button on card)
+                </p>
+              </div>
               {error && (
                 <div className="bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg">
                   {error}
