@@ -10,7 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  sameSite: 'lax', // Changed from 'strict' to allow cross-site cookies
   path: '/',
   maxAge: 24 * 60 * 60 // 24 hours
 };
@@ -55,9 +55,21 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // CREATE SESSION (login)
-  if (req.method === 'POST' && req.url === '/api/session') {
+  if (req.method === 'POST') {
     try {
-      const { email, password } = req.body;
+      // Parse body if needed
+      let body = req.body;
+      if (typeof body === 'string') {
+        body = JSON.parse(body);
+      }
+      
+      const { email, password } = body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+      
+      console.log('Login attempt for:', email); // Debug log
       
       // Authenticate admin
       const { data: authResult, error: authError } = await supabase.rpc('authenticate_admin', {
@@ -66,12 +78,22 @@ export default async function handler(req, res) {
       });
 
       if (authError) {
-        console.error('Auth error:', authError);
+        console.error('Auth RPC error:', authError);
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      if (!authResult || authResult.length === 0 || !authResult[0].success) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+      console.log('Auth result:', authResult); // Debug log
+
+      if (!authResult || authResult.length === 0) {
+        console.log('Auth failed - empty result');
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      if (!authResult[0].success) {
+        console.log('Auth failed - success=false, message:', authResult[0].message);
+        return res.status(401).json({ 
+          error: authResult[0].message || 'Invalid email or password'
+        });
       }
 
       const admin = authResult[0];
@@ -90,6 +112,8 @@ export default async function handler(req, res) {
       setCookie(res, 'gdg_session', sessionToken);
       setCookie(res, 'gdg_admin', adminData);
 
+      console.log('Login successful for:', admin.email); // Debug log
+
       return res.status(200).json({
         success: true,
         admin: {
@@ -101,12 +125,12 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       console.error('Session creation error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
 
   // VALIDATE SESSION
-  if (req.method === 'GET' && req.url === '/api/session') {
+  if (req.method === 'GET') {
     try {
       const sessionToken = getCookie(req, 'gdg_session');
       const adminData = getCookie(req, 'gdg_admin');
@@ -139,7 +163,7 @@ export default async function handler(req, res) {
   }
 
   // DELETE SESSION (logout)
-  if (req.method === 'DELETE' && req.url === '/api/session') {
+  if (req.method === 'DELETE') {
     try {
       // Clear cookies
       setCookie(res, 'gdg_session', '', { maxAge: 0 });
