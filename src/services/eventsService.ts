@@ -17,6 +17,17 @@ export interface Event {
   level?: 'beginner' | 'intermediate' | 'advanced' | 'open_for_all';
   external_attendees?: number;
   timezone?: string;
+  event_link?: string;
+  type?: string;
+  // Event detail fields (shown in the event details modal)
+  time?: string;
+  room?: string;
+  prerequisites?: string;
+  what_youll_learn?: string;
+  what_to_bring?: string;
+  schedule?: string;
+  additional_info?: string;
+  contact_info?: string;
   created_at: string;
   updated_at: string;
 }
