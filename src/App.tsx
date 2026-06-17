@@ -21,6 +21,7 @@ import Projects from "./pages/Projects";
 import Team from "./pages/Team";
 import Resources from "./pages/Resources";
 import Sponsors from "./pages/Sponsors";
+import Gallery from "./pages/Gallery";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminContent from "./pages/AdminContent";
 import AdminEvents from "./pages/admin/AdminEvents";
@@ -171,6 +172,7 @@ const App = () => (
                       <Route path="/team" element={<Team />} />
                       <Route path="/resources" element={<Resources />} />
                       <Route path="/sponsors" element={<Sponsors />} />
+                      <Route path="/gallery" element={<Gallery />} />
                       <Route path="/admin" element={<PageAccessGuard><AdminDashboard /></PageAccessGuard>} />
                       <Route path="/admin/content" element={<PageAccessGuard><AdminContent /></PageAccessGuard>} />
                       <Route path="/admin/events" element={<PageAccessGuard><AdminEvents /></PageAccessGuard>} />

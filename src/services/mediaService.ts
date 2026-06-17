@@ -46,6 +46,7 @@ export interface MediaFile {
   duration?: number;
   is_starred: boolean;
   is_public: boolean;
+  event_id?: string;
   alt_text?: string;
   description?: string;
   tags: string[];
@@ -699,6 +700,28 @@ export class MediaService {
     // Return full URL with domain for copy-to-clipboard functionality
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.gdgpsu.dev';
     return `${baseUrl}/api/media?path=${encodeURIComponent(filePath)}`;
+  }
+
+  /**
+   * Public, unauthenticated fetch of image files marked is_public.
+   * Used by the public /gallery page. Relies on the "Public can view public
+   * media" RLS policy (migration 20260616000003_public_media.sql).
+   */
+  static async getPublicMedia(): Promise<MediaFile[]> {
+    try {
+      const { data, error } = await supabase
+        .from('media_files')
+        .select('*')
+        .eq('is_public', true)
+        .eq('file_type', 'image')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching public media:', error);
+      return [];
+    }
   }
 
   static async getSignedFileUrl(filePath: string, expiresIn: number = 3600): Promise<string | null> {
