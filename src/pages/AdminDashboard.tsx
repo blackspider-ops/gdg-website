@@ -40,6 +40,7 @@ import { TeamManagementService } from '@/services/teamManagementService';
 import { FinancesService } from '@/services/financesService';
 import { PermissionsService, TEAM_PAGE_ACCESS, PAGE_PERMISSIONS } from '@/services/permissionsService';
 import MyTeamsWidget from '@/components/admin/MyTeamsWidget';
+import MyTodoWidget from '@/components/admin/MyTodoWidget';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout, userTeams, isSuperAdmin, isAdmin } = useAdmin();
@@ -617,6 +618,9 @@ const AdminDashboard = () => {
         <div className="col-span-12 lg:col-span-4">
           {/* My Teams Widget */}
           <MyTeamsWidget />
+
+          {/* My To-Do Widget */}
+          <MyTodoWidget />
 
           {/* Team Quick Stats - For Admins */}
           {teamQuickStats && (currentAdmin?.role === 'super_admin' || currentAdmin?.role === 'admin') && (
