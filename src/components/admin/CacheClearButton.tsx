@@ -30,7 +30,7 @@ export function CacheClearButton({
         await cacheInvalidators[contentType]();
       }
     } catch (error) {
-      // Handle error silently
+      console.error('Cache clear failed:', error);
     } finally {
       setIsClearing(false);
     }

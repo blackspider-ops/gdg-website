@@ -115,7 +115,7 @@ const AdminEvents = () => {
       const eventsData = await EventsService.getEvents();
       setEvents(eventsData);
     } catch (error) {
-      // Handle error silently
+      console.error('AdminEvents operation failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +126,7 @@ const AdminEvents = () => {
       const stats = await EventsService.getEventStats();
       setEventStats(stats);
     } catch (error) {
-      // Handle error silently
+      console.error('AdminEvents operation failed:', error);
     }
   };
 

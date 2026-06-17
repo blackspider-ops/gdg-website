@@ -76,7 +76,7 @@ const AdminProjects = () => {
       const stats = await ProjectsService.getProjectStats();
       setProjectStats(stats);
     } catch (error) {
-      // Handle error silently
+      console.error('AdminProjects operation failed:', error);
     }
   };
 
