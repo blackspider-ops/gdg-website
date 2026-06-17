@@ -44,6 +44,7 @@ export const PAGE_PERMISSIONS: Record<string, { resource: ResourceType; action: 
   '/admin/profile': [], // Profile - accessible to all authenticated admins
   '/admin/guide': [], // Guide - accessible to all authenticated admins
   '/admin/channels': [], // Org-wide channels - accessible to all authenticated admins
+  '/admin/whiteboard': [], // Collaborative whiteboard - accessible to all authenticated admins
 };
 
 // Team-based page access (which teams can access which pages)

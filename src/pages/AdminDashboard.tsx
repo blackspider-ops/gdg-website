@@ -88,7 +88,7 @@ const AdminDashboard = () => {
     }
     
     // Team members - base pages they always have access to
-    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/channels', '/admin/projects'];
+    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/channels', '/admin/whiteboard', '/admin/projects'];
     
     // Add pages based on team membership
     const teamPages = new Set<string>();
@@ -326,6 +326,7 @@ const AdminDashboard = () => {
     { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors', roles: ['super_admin'] },
     { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Channels', icon: Hash, href: '/admin/channels', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Whiteboard', icon: PenTool, href: '/admin/whiteboard', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Finances', icon: DollarSign, href: '/admin/finances', roles: ['super_admin', 'admin', 'team_member'] },
   ];
