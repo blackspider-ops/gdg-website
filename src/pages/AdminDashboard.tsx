@@ -23,7 +23,8 @@ import {
   Clock,
   Bell,
   MessageCircle,
-  DollarSign
+  DollarSign,
+  Hash
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -87,7 +88,7 @@ const AdminDashboard = () => {
     }
     
     // Team members - base pages they always have access to
-    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/projects'];
+    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/channels', '/admin/projects'];
     
     // Add pages based on team membership
     const teamPages = new Set<string>();
@@ -324,6 +325,7 @@ const AdminDashboard = () => {
   const allBusinessActions = [
     { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors', roles: ['super_admin'] },
     { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Channels', icon: Hash, href: '/admin/channels', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Finances', icon: DollarSign, href: '/admin/finances', roles: ['super_admin', 'admin', 'team_member'] },
   ];
