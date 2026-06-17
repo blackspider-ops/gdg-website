@@ -162,7 +162,7 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error approving comment
+      console.error('Error approving comment:', error);
     }
   };
 
@@ -172,7 +172,7 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error rejecting comment
+      console.error('Error rejecting comment:', error);
     }
   };
 
@@ -182,7 +182,7 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error flagging comment
+      console.error('Error flagging comment:', error);
     }
   };
 
@@ -196,9 +196,9 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error deleting comment
+      console.error('Error deleting comment:', error);
     }
-  }; 
+  };
  // Filter posts based on search and filters
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

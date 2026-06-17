@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, User, Calendar, Reply, Flag, Send, Loader2 } from 'lucide-react';
 import { BlogCommentsService, BlogComment, CreateCommentData } from '@/services/blogCommentsService';
+import { HoneypotField, isBot } from '@/components/HoneypotField';
 
 interface BlogCommentsProps {
   blogPostId: string;
@@ -26,6 +27,8 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ blogPostId, initialComments
   });
   const [formErrors, setFormErrors] = useState<Partial<CommentFormData>>({});
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [honeypot, setHoneypot] = useState('');
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     loadComments();
@@ -33,11 +36,13 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ blogPostId, initialComments
 
   const loadComments = async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
       const commentsData = await BlogCommentsService.getComments(blogPostId);
       setComments(commentsData);
     } catch (error) {
-      // Error loading comments
+      console.error('Error loading comments:', error);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -70,8 +75,15 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ blogPostId, initialComments
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
+
+    // Silently drop bot submissions caught by the honeypot
+    if (isBot(honeypot)) {
+      setSubmitMessage({ type: 'success', text: 'Thank you for your comment!' });
+      setShowCommentForm(false);
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitMessage(null);
@@ -89,19 +101,18 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ blogPostId, initialComments
 
       // Reset form
       setFormData({ author_name: '', author_email: '', content: '' });
+      setHoneypot('');
       setFormErrors({});
       setShowCommentForm(false);
       setReplyingTo(null);
 
       setSubmitMessage({
         type: 'success',
-        text: 'Thank you for your comment! It will be reviewed and published shortly.'
+        text: 'Thanks for your comment — it has been posted!'
       });
 
-      // Reload comments to show any that might have been approved
-      setTimeout(() => {
-        loadComments();
-      }, 1000);
+      // Comments are auto-published, so refresh immediately to show it
+      await loadComments();
 
     } catch (error) {
       setSubmitMessage({
@@ -289,13 +300,15 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ blogPostId, initialComments
                   )}
                   <div className="flex justify-between items-center mt-1">
                     <p className="text-xs text-muted-foreground">
-                      Comments are moderated and will be reviewed before publishing
+                      Be respectful — comments are public and may be removed by moderators.
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formData.content.length}/2000
                     </p>
                   </div>
                 </div>
+
+                <HoneypotField value={honeypot} onChange={setHoneypot} />
 
                 <div className="flex justify-end">
                   <button
@@ -333,6 +346,18 @@ const BlogComments: React.FC<BlogCommentsProps> = ({ blogPostId, initialComments
                   </div>
                 </div>
               ))}
+            </div>
+          ) : loadError ? (
+            <div className="text-center py-12">
+              <MessageCircle size={48} className="mx-auto text-red-400 mb-4" />
+              <h4 className="text-lg font-medium text-foreground mb-2">Couldn't load comments</h4>
+              <p className="text-muted-foreground mb-6">Something went wrong. Please try again.</p>
+              <button
+                onClick={loadComments}
+                className="px-6 py-3 bg-gdg-blue text-white rounded-lg hover:bg-gdg-blue/90 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           ) : comments.length > 0 ? (
             <div className="space-y-6">
