@@ -26,7 +26,10 @@ export default defineConfig(({ mode }) => ({
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
           'admin-vendor': ['@supabase/supabase-js', '@tanstack/react-query'],
           'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
-          'tldraw-vendor': ['tldraw'],
+          // NOTE: do NOT manually chunk tldraw — splitting `tldraw` from its
+          // @tldraw/* sub-packages breaks its cross-package singletons at
+          // runtime ("p is not a function"). The lazy import in
+          // AdminWhiteboard already code-splits it on its own.
         },
       },
     },
