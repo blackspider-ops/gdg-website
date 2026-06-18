@@ -5,8 +5,12 @@ import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAdmin } from '@/contexts/AdminContext';
 import { WhiteboardService, type Whiteboard } from '@/services/whiteboardService';
+// Eagerly load Excalidraw's stylesheet here (this page is in the main bundle) so
+// the styles are always present; the heavy Excalidraw JS stays lazy via
+// WhiteboardCanvas.
+import '@excalidraw/excalidraw/index.css';
 
-// Lazy-load the heavy tldraw canvas so its bundle only loads on this page.
+// Lazy-load the heavy Excalidraw canvas so its bundle only loads on this page.
 const WhiteboardCanvas = React.lazy(() => import('@/components/admin/WhiteboardCanvas'));
 
 const AdminWhiteboard = () => {
