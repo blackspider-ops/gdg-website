@@ -36,6 +36,15 @@ canvas {
   will-change: transform;
 }
 
+/* Interactive canvases (e.g. the Excalidraw whiteboard) must receive pointer
+   events — the global rule above is only meant for the decorative 3D background. */
+.excalidraw canvas {
+  pointer-events: auto;
+  image-rendering: auto;
+  transform: none;
+  will-change: auto;
+}
+
 /* Optimize scroll performance */
 body {
   /* Enable smooth scrolling */
