@@ -22,35 +22,47 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({ boardId, userId }) 
   const isApplyingRemote = useRef(false);
   const lastSavedAt = useRef(0);
 
-  const handleMount = async (editor: Editor) => {
+  // IMPORTANT: onMount must be SYNCHRONOUS. tldraw treats the return value as a
+  // cleanup function (it calls it on unmount). An async handler returns a Promise,
+  // which tldraw then tries to call as a function -> "TypeError: x is not a
+  // function" crash. So we kick off async work internally and return a real
+  // cleanup that disposes the store listener.
+  const handleMount = (editor: Editor) => {
     editorRef.current = editor;
+    let unlisten: (() => void) | undefined;
 
-    // Load the existing document for this board
-    const board = await WhiteboardService.get(boardId);
-    if (board?.document) {
-      try {
-        isApplyingRemote.current = true;
-        editor.store.loadStoreSnapshot(board.document);
-      } catch (e) {
-        console.error('Failed to load whiteboard snapshot:', e);
-      } finally {
-        isApplyingRemote.current = false;
+    (async () => {
+      // Load the existing document for this board
+      const board = await WhiteboardService.get(boardId);
+      if (board?.document) {
+        try {
+          isApplyingRemote.current = true;
+          editor.store.loadStoreSnapshot(board.document);
+        } catch (e) {
+          console.error('Failed to load whiteboard snapshot:', e);
+        } finally {
+          isApplyingRemote.current = false;
+        }
       }
-    }
 
-    // Autosave on user edits (debounced)
-    editor.store.listen(
-      () => {
-        if (isApplyingRemote.current) return;
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(async () => {
-          const snapshot = editor.store.getStoreSnapshot();
-          lastSavedAt.current = Date.now();
-          await WhiteboardService.saveDocument(boardId, snapshot, userId);
-        }, 800);
-      },
-      { source: 'user', scope: 'document' }
-    );
+      // Autosave on user edits (debounced)
+      unlisten = editor.store.listen(
+        () => {
+          if (isApplyingRemote.current) return;
+          if (saveTimer.current) clearTimeout(saveTimer.current);
+          saveTimer.current = setTimeout(async () => {
+            const snapshot = editor.store.getStoreSnapshot();
+            lastSavedAt.current = Date.now();
+            await WhiteboardService.saveDocument(boardId, snapshot, userId);
+          }, 800);
+        },
+        { source: 'user', scope: 'document' }
+      );
+    })();
+
+    return () => {
+      unlisten?.();
+    };
   };
 
   // Subscribe to remote saves from other collaborators

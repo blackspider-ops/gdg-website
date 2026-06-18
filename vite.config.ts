@@ -9,20 +9,13 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [react()],
-  // tldraw's migration/record system relies on function & class names at
-  // runtime. The default minifier renames them, which breaks snapshot loading
-  // in production ("TypeError: p is not a function"). Preserve names.
-  esbuild: {
-    keepNames: true,
-  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
-    // Production optimizations
-    minify: true, // Use default esbuild minifier
+    minify: true,
     sourcemap: mode === 'development',
     rollupOptions: {
       output: {
