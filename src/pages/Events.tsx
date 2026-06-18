@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Filter, Search, Calendar, MapPin } from 'lucide-react';
 import EventCard from '@/components/EventCard';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
@@ -9,11 +10,24 @@ const Events = () => {
   const [selectedFilter, setSelectedFilter] = React.useState('All');
   const [selectedLevel, setSelectedLevel] = React.useState('All');
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState<'upcoming' | 'past'>('upcoming');
+  const [searchParams] = useSearchParams();
 
   // Load events when component mounts or content updates
   useEffect(() => {
     loadEvents(true); // Force reload to ensure accurate attendee counts
   }, [lastUpdated]); // Re-run when content is updated
+
+  // If a shared deep-link (?event=<id>) points at a past event, switch to the
+  // Past tab so its card renders and the details modal can open.
+  useEffect(() => {
+    const eventId = searchParams.get('event');
+    if (!eventId || events.length === 0) return;
+    const ev = events.find(e => e.id === eventId);
+    if (ev) {
+      setActiveTab(new Date(ev.date) > new Date() ? 'upcoming' : 'past');
+    }
+  }, [searchParams, events]);
 
   // Transform events data to match component structure
   const allEvents = events.map(event => {
@@ -172,6 +186,31 @@ const Events = () => {
         </div>
       </section>
 
+      {/* Upcoming / Past Tabs */}
+      {!isLoadingEvents && (
+        <section className="pt-8">
+          <div className="editorial-grid">
+            <div className="col-span-12">
+              <div className="flex space-x-1 border-b border-border">
+                {(['upcoming', 'past'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors capitalize ${
+                      activeTab === tab
+                        ? 'border-gdg-blue text-gdg-blue'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {tab} ({tab === 'upcoming' ? upcomingEvents.length : pastEvents.length})
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Upcoming Events */}
       {isLoadingEvents ? (
         <section className="py-16">
@@ -191,7 +230,7 @@ const Events = () => {
             </div>
           </div>
         </section>
-      ) : upcomingEvents.length > 0 && (
+      ) : activeTab === 'upcoming' && upcomingEvents.length > 0 && (
         <section className="py-16">
           <div className="editorial-grid">
             <div className="col-span-12">
@@ -219,7 +258,7 @@ const Events = () => {
       )}
 
       {/* Past Events */}
-      {pastEvents.length > 0 && (
+      {activeTab === 'past' && pastEvents.length > 0 && (
         <section className="py-16 bg-muted/20">
           <div className="editorial-grid">
             <div className="col-span-12">
@@ -245,6 +284,29 @@ const Events = () => {
           </div>
         </section>
       )}
+
+      {/* Empty state for the active tab (when other events exist but this tab is empty) */}
+      {!isLoadingEvents && filteredEvents.length > 0 &&
+        ((activeTab === 'upcoming' && upcomingEvents.length === 0) ||
+          (activeTab === 'past' && pastEvents.length === 0)) && (
+          <section className="py-16">
+            <div className="editorial-grid">
+              <div className="col-span-12 text-center">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar size={24} className="text-muted-foreground" />
+                </div>
+                <h3 className="font-display font-semibold text-lg mb-2">
+                  No {activeTab} events
+                </h3>
+                <p className="text-muted-foreground">
+                  {activeTab === 'upcoming'
+                    ? 'Check back soon — new events are added regularly.'
+                    : 'Past events will appear here after they happen.'}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
       {/* No Results */}
       {!isLoadingEvents && filteredEvents.length === 0 && (

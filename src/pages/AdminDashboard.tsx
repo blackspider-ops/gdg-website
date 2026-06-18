@@ -24,7 +24,8 @@ import {
   Bell,
   MessageCircle,
   DollarSign,
-  Hash
+  Hash,
+  Image
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -88,7 +89,7 @@ const AdminDashboard = () => {
     }
     
     // Team members - base pages they always have access to
-    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/channels', '/admin/whiteboard', '/admin/projects'];
+    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/channels', '/admin/whiteboard', '/admin/gallery', '/admin/projects'];
     
     // Add pages based on team membership
     const teamPages = new Set<string>();
@@ -315,6 +316,9 @@ const AdminDashboard = () => {
     { label: 'Newsletter', icon: Mail, href: '/admin/newsletter', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Blog', icon: PenTool, href: '/admin/blog', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Linktree', icon: LinkIcon, href: '/admin/linktree', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Channels', icon: Hash, href: '/admin/channels', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Whiteboard', icon: PenTool, href: '/admin/whiteboard', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Photo Gallery', icon: Image, href: '/admin/gallery', roles: ['super_admin', 'admin', 'team_member'] },
   ];
 
   const quickActions = allQuickActions.filter(action => 
@@ -325,8 +329,6 @@ const AdminDashboard = () => {
   const allBusinessActions = [
     { label: 'Manage Sponsors', icon: Building2, href: '/admin/sponsors', roles: ['super_admin'] },
     { label: 'Communications Hub', icon: MessageSquare, href: '/admin/communications', roles: ['super_admin', 'admin', 'team_member'] },
-    { label: 'Channels', icon: Hash, href: '/admin/channels', roles: ['super_admin', 'admin', 'team_member'] },
-    { label: 'Whiteboard', icon: PenTool, href: '/admin/whiteboard', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Media Library', icon: FolderOpen, href: '/admin/media', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Finances', icon: DollarSign, href: '/admin/finances', roles: ['super_admin', 'admin', 'team_member'] },
   ];

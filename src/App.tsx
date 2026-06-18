@@ -42,6 +42,7 @@ import AdminSiteStatus from "./pages/admin/AdminSiteStatus";
 import AdminTeams from "./pages/admin/AdminTeams";
 import AdminChannels from "./pages/admin/AdminChannels";
 import AdminWhiteboard from "./pages/admin/AdminWhiteboard";
+import AdminGallery from "./pages/admin/AdminGallery";
 import AdminFinances from "./pages/admin/AdminFinances";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import TeamDashboard from "./pages/admin/TeamDashboard";
@@ -189,6 +190,7 @@ const App = () => (
                       <Route path="/admin/communications" element={<PageAccessGuard><AdminCommunications /></PageAccessGuard>} />
                       <Route path="/admin/channels" element={<PageAccessGuard><AdminChannels /></PageAccessGuard>} />
                       <Route path="/admin/whiteboard" element={<PageAccessGuard><AdminWhiteboard /></PageAccessGuard>} />
+                      <Route path="/admin/gallery" element={<PageAccessGuard><AdminGallery /></PageAccessGuard>} />
                       <Route path="/admin/blog-comments" element={<Navigate to="/admin/blog?tab=comments" replace />} />
                       <Route path="/admin/media" element={<PageAccessGuard><AdminMedia /></PageAccessGuard>} />
                       <Route path="/admin/guide" element={<PageAccessGuard><AdminGuide /></PageAccessGuard>} />
