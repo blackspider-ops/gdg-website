@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calendar, MapPin, Users, ExternalLink, Share2 } from 'lucide-react';
 import EventRegistrationModal from './EventRegistrationModal';
 import EventDetailsModal from './EventDetailsModal';
@@ -63,8 +64,6 @@ const EventCard: React.FC<EventCardProps> = ({
   additional_info,
   contact_info
 }) => {
-  // Debug: log event_link to see if it's being passed
-  console.log('EventCard event_link:', event_link, 'for event:', title);
   const getLevelColor = (level?: string) => {
     switch (level) {
       case 'Beginner': return 'bg-green-600 text-white';
@@ -88,6 +87,41 @@ const EventCard: React.FC<EventCardProps> = ({
 
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // When the card has an eventId, the details modal is driven by the ?event=<id>
+  // URL param so links are shareable and open the right event automatically.
+  const isDetailsOpen = eventId ? searchParams.get('event') === eventId : showDetailsModal;
+
+  const openDetails = () => {
+    if (eventId) {
+      const next = new URLSearchParams(searchParams);
+      next.set('event', eventId);
+      setSearchParams(next);
+    } else {
+      setShowDetailsModal(true);
+    }
+  };
+
+  const closeDetails = () => {
+    if (eventId && searchParams.get('event') === eventId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('event');
+      setSearchParams(next);
+    }
+    setShowDetailsModal(false);
+  };
+
+  const handleShare = () => {
+    const shareUrl = eventId
+      ? `${window.location.origin}/events?event=${eventId}`
+      : window.location.href;
+    if (navigator.share) {
+      navigator.share({ title, text: `Check out this event: ${title}`, url: shareUrl }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl).catch(() => {});
+    }
+  };
 
   const handleRegister = () => {
     if (registrationEnabled === false) {
@@ -114,7 +148,7 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const handleViewDetails = () => {
-    setShowDetailsModal(true);
+    openDetails();
   };
 
   return (
@@ -238,22 +272,8 @@ const EventCard: React.FC<EventCardProps> = ({
               View Details
             </button>
           </div>
-          <button 
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: title,
-                  text: `Check out this event: ${title} - ${description}`,
-                  url: window.location.href
-                });
-              } else {
-                // Fallback: copy to clipboard
-                const shareText = `Check out this event: ${title}\n${description}\n\nDate: ${date} at ${time}\nLocation: ${location}`;
-                navigator.clipboard.writeText(shareText).then(() => {
-                }).catch(() => {
-                });
-              }
-            }}
+          <button
+            onClick={handleShare}
             className="p-2 hover:bg-secondary rounded-md transition-colors"
             title="Share event"
           >
@@ -283,12 +303,12 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
 
       {/* Event Details Modal */}
-      {showDetailsModal && (
+      {isDetailsOpen && (
         <EventDetailsModal
-          isOpen={showDetailsModal}
-          onClose={() => setShowDetailsModal(false)}
+          isOpen={isDetailsOpen}
+          onClose={closeDetails}
           onRegister={isUpcoming ? () => {
-            setShowDetailsModal(false);
+            closeDetails();
             handleRegister();
           } : undefined}
           event={{

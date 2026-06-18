@@ -89,7 +89,7 @@ const AdminEvents = () => {
   }
 
   // Get unique event types for filter dropdown
-  const uniqueEventTypes = Array.from(new Set(events.map(event => (event as any).type).filter(Boolean)));
+  const uniqueEventTypes = Array.from(new Set(events.map(event => event.type).filter(Boolean)));
 
   // Filter events
   const filteredEvents = events.filter(event => {
@@ -97,7 +97,7 @@ const AdminEvents = () => {
                          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.location.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesType = filterType === 'all' || (event as any).type === filterType;
+    const matchesType = filterType === 'all' || event.type === filterType;
     
     const now = new Date();
     const eventDate = new Date(event.date);
@@ -115,7 +115,7 @@ const AdminEvents = () => {
       const eventsData = await EventsService.getEvents();
       setEvents(eventsData);
     } catch (error) {
-      // Handle error silently
+      console.error('AdminEvents operation failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +126,7 @@ const AdminEvents = () => {
       const stats = await EventsService.getEventStats();
       setEventStats(stats);
     } catch (error) {
-      // Handle error silently
+      console.error('AdminEvents operation failed:', error);
     }
   };
 
@@ -227,7 +227,7 @@ const AdminEvents = () => {
       is_featured: event.is_featured,
       level: event.level || 'open_for_all',
       timezone: event.timezone || 'America/New_York', // Load timezone or default to EST
-      type: (event as any).type || 'Workshop' // Load type or default to Workshop
+      type: event.type || 'Workshop' // Load type or default to Workshop
     });
     setEditingEvent(event);
     setError(null);

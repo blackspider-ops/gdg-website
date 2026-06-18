@@ -43,6 +43,7 @@ import {
     type MediaFilters
 } from '@/services/mediaService';
 import { AuditService } from '@/services/auditService';
+import { EventsService, type Event } from '@/services/eventsService';
 
 // Component for handling image loading with fallback to signed URLs
 const MediaImage: React.FC<{ filePath: string; alt: string; className: string }> = ({ filePath, alt, className }) => {
@@ -121,6 +122,7 @@ const AdminMedia: React.FC = () => {
     // Form state
     const [folderForm, setFolderForm] = useState({ name: '', description: '' });
     const [editForm, setEditForm] = useState<Partial<MediaFile>>({});
+    const [events, setEvents] = useState<Event[]>([]);
     const [selectedItem, setSelectedItem] = useState<MediaFile | MediaFolder | null>(null);
     
     // File upload
@@ -152,6 +154,13 @@ const AdminMedia: React.FC = () => {
             loadAllData();
         }
     }, [isAuthenticated, currentAdmin, currentFolderId]);
+
+    // Load events once for the "assign to event" picker in the edit modal
+    useEffect(() => {
+        if (isAuthenticated && currentAdmin) {
+            EventsService.getEvents().then(setEvents).catch(err => console.error('Failed to load events for media:', err));
+        }
+    }, [isAuthenticated, currentAdmin]);
 
     // Force scroll to top when component mounts
     useEffect(() => {
@@ -376,7 +385,8 @@ const AdminMedia: React.FC = () => {
                 alt_text: item.alt_text,
                 description: item.description,
                 tags: item.tags,
-                is_public: item.is_public
+                is_public: item.is_public,
+                event_id: item.event_id
             });
         } else {
             // It's a folder
@@ -1384,6 +1394,24 @@ const AdminMedia: React.FC = () => {
                                         <label htmlFor="is_public" className="text-sm font-medium text-gray-300">
                                             Make file public
                                         </label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Event album (for public gallery)
+                                        </label>
+                                        <select
+                                            value={editForm.event_id || ''}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, event_id: e.target.value || undefined }))}
+                                            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-card text-foreground"
+                                        >
+                                            <option value="">— No event —</option>
+                                            {events.map(ev => (
+                                                <option key={ev.id} value={ev.id}>{ev.title}</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Public photos with an event are grouped into that event's album on /gallery.
+                                        </p>
                                     </div>
                                 </>
                             ) : (

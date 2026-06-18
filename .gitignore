@@ -26,3 +26,8 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+.env*
+
+# Claude Code
+CLAUDE.md
+user_feedback.md

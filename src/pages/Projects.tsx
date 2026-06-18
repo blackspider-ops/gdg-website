@@ -36,7 +36,7 @@ const Projects = () => {
       const starred = await ProjectStarsService.getUserStarredProjects(projectIds);
       setStarredProjects(starred);
     } catch (error) {
-      // Handle error silently
+      console.error('Projects operation failed:', error);
     }
   };
 
@@ -63,7 +63,7 @@ const Projects = () => {
         ));
       }
     } catch (error) {
-      // Handle error silently
+      console.error('Projects operation failed:', error);
     } finally {
       setStarringProject(null);
     }

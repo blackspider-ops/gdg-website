@@ -21,6 +21,7 @@ import Projects from "./pages/Projects";
 import Team from "./pages/Team";
 import Resources from "./pages/Resources";
 import Sponsors from "./pages/Sponsors";
+import Gallery from "./pages/Gallery";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminContent from "./pages/AdminContent";
 import AdminEvents from "./pages/admin/AdminEvents";
@@ -39,6 +40,9 @@ import AdminGuide from "./pages/admin/AdminGuide";
 import AdminLinktree from "./pages/admin/AdminLinktree";
 import AdminSiteStatus from "./pages/admin/AdminSiteStatus";
 import AdminTeams from "./pages/admin/AdminTeams";
+import AdminChannels from "./pages/admin/AdminChannels";
+import AdminWhiteboard from "./pages/admin/AdminWhiteboard";
+import AdminGallery from "./pages/admin/AdminGallery";
 import AdminFinances from "./pages/admin/AdminFinances";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import TeamDashboard from "./pages/admin/TeamDashboard";
@@ -170,6 +174,7 @@ const App = () => (
                       <Route path="/team" element={<Team />} />
                       <Route path="/resources" element={<Resources />} />
                       <Route path="/sponsors" element={<Sponsors />} />
+                      <Route path="/gallery" element={<Gallery />} />
                       <Route path="/admin" element={<PageAccessGuard><AdminDashboard /></PageAccessGuard>} />
                       <Route path="/admin/content" element={<PageAccessGuard><AdminContent /></PageAccessGuard>} />
                       <Route path="/admin/events" element={<PageAccessGuard><AdminEvents /></PageAccessGuard>} />
@@ -183,6 +188,9 @@ const App = () => (
                       <Route path="/admin/profile" element={<PageAccessGuard><AdminProfile /></PageAccessGuard>} />
                       <Route path="/admin/sponsors" element={<PageAccessGuard><AdminSponsors /></PageAccessGuard>} />
                       <Route path="/admin/communications" element={<PageAccessGuard><AdminCommunications /></PageAccessGuard>} />
+                      <Route path="/admin/channels" element={<PageAccessGuard><AdminChannels /></PageAccessGuard>} />
+                      <Route path="/admin/whiteboard" element={<PageAccessGuard><AdminWhiteboard /></PageAccessGuard>} />
+                      <Route path="/admin/gallery" element={<PageAccessGuard><AdminGallery /></PageAccessGuard>} />
                       <Route path="/admin/blog-comments" element={<Navigate to="/admin/blog?tab=comments" replace />} />
                       <Route path="/admin/media" element={<PageAccessGuard><AdminMedia /></PageAccessGuard>} />
                       <Route path="/admin/guide" element={<PageAccessGuard><AdminGuide /></PageAccessGuard>} />

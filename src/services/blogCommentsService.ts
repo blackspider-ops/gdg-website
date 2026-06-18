@@ -70,7 +70,9 @@ export class BlogCommentsService {
   }
 
   /**
-   * Create a new comment (starts as unapproved)
+   * Create a new comment. Comments are auto-published (is_approved=true) so they
+   * appear immediately; admins moderate reactively (flag/delete) from the panel.
+   * Spam is mitigated by a honeypot field on the submit form.
    */
   static async createComment(commentData: CreateCommentData): Promise<BlogComment | null> {
     try {
@@ -96,7 +98,7 @@ export class BlogCommentsService {
         author_email: commentData.author_email.trim().toLowerCase(),
         content: cleanContent,
         parent_comment_id: commentData.parent_comment_id || null,
-        is_approved: false,
+        is_approved: true,
         is_flagged: false
       };
 

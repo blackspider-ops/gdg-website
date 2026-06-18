@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Calendar, Users, BookOpen, Code, Briefcase, Phone, Loader2 } from 'lucide-react';
+import { Menu, X, Calendar, Users, BookOpen, Code, Briefcase, Phone, Image, Loader2 } from 'lucide-react';
 import { useContent } from '@/contexts/ContentContext';
 
 const Navigation = () => {
@@ -15,7 +15,8 @@ const Navigation = () => {
     BookOpen,
     Code,
     Briefcase,
-    Phone
+    Phone,
+    Image
   };
 
   // Use only dynamic navigation items from admin panel

@@ -23,7 +23,9 @@ import {
   Clock,
   Bell,
   MessageCircle,
-  DollarSign
+  DollarSign,
+  Hash,
+  Image
 } from 'lucide-react';
 
 import { EventsService } from '@/services/eventsService';
@@ -40,6 +42,7 @@ import { TeamManagementService } from '@/services/teamManagementService';
 import { FinancesService } from '@/services/financesService';
 import { PermissionsService, TEAM_PAGE_ACCESS, PAGE_PERMISSIONS } from '@/services/permissionsService';
 import MyTeamsWidget from '@/components/admin/MyTeamsWidget';
+import MyTodoWidget from '@/components/admin/MyTodoWidget';
 
 const AdminDashboard = () => {
   const { isAuthenticated, currentAdmin, logout, userTeams, isSuperAdmin, isAdmin } = useAdmin();
@@ -86,7 +89,7 @@ const AdminDashboard = () => {
     }
     
     // Team members - base pages they always have access to
-    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/projects'];
+    const basePages = ['/admin', '/admin/profile', '/admin/guide', '/admin/teams', '/admin/finances', '/admin/communications', '/admin/channels', '/admin/whiteboard', '/admin/gallery', '/admin/projects'];
     
     // Add pages based on team membership
     const teamPages = new Set<string>();
@@ -313,6 +316,9 @@ const AdminDashboard = () => {
     { label: 'Newsletter', icon: Mail, href: '/admin/newsletter', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Blog', icon: PenTool, href: '/admin/blog', roles: ['super_admin', 'admin', 'team_member'] },
     { label: 'Linktree', icon: LinkIcon, href: '/admin/linktree', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Channels', icon: Hash, href: '/admin/channels', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Whiteboard', icon: PenTool, href: '/admin/whiteboard', roles: ['super_admin', 'admin', 'team_member'] },
+    { label: 'Photo Gallery', icon: Image, href: '/admin/gallery', roles: ['super_admin', 'admin', 'team_member'] },
   ];
 
   const quickActions = allQuickActions.filter(action => 
@@ -617,6 +623,9 @@ const AdminDashboard = () => {
         <div className="col-span-12 lg:col-span-4">
           {/* My Teams Widget */}
           <MyTeamsWidget />
+
+          {/* My To-Do Widget */}
+          <MyTodoWidget />
 
           {/* Team Quick Stats - For Admins */}
           {teamQuickStats && (currentAdmin?.role === 'super_admin' || currentAdmin?.role === 'admin') && (

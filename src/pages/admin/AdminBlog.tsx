@@ -131,7 +131,7 @@ const AdminBlog = () => {
         loadComments();
       }
     } catch (error) {
-      // Handle error silently
+      console.error('AdminBlog data load failed:', error);
     } finally {
       setIsLoading(false);
     }
@@ -152,6 +152,7 @@ const AdminBlog = () => {
       const commentsData = await BlogCommentsService.getAllComments(filters);
       setComments(commentsData);
     } catch (error) {
+      console.error('Failed to load comments:', error);
       setComments([]);
     }
   };
@@ -162,7 +163,7 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error approving comment
+      console.error('Error approving comment:', error);
     }
   };
 
@@ -172,7 +173,7 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error rejecting comment
+      console.error('Error rejecting comment:', error);
     }
   };
 
@@ -182,7 +183,7 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error flagging comment
+      console.error('Error flagging comment:', error);
     }
   };
 
@@ -196,9 +197,9 @@ const AdminBlog = () => {
       await loadComments();
       await BlogCommentsService.getCommentStats().then(setCommentStats);
     } catch (error) {
-      // Error deleting comment
+      console.error('Error deleting comment:', error);
     }
-  }; 
+  };
  // Filter posts based on search and filters
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -302,7 +303,7 @@ const AdminBlog = () => {
         setAdminNotes('');
       }
     } catch (error) {
-      // Handle error silently
+      console.error('Blog submission update failed:', error);
     }
   };
 
@@ -334,7 +335,7 @@ const AdminBlog = () => {
           await loadBlogData();
         }
       } catch (error) {
-        // Handle error silently
+        console.error('Blog submission delete failed:', error);
       }
     }
   };
@@ -387,7 +388,7 @@ const AdminBlog = () => {
         link.click();
         document.body.removeChild(link);
       } catch (fallbackError) {
-        // Handle error silently
+        console.error('Submission download failed:', fallbackError);
       }
     }
   };
@@ -397,6 +398,7 @@ const AdminBlog = () => {
       const commentsData = await BlogSubmissionService.getSubmissionComments(submissionId);
       setSubmissionComments(commentsData);
     } catch (error) {
+      console.error('Failed to load submission comments:', error);
       setSubmissionComments([]);
     }
   };
@@ -426,7 +428,7 @@ const AdminBlog = () => {
         setCommentType('general');
       }
     } catch (error) {
-      // Error adding comment
+      console.error('Error adding submission comment:', error);
     } finally {
       setIsAddingComment(false);
     }
@@ -460,7 +462,7 @@ const AdminBlog = () => {
         }
       }
     } catch (error) {
-      // Error updating status
+      console.error('Error updating submission status:', error);
     }
   };
 
